@@ -1,0 +1,18 @@
+#!/bin/sh
+DIR="$(mktemp -t mango.XXXX -d)"
+OBJECTS="$DIR/boot.o" # assume bootloader will compile successfully
+
+compile() {
+    # kernel souce compile
+    echo "Compiling $1..."
+    out=$(echo "$1" | sed 's|^src/||; s|\.c$|.o|')
+    i686-elf-gcc -c $1 -Iinclude -o $DIR/$out -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+    OBJECTS="$OBJECTS $DIR/$out"
+}
+
+i686-elf-as src/boot.s -o $DIR/boot.o
+for kernel_src in $(find src -name "*.c"); do
+    compile $kernel_src;
+done
+i686-elf-gcc -T src/linker.ld -o mango.bin -ffreestanding -O2 -nostdlib $OBJECTS -lgcc
+rm -r $DIR

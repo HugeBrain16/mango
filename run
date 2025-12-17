@@ -1,0 +1,3 @@
+#!/bin/sh
+
+qemu-system-i386 -kernel mango.bin -serial stdio -s -S
