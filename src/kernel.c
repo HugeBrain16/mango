@@ -4,5 +4,5 @@
 
 void main(multiboot_info_t *mbi) {
     serial_init();
-    serial_write("We're in kernel!");
+    serial_write("Mango kernel\n");
 }

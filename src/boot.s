@@ -2,7 +2,8 @@
 
 .set ALIGN, 1<<0
 .set MEMINFO, 1<<1
-.set FLAGS, ALIGN | MEMINFO
+.set VIDEO, 1<<2
+.set FLAGS, ALIGN | MEMINFO | VIDEO
 .set MAGIC, 0x1BADB002
 .set CHECKSUM, -(MAGIC + FLAGS)
 
@@ -11,6 +12,11 @@
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
+
+.long 0 // framebuffer
+.long 800 // width
+.long 600 // height
+.long 32 // bit depth
 
 .section .bss
 .align 16
@@ -21,11 +27,9 @@ stack_top:
 .section .text
 .global _start
 _start:
-    mov esp, stack_top
+    mov esp, offset stack_top
     push ebx
     call main
 
 hang:
-    cli
-    hlt
     jmp hang
