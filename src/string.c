@@ -1,9 +1,9 @@
 #include "string.h"
 
+
 size_t strlen(const char *str) {
     size_t len = 0;
-    while (str[len] != '\0')
-        len++;
+    while (str[len++] != '\0');
     return len;
 }
 
@@ -38,4 +38,34 @@ void strhex(char *dest, uint32_t value) {
         value >>=4;
     }
     dest[10] = '\0';
+}
+
+void strflip(char *dest, size_t start, size_t end) {
+    while (start < end) {
+        char c = dest[start];
+        dest[start] = dest[end];
+        dest[end] = c;
+        start++;
+        end--;
+    }
+}
+
+void strint(char *dest, int value) {
+    const char num[] = "0123456789";
+    size_t i = 0;
+    size_t start = 0;
+
+    if (value < 0) {
+        dest[i++] = '-';
+        value = -value;
+        start = 1;
+    }
+
+    do {
+        dest[i++] = num[value % 10];
+        value /= 10;
+    } while (value != 0);
+
+    dest[i] = '\0';
+    strflip(dest, start, i - 1);
 }

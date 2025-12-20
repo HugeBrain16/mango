@@ -13,7 +13,13 @@
 .long FLAGS
 .long CHECKSUM
 
-.long 0 // framebuffer
+.long 0 // header_addr
+.long 0 // load_addr
+.long 0 // load_end_addr
+.long 0 // bss_end_addr
+.long 0 // entry_addr
+
+.long 0 // linear framebuffer
 .long 800 // width
 .long 600 // height
 .long 32 // bit depth
@@ -29,6 +35,7 @@ stack_top:
 _start:
     mov esp, offset stack_top
     push ebx
+    push eax
     call main
 
 hang:

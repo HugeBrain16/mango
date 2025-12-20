@@ -15,5 +15,15 @@ i686-elf-as src/boot.s -o $DIR/boot.o
 for kernel_src in $(find src -name "*.c"); do
     compile $kernel_src;
 done
-i686-elf-gcc -T src/linker.ld -o mango.bin -ffreestanding -O2 -nostdlib $OBJECTS -lgcc
+i686-elf-gcc -T src/linker.ld -o $DIR/mango.bin -ffreestanding -O2 -nostdlib $OBJECTS -lgcc
+
+mkdir -p $DIR/iso/boot/grub
+cp $DIR/mango.bin $DIR/iso/boot/
+cat > $DIR/iso/boot/grub/grub.cfg << EOF
+menuentry "Mango" {
+    multiboot /boot/mango.bin
+}
+EOF
+grub-mkrescue -o mango.iso $DIR/iso
+
 rm -r $DIR
