@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+CFLAGS="-O2 -g -Wall -Wextra -fstack-protector"
+
 DIR="$(mktemp -t mango.XXXX -d)"
 OBJECTS="$DIR/boot.o" # assume bootloader will compile successfully
 CRTI="$DIR/crti.o"
@@ -12,7 +14,7 @@ compile() {
     echo "Compiling $1..."
     out=$(echo "$1" | sed 's|^src/||; s|\.c$|.o|')
     i686-elf-gcc -c $1 -Iinclude -o $DIR/$out \
-        -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+        -std=gnu99 -ffreestanding $CLAGS
     OBJECTS="$OBJECTS $DIR/$out"
 }
 
@@ -32,7 +34,7 @@ done
 
 echo "Linking kernel..."
 i686-elf-gcc -T src/linker.ld -o mango.bin \
-    -ffreestanding -O2 -nostdlib $CRTI $CRTBEGIN $OBJECTS $CRTEND $CRTN -lgcc
+    -ffreestanding -nostdlib $CFLAGS $CRTI $CRTBEGIN $OBJECTS $CRTEND $CRTN -lgcc
 
 if [[ -f mango.bin ]]; then
 echo "Building iso..."
@@ -47,7 +49,7 @@ menuentry "Mango" {
     boot
 }
 EOF
-grub-mkrescue -o mango.iso $DIR/iso
+grub-mkrescue -o mango.iso $DIR/iso > /dev/null 2>&1
 fi
 
 echo "Done! cleanup..."
