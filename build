@@ -2,28 +2,53 @@
 
 DIR="$(mktemp -t mango.XXXX -d)"
 OBJECTS="$DIR/boot.o" # assume bootloader will compile successfully
+CRTI="$DIR/crti.o"
+CRTN="$DIR/crtn.o"
+CRTBEGIN="toolchain/lib/gcc/i686-elf/7.1.0/crtbegin.o"
+CRTEND="toolchain/lib/gcc/i686-elf/7.1.0/crtend.o"
 
 compile() {
     # kernel souce compile
     echo "Compiling $1..."
     out=$(echo "$1" | sed 's|^src/||; s|\.c$|.o|')
-    i686-elf-gcc -c $1 -Iinclude -o $DIR/$out -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+    i686-elf-gcc -c $1 -Iinclude -o $DIR/$out \
+        -std=gnu99 -ffreestanding -O2 -Wall -Wextra
     OBJECTS="$OBJECTS $DIR/$out"
 }
 
-i686-elf-as src/boot.s -o $DIR/boot.o
+assemble() {
+    echo "Compiling $1..."
+    out=$(echo "$1" | sed 's|^src/||; s|\.s$|.o|')
+    i686-elf-as $1 -o $DIR/$out
+}
+
+for asm in $(find src -name "*.s"); do
+    assemble $asm;
+done
+
 for kernel_src in $(find src -name "*.c"); do
     compile $kernel_src;
 done
-i686-elf-gcc -T src/linker.ld -o $DIR/mango.bin -ffreestanding -O2 -nostdlib $OBJECTS -lgcc
 
+echo "Linking kernel..."
+i686-elf-gcc -T src/linker.ld -o mango.bin \
+    -ffreestanding -O2 -nostdlib $CRTI $CRTBEGIN $OBJECTS $CRTEND $CRTN -lgcc
+
+if [[ -f mango.bin ]]; then
+echo "Building iso..."
 mkdir -p $DIR/iso/boot/grub
-cp $DIR/mango.bin $DIR/iso/boot/
+cp mango.bin $DIR/iso/boot/
 cat > $DIR/iso/boot/grub/grub.cfg << EOF
+set timeout=0
+set default=0
+
 menuentry "Mango" {
     multiboot /boot/mango.bin
+    boot
 }
 EOF
 grub-mkrescue -o mango.iso $DIR/iso
+fi
 
+echo "Done! cleanup..."
 rm -r $DIR

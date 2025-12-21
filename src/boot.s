@@ -33,10 +33,11 @@ stack_top:
 .section .text
 .global _start
 _start:
-    mov esp, offset stack_top
+    lea esp, [stack_top]
     push ebx
     push eax
     call main
-
-hang:
-    jmp hang
+    cli
+1:
+    hlt
+    jmp 1b
