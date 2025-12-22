@@ -4,8 +4,9 @@
 #include "multiboot.h"
 #include "serial.h"
 #include "string.h"
+#include "heap.h"
 
-uintptr_t __stack_chk_guard = 0xdeadbeef;
+uintptr_t __stack_chk_guard;
 
 __attribute__((noreturn))
 void abort() {
@@ -35,6 +36,8 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         panic("KERNEL PANIC: invalid magic number");
     if (!(mbi->flags & (1 << 12)))
         panic("KERNEL PANIC: no video");
+
+    heap_init(mbi->mem_upper);
 
     // hang
     while(1)

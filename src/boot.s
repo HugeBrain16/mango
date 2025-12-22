@@ -34,6 +34,15 @@ stack_top:
 .global _start
 _start:
     lea esp, [stack_top]
+
+    push ebx
+    push eax
+    rdtsc
+    xor eax, edx
+    mov [__stack_chk_guard], eax
+    pop eax
+    pop ebx
+
     push ebx
     push eax
     call main
