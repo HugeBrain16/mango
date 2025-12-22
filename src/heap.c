@@ -38,6 +38,17 @@ void *heap_alloc(size_t size) {
     while (current) {
         if (current->is_free && current->size >= size) {
             current->is_free = 0;
+
+            if (current->size > size + sizeof(block_t) + 16) {
+                block_t *block = (block_t *) current + sizeof(block_t) + size;
+                block->size = current->size - size - sizeof(block_t);
+                block->is_free = 1;
+                block->next = current->next;
+
+                current->size = size;
+                current->next = block;
+            }
+
             return (void *) current + 1;
         }
         current = current->next;
@@ -66,4 +77,14 @@ void heap_free(void *ptr) {
 
     block_t *block = (block_t *) ptr - 1;
     block->is_free = 1;
+
+    block_t *current;
+    while (current) {
+        block_t *adjacent = current->next;
+        if (current->is_free && adjacent && adjacent->is_free) {
+            current->size += sizeof(block_t) + adjacent->size;
+            current->next = adjacent->next;
+        }
+        current->next = adjacent;
+    }
 }
