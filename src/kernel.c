@@ -31,7 +31,7 @@ void __stack_chk_fail() {
     __builtin_unreachable();
 }
 
-static void handle_command(const char *command) {
+static void handle_command(const char *command, void *data) {
     size_t len = strlen(command);
     char cmd[128] = {0};
     char arg[128] = {0};
@@ -80,6 +80,14 @@ static void handle_command(const char *command) {
     } else if (!strcmp(cmd, "exit")) {
         term_write("Halting...\n", COLOR_WHITE, COLOR_BLACK);
         abort();
+    } else if (!strcmp(cmd, "fetch")) {
+        char buff[32];
+        multiboot_info_t *mbi = (multiboot_info_t*) data;
+        term_write("Kernel: Mango\n", COLOR_WHITE, COLOR_BLACK);
+        if (mbi) {
+            strfmt(buff, "Memory: %d MB\n", (mbi->mem_upper >> 10) + 1);
+            term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        }
     } else {
         term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
     }
@@ -116,7 +124,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
             }
 
             if (c == '\n') {
-                handle_command(term_input);
+                handle_command(term_input, mbi);
                 term_input_cursor = 0;
                 term_input[0] = '\0';
                 term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
