@@ -27,45 +27,42 @@ void panic(const char *msg) {
 
 __attribute__((noreturn))
 void __stack_chk_fail() {
+    term_write("KERNEL PANIC: stack smashing detected\n", COLOR_WHITE, COLOR_BLACK);
     panic("KERNEL PANIC: stack smashing detected");
     __builtin_unreachable();
 }
 
 static void handle_command(const char *command, void *data) {
-    size_t len = strlen(command);
     char cmd[128] = {0};
-    char arg[128] = {0};
-    int findargs = 0;
-    list_t args;
-    list_init(&args);
+    char args[32][128] = {0};
+    int arg_count = 0;
+    int idx = 0;
+    int in_cmd = 1;
 
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0; command[i] != '\0'; i++) {
         if (command[i] == ' ') {
-            if (findargs == 0) {
-                cmd[i] = '\0';
-                findargs = 1;
-            } else if (findargs == 1) {
-                if (strlen(arg) > 0) {
-                    list_push(&args, arg);
-                    arg[0] = '\0';
-                }
+            if (in_cmd) {
+                cmd[idx] = '\0';
+                in_cmd = 0;
+                idx = 0;
+            } else if (idx > 0) {
+                args[arg_count][idx] = '\0';
+                arg_count++;
+                if (arg_count >= 32) break;
+                idx = 0;
             }
-            continue;
-        }
-
-        if (findargs == 0) {
-            cmd[i] = command[i];
-        } else if (findargs == 1) {
-            arg[i] = command[i]; 
+        } else {
+            if (in_cmd) {
+                cmd[idx++] = command[i];
+            } else {
+                args[arg_count][idx++] = command[i];
+            }
         }
     }
-
-    if (cmd[strlen(cmd) - 1] != '\0')
-        cmd[strlen(cmd)] = '\0';
-
-    if (strlen(arg) > 0) {
-        list_push(&args, arg);
-        arg[0] = '\0';
+ 
+    if (!in_cmd && idx > 0) {
+        args[arg_count][idx] = '\0';
+        arg_count++;
     }
 
     if (!strcmp(cmd, "scaleup")) {
@@ -83,11 +80,32 @@ static void handle_command(const char *command, void *data) {
     } else if (!strcmp(cmd, "fetch")) {
         char buff[32];
         multiboot_info_t *mbi = (multiboot_info_t*) data;
+
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
+        for (int i = 0; i < 6; i++) {
+            term_write("=", COLOR_YELLOW, COLOR_BLACK);
+            term_write("=", COLOR_WHITE, COLOR_BLACK);
+            term_write("=", COLOR_YELLOW, COLOR_BLACK);
+        }
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
         term_write("Kernel: Mango\n", COLOR_WHITE, COLOR_BLACK);
         if (mbi) {
             strfmt(buff, "Memory: %d MB\n", (mbi->mem_upper >> 10) + 1);
             term_write(buff, COLOR_WHITE, COLOR_BLACK);
         }
+
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
+        term_write("=", COLOR_YELLOW, COLOR_YELLOW);
+        term_write("=", COLOR_WHITE, COLOR_WHITE);
+        term_write("=", COLOR_PURPLE, COLOR_PURPLE);
+        term_write("=", COLOR_DARKGRAY, COLOR_DARKGRAY);
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
+    } else if (!strcmp(cmd, "echo")) {
+        for (int i = 0; i < arg_count; i++) {
+            term_write(args[i], COLOR_WHITE, COLOR_BLACK);
+            term_write(" ", COLOR_BLACK, COLOR_BLACK);
+        }
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
     } else {
         term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
     }
