@@ -63,6 +63,22 @@ void strcat(char *dest, const char *src) {
     dest[dlen + slen] = '\0';
 }
 
+void strncpy(char *dest, const char *src, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        dest[i] = src[i];
+    }
+
+    dest[size] = '\0';
+}
+
+void strncat(char *dest, const char *src, size_t dsize, size_t ssize) {
+    for (size_t i = 0; i < ssize; i++) {
+        dest[dsize + i] = src[i];
+    }
+
+    dest[dsize + ssize] = '\0';
+}
+
 void strhex(char *dest, uint32_t value) {
     const char hex[] = "0123456789ABCDEF";
     dest[0] = '0';
@@ -202,4 +218,13 @@ void strfmt(char *dest, const char *fmt, ...) {
 
     dest[i] = '\0';
     va_end(args);
+}
+
+int strcmp(const char *a, const char *b) {
+    while (*a && (*a == *b)) {
+        a++;
+        b++;
+    }
+
+    return (unsigned char)*a - (unsigned char)*b;
 }

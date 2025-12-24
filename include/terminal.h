@@ -1,9 +1,17 @@
 #include <stdint.h>
 #include "list.h"
 
-#define TERMINAL_BUFFER_SIZE 1024
+#define TERM_BUFFER_SIZE 1024
+#define TERM_INPUT_SIZE 1024
+
+#define TERM_MODE_NONE 0
+#define TERM_MODE_TYPE 1
 
 list_t term_buffer;
+size_t term_input_cursor;
+char term_input[TERM_INPUT_SIZE];
+int term_scale;
+int term_mode;
 
 void term_init();
 void term_write(const char *msg, uint32_t fg_color, uint32_t bg_color);

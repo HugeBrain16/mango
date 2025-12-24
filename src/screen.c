@@ -24,6 +24,9 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
                         screen_buffer[pixel_y * screen_width + pixel_x] = fg_color;
                     else
                         screen_buffer[pixel_y * screen_width + pixel_x] = bg_color;
+
+                    if (c == '\b')
+                        screen_buffer[pixel_y * screen_width + pixel_x] = 0x000000;
                 }
             }
         }
