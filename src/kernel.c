@@ -5,6 +5,9 @@
 #include "serial.h"
 #include "string.h"
 #include "heap.h"
+#include "screen.h"
+#include "terminal.h"
+#include "color.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -30,7 +33,6 @@ void __stack_chk_fail() {
 __attribute__((noreturn))
 void main(uint32_t magic, multiboot_info_t *mbi) {
     serial_init();
-    serial_writeln("Mango kernel");
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
         panic("KERNEL PANIC: invalid magic number");
@@ -38,6 +40,11 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         panic("KERNEL PANIC: no video");
 
     heap_init(mbi->mem_upper);
+    screen_init(mbi);
+    term_init();
+
+    term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
+    term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
 
     // hang
     while(1)
