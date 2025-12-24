@@ -33,8 +33,8 @@ void __stack_chk_fail() {
 
 static void handle_command(const char *command) {
     size_t len = strlen(command);
-    char cmd[128];
-    char arg[128];
+    char cmd[128] = {0};
+    char arg[128] = {0};
     int findargs = 0;
     list_t args;
     list_init(&args);
@@ -73,6 +73,13 @@ static void handle_command(const char *command) {
     } else if (!strcmp(cmd, "scaledown")) {
         if (term_scale > 1)
             term_scale--;
+    } else if (!strcmp(cmd, "clear")) {
+        screen_clear(COLOR_BLACK);
+        term_x = 0;
+        term_y = 0;
+    } else if (!strcmp(cmd, "exit")) {
+        term_write("Halting...\n", COLOR_WHITE, COLOR_BLACK);
+        abort();
     } else {
         term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
     }

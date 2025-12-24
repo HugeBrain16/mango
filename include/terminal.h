@@ -10,6 +10,8 @@
 list_t term_buffer;
 size_t term_input_cursor;
 char term_input[TERM_INPUT_SIZE];
+int term_x;
+int term_y;
 int term_scale;
 int term_mode;
 

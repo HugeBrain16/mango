@@ -30,6 +30,12 @@ void term_write(const char *msg, uint32_t fg_color, uint32_t bg_color) {
         if (c == '\n') {
             term_x = 0;
             term_y += FONT_HEIGHT * term_scale;
+
+            int max_y = screen_height - (FONT_HEIGHT * term_scale);
+            if (term_y > max_y) {
+                screen_scroll(FONT_HEIGHT * term_scale);
+                term_y = max_y;
+            }
         }
     }
     list_push(&term_buffer, (char *) msg);
