@@ -40,7 +40,7 @@ void *heap_alloc(size_t size) {
             current->is_free = 0;
 
             if (current->size > size + sizeof(block_t) + 16) {
-                block_t *block = (block_t *) current + sizeof(block_t) + size;
+                block_t *block = (block_t *) ((uint8_t *) current + sizeof(block_t) + size);
                 block->size = current->size - size - sizeof(block_t);
                 block->is_free = 1;
                 block->next = current->next;
@@ -49,7 +49,7 @@ void *heap_alloc(size_t size) {
                 current->next = block;
             }
 
-            return (void *) current + 1;
+            return (uint8_t *) current + 1;
         }
         current = current->next;
     }
@@ -69,16 +69,16 @@ void *heap_alloc(size_t size) {
     else
         block_append(block);
 
-    return (void *) block + 1;
+    return (uint8_t *) block + 1;
 }
 
 void heap_free(void *ptr) {
     if (!ptr) return;
 
-    block_t *block = (block_t *) ptr - 1;
+    block_t *block = (block_t *) ((uint8_t *) ptr - sizeof(block_t));
     block->is_free = 1;
 
-    block_t *current;
+    block_t *current = block_current;
     while (current) {
         block_t *adjacent = current->next;
         if (current->is_free && adjacent && adjacent->is_free) {

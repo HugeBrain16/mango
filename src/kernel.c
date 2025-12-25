@@ -9,6 +9,7 @@
 #include "terminal.h"
 #include "color.h"
 #include "ps2.h"
+#include "gdt.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -120,6 +121,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     if (!(mbi->flags & (1 << 12)))
         panic("KERNEL PANIC: no video");
 
+    gdt_init();
     heap_init(mbi->mem_upper);
     screen_init(mbi);
     term_init();
