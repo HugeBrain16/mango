@@ -1,6 +1,7 @@
 #define SERIAL_ENABLE_ALIAS
 
 #include <stdint.h>
+#include <cpuid.h>
 #include "multiboot.h"
 #include "serial.h"
 #include "string.h"
@@ -81,7 +82,7 @@ static void handle_command(const char *command, void *data) {
         term_write("Halting...\n", COLOR_WHITE, COLOR_BLACK);
         abort();
     } else if (!strcmp(cmd, "fetch")) {
-        char buff[32];
+        char buff[128];
         multiboot_info_t *mbi = (multiboot_info_t*) data;
 
         term_write("\n", COLOR_BLACK, COLOR_BLACK);
@@ -92,6 +93,49 @@ static void handle_command(const char *command, void *data) {
         }
         term_write("\n", COLOR_BLACK, COLOR_BLACK);
         term_write("Kernel: Mango\n", COLOR_WHITE, COLOR_BLACK);
+
+        uint32_t eax, ebx, ecx, edx;
+        char cpu_name[64] = {0};
+        uint32_t *p = (uint32_t *) cpu_name;
+
+        __cpuid(0x80000000, eax, ebx, ecx, edx);
+
+        if (eax >= 0x80000004) {
+
+            for (int i = 0; i < 3; i++) {
+                __cpuid(0x80000002 + i, eax, ebx, ecx, edx);
+                *p++ = eax;
+                *p++ = ebx;
+                *p++ = ecx;
+                *p++ = edx;
+            }
+        } else {
+            __cpuid(0, eax, ebx, ecx, edx);
+            p[0] = ebx;
+            p[1] = edx;
+            p[2] = ecx;
+
+            p[12] = '\0';
+
+            __cpuid(1, eax, ebx, ecx, edx);
+
+            uint32_t base_model = (eax >> 4) & 0xF;
+            uint32_t base_family = (eax >> 8) & 0xF;
+            uint32_t ext_model = (eax >> 16) & 0xF;
+            uint32_t ext_family = (eax >> 20) & 0xFF;
+
+            uint32_t family = base_family;
+            if (family == 0xF)
+                family += ext_family;
+
+            uint32_t model = base_model;
+            if (base_family == 0x6 || base_family == 0xF)
+                model |= (ext_model << 4);
+
+            strfmt(cpu_name, "%s (Family %d Model %d)", cpu_name, family, model);
+        }
+        strfmt(buff, "CPU: %s\n", cpu_name);
+        term_write(buff, COLOR_WHITE, COLOR_BLACK);
         if (mbi) {
             strfmt(buff, "Memory: %d MB\n", (mbi->mem_upper >> 10) + 1);
             term_write(buff, COLOR_WHITE, COLOR_BLACK);
