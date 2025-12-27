@@ -3,7 +3,6 @@
 CFLAGS="-std=gnu99 -ffreestanding -O2 -g -Wall -Wextra -fstack-protector"
 
 DIR="$(mktemp -t mango.XXXX -d)"
-OBJECTS="$DIR/boot.o" # assume bootloader will compile successfully
 CRTI="$DIR/crti.o"
 CRTN="$DIR/crtn.o"
 CRTBEGIN="toolchain/lib/gcc/i686-elf/7.1.0/crtbegin.o"
@@ -21,6 +20,10 @@ assemble() {
     echo "Compiling $1..."
     out=$(echo "$1" | sed 's|^src/||; s|\.s$|.o|')
     i686-elf-as $1 -o $DIR/$out
+
+    if [ "$out" != "crti.o" ] && [ "$out" != "crtn.o" ]; then
+        OBJECTS="$OBJECTS $DIR/$out"
+    fi
 }
 
 for asm in $(find src -name "*.s"); do
@@ -31,6 +34,7 @@ for kernel_src in $(find src -name "*.c"); do
     compile $kernel_src;
 done
 
+echo "Objects ($OBJECTS)"
 echo "Linking kernel..."
 i686-elf-gcc -T src/linker.ld -o mango.bin -nostdlib \
     $CFLAGS $CRTI $CRTBEGIN $OBJECTS $CRTEND $CRTN -lgcc

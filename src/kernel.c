@@ -10,6 +10,8 @@
 #include "color.h"
 #include "ps2.h"
 #include "gdt.h"
+#include "idt.h"
+#include "io.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -122,9 +124,14 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         panic("KERNEL PANIC: no video");
 
     gdt_init();
+    idt_init();
     heap_init(mbi->mem_upper);
     screen_init(mbi);
     term_init();
+
+    // disable PIC
+    outb(0x21, 0xFF);
+    outb(0xA1, 0xFF);
 
     term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);

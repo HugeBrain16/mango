@@ -81,14 +81,12 @@ void strncat(char *dest, const char *src, size_t dsize, size_t ssize) {
 
 void strhex(char *dest, uint32_t value) {
     const char hex[] = "0123456789ABCDEF";
-    dest[0] = '0';
-    dest[1] = 'x';
 
     for (int i = 7; i >= 0; i--) {
-        dest[2 + i] = hex[value & 0xF];
+        dest[i] = hex[value & 0xF];
         value >>=4;
     }
-    dest[10] = '\0';
+    dest[8] = '\0';
 }
 
 void strflip(char *dest, size_t start, size_t end) {
@@ -200,7 +198,7 @@ void strfmt(char *dest, const char *fmt, ...) {
                 dest[i++] = arg;
                 f++;
             } else if (type == 'x'){
-                char arg[11];
+                char arg[9];
                 strhex(arg, (uint32_t) va_arg(args, int));
 
                 for (size_t x = 0; x < strlen(arg); x++) {
