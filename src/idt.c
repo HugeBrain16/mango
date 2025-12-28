@@ -1,19 +1,11 @@
 #include "idt.h"
+#include "pic.h"
 #include "io.h"
 #include "string.h"
 #include "terminal.h"
 #include "color.h"
 #include "keyboard.h"
-
-#define PIC1_COMMAND 0x20
-#define PIC1_DATA 0x21
-#define PIC2_COMMAND 0xA0
-#define PIC2_DATA 0xA1
-
-#define ICW1_INIT 0x10
-#define ICW1_ICW4 0x01
-#define ICW4_8086 0x01
-#define PIC_EOI 0x20
+#include "pit.h"
 
 static idt_entry_t idt[256];
 static idt_ptr_t idt_ptr;
@@ -144,7 +136,9 @@ void exception_handler(int_frame_t *frame) {
 void irq_handler(int_frame_t *frame) {
     uint8_t irq = frame->vector - 32;
 
-    if (irq == 1) {
+    if (irq == 0) {
+        pit_handle();
+    } else if (irq == 1) {
         keyboard_handle();
     }
 

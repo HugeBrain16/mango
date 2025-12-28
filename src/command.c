@@ -6,6 +6,7 @@
 #include "screen.h"
 #include "terminal.h"
 #include "color.h"
+#include "time.h"
 
 void command_handle(const char *command) {
     char cmd[128] = {0};
@@ -108,6 +109,21 @@ void command_handle(const char *command) {
         term_write(buff, COLOR_WHITE, COLOR_BLACK);
         strfmt(buff, "Memory: %d MB\n", ((heap_end - heap_start) >> 20) + 2);
         term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        strcpy(buff, "Uptime:");
+        term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        if (uptime_hours > 0) {
+            strfmt(buff, " %d hours", uptime_hours);
+            term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        }
+        if (uptime_minutes > 0) {
+            strfmt(buff, " %d minutes", uptime_minutes);
+            term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        }
+        if (uptime_seconds > 0) {
+            strfmt(buff, " %d seconds", uptime_seconds);
+            term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        }
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
 
         term_write("\n", COLOR_BLACK, COLOR_BLACK);
         term_write("=", COLOR_YELLOW, COLOR_YELLOW);

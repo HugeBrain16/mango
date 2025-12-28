@@ -12,6 +12,8 @@
 #include "gdt.h"
 #include "idt.h"
 #include "io.h"
+#include "pic.h"
+#include "pit.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -50,7 +52,9 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     screen_init(mbi);
     term_init();
 
-    pic_unmask(1); // enable keyboard
+    pit_set_frequency(100); // 100 hz
+    pic_unmask(0); // pit
+    pic_unmask(1); // keyboard
 
     term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
