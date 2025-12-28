@@ -1,6 +1,7 @@
 #include "pit.h"
 #include "io.h"
 #include "time.h"
+#include "terminal.h"
 
 uint32_t pit_ticks = 0;
 static uint32_t last_second = 0;
@@ -21,6 +22,8 @@ void pit_handle() {
             }
         }
     }
+
+    term_draw_cursor();
 }
 
 void pit_set_frequency(uint32_t hz) {

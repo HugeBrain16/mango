@@ -17,3 +17,4 @@ int term_mode;
 
 void term_init();
 void term_write(const char *msg, uint32_t fg_color, uint32_t bg_color);
+void term_draw_cursor();
