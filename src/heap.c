@@ -9,9 +9,6 @@ typedef struct block {
     struct block *next;
 } block_t;
 
-static uint8_t *heap_start;
-static uint8_t *heap_end;
-static uint8_t *heap_current;
 static block_t *block_current;
 
 static void block_append(block_t *block) {

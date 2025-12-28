@@ -13,6 +13,3 @@
 #define PS2_COMMAND_ENABLE_MOUSE 0xA8
 
 void ps2_init();
-uint8_t ps2_read();
-void ps2_write(uint8_t data);
-char ps2_get_char(uint8_t scancode);

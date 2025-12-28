@@ -22,3 +22,7 @@ typedef struct int_frame {
 
 void idt_init();
 void set_idt_entry(uint8_t vector, void *isr, uint8_t flags);
+void pic_unmask(uint8_t irq);
+void pic_mask(uint8_t irq);
+void pic_remap(int offset1, int offset2);
+void pic_eoi(uint8_t irq);

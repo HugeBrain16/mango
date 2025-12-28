@@ -1,12 +1,25 @@
 #include "idt.h"
+#include "io.h"
 #include "string.h"
 #include "terminal.h"
 #include "color.h"
+#include "keyboard.h"
+
+#define PIC1_COMMAND 0x20
+#define PIC1_DATA 0x21
+#define PIC2_COMMAND 0xA0
+#define PIC2_DATA 0xA1
+
+#define ICW1_INIT 0x10
+#define ICW1_ICW4 0x01
+#define ICW4_8086 0x01
+#define PIC_EOI 0x20
 
 static idt_entry_t idt[256];
 static idt_ptr_t idt_ptr;
 
 extern void *isr_stub_table[];
+extern void *irq_stub_table[];
 
 void set_idt_entry(uint8_t vector, void *isr, uint8_t flags) {
     idt_entry_t *descriptor = &idt[vector];
@@ -18,6 +31,44 @@ void set_idt_entry(uint8_t vector, void *isr, uint8_t flags) {
     descriptor->zero = 0;
 }
 
+void pic_remap(int offset1, int offset2) {
+    uint8_t mask1 = inb(PIC1_DATA);
+    uint8_t mask2 = inb(PIC2_DATA);
+
+    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+
+    outb(PIC1_DATA, offset1);
+    outb(PIC2_DATA, offset2);
+
+    outb(PIC1_DATA, 4);
+    outb(PIC2_DATA, 2);
+
+    outb(PIC1_DATA, ICW4_8086);
+    outb(PIC2_DATA, ICW4_8086);
+
+    outb(PIC1_DATA, mask1);
+    outb(PIC2_DATA, mask2);
+}
+
+void pic_unmask(uint8_t irq) {
+    uint16_t port = (irq < 8) ? PIC1_DATA : PIC2_DATA;
+    uint8_t value = inb(port) & ~(1 << (irq % 8));
+    outb(port, value);
+}
+
+void pic_mask(uint8_t irq) {
+    uint16_t port = (irq < 8) ? PIC1_DATA : PIC2_DATA;
+    uint8_t value = inb(port) | (1 << (irq % 8));
+    outb(port, value);
+}
+
+void pic_eoi(uint8_t irq) {
+    if (irq >= 8)
+        outb(PIC2_COMMAND, PIC_EOI);
+    outb(PIC1_COMMAND, PIC_EOI);
+}
+
 void idt_init() {
     idt_ptr.size = 0xfff;
     idt_ptr.offset = (uint32_t) &idt[0];
@@ -25,6 +76,15 @@ void idt_init() {
     for (uint8_t vector = 0; vector < 32; vector++) {
         set_idt_entry(vector, isr_stub_table[vector], 0x8E);
     }
+
+    pic_remap(32, 40);
+
+    for (uint8_t vector = 0; vector < 16; vector++) {
+        set_idt_entry(32 + vector, irq_stub_table[vector], 0x8E);
+    }
+
+    outb(PIC1_DATA, 0xFF);
+    outb(PIC2_DATA, 0xFF);
 
     __asm__ volatile(
         "lidt %0\n"
@@ -79,4 +139,14 @@ void exception_handler(int_frame_t *frame) {
     
     __asm__ volatile("cli; hlt");
     __builtin_unreachable();
+}
+
+void irq_handler(int_frame_t *frame) {
+    uint8_t irq = frame->vector - 32;
+
+    if (irq == 1) {
+        keyboard_handle();
+    }
+
+    pic_eoi(irq);    
 }
