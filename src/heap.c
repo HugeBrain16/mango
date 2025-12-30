@@ -76,12 +76,13 @@ void heap_free(void *ptr) {
     block->is_free = 1;
 
     block_t *current = block_current;
-    while (current) {
+    while (current && current->next) {
         block_t *adjacent = current->next;
-        if (current->is_free && adjacent && adjacent->is_free) {
+        if (current->is_free && adjacent->is_free) {
             current->size += sizeof(block_t) + adjacent->size;
             current->next = adjacent->next;
+        } else {
+            current = current->next;
         }
-        current->next = adjacent;
     }
 }

@@ -11,7 +11,7 @@
 
 void command_handle(const char *command) {
     char cmd[128] = {0};
-    char args[32][128] = {0};
+    static char args[32][512] = {0};
     int arg_count = 0;
     int idx = 0;
     int in_cmd = 1;
@@ -139,9 +139,10 @@ void command_handle(const char *command) {
         }
         term_write("\n", COLOR_BLACK, COLOR_BLACK);
     } else if (!strcmp(cmd, "list")) {
-        char buff[FILE_MAX_NAME + 16];
+        static char buff[FILE_MAX_NAME + 16];
 
         if (file_parent->child_head) {
+            term_write("\nList of files:\n", COLOR_WHITE, COLOR_BLACK);
             file_node_t *current = file_parent->child_head;
             while (current) {
                 strfmt(buff, "- %s\n", current->name);
@@ -151,6 +152,26 @@ void command_handle(const char *command) {
         } else {
             term_write("Empty folder.\n", COLOR_WHITE, COLOR_BLACK);
         }
+    } else if (!strcmp(cmd, "newfile")) {
+        if (arg_count >= 1) {
+            char *name = args[0];
+
+            if (strlen(name) > FILE_MAX_NAME)
+                term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+            else if (file_exists(file_parent, name))
+                term_write("File with the same name already exist!\n", COLOR_WHITE, COLOR_BLACK);
+            else if (!file_create(file_parent, name))
+                term_write("Failed creating a new file!", COLOR_WHITE, COLOR_BLACK);
+        } else
+            term_write("Usage: newfile <name>\n", COLOR_WHITE, COLOR_BLACK);
+    } else if (!strcmp(cmd, "delfile")) {
+        if (arg_count >= 1) {
+            char *name = args[0];
+
+            if (!file_delete(file_parent, name))
+                term_write("Failed deleting file!", COLOR_WHITE, COLOR_BLACK);
+        } else
+            term_write("Usage: delfile <name>\n", COLOR_WHITE, COLOR_BLACK);
     } else {
         term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
     }

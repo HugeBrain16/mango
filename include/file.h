@@ -23,3 +23,4 @@ file_node_t *file_parent;
 void file_init();
 int file_exists(file_node_t *parent, const char *name);
 int file_create(file_node_t *parent, const char *name);
+int file_delete(file_node_t *parent, const char *name);
