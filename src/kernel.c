@@ -14,6 +14,7 @@
 #include "io.h"
 #include "pic.h"
 #include "pit.h"
+#include "file.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -51,6 +52,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     heap_init(mbi->mem_upper);
     screen_init(mbi);
     term_init();
+    file_init();
 
     pit_set_frequency(100); // 100 hz
     pic_unmask(0); // pit

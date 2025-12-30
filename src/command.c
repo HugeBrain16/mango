@@ -7,6 +7,7 @@
 #include "terminal.h"
 #include "color.h"
 #include "time.h"
+#include "file.h"
 
 void command_handle(const char *command) {
     char cmd[128] = {0};
@@ -137,6 +138,19 @@ void command_handle(const char *command) {
             term_write(" ", COLOR_BLACK, COLOR_BLACK);
         }
         term_write("\n", COLOR_BLACK, COLOR_BLACK);
+    } else if (!strcmp(cmd, "list")) {
+        char buff[FILE_MAX_NAME + 16];
+
+        if (file_parent->child_head) {
+            file_node_t *current = file_parent->child_head;
+            while (current) {
+                strfmt(buff, "- %s\n", current->name);
+                term_write(buff, COLOR_WHITE, COLOR_BLACK);
+                current = current->child_next;
+            }
+        } else {
+            term_write("Empty folder.\n", COLOR_WHITE, COLOR_BLACK);
+        }
     } else {
         term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
     }

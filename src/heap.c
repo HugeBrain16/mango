@@ -46,7 +46,7 @@ void *heap_alloc(size_t size) {
                 current->next = block;
             }
 
-            return (uint8_t *) current + 1;
+            return (uint8_t *) current + sizeof(block_t);
         }
         current = current->next;
     }
@@ -66,7 +66,7 @@ void *heap_alloc(size_t size) {
     else
         block_append(block);
 
-    return (uint8_t *) block + 1;
+    return (uint8_t *) block + sizeof(block_t);
 }
 
 void heap_free(void *ptr) {
