@@ -6,6 +6,7 @@
 
 #define TERM_MODE_NONE 0
 #define TERM_MODE_TYPE 1
+#define TERM_MODE_EDIT 2
 
 list_t term_buffer;
 size_t term_input_cursor;

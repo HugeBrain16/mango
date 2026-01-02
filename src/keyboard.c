@@ -39,7 +39,9 @@ void keyboard_handle() {
             command_handle(term_input);
             term_input_cursor = 0;
             term_input[0] = '\0';
-            term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
+
+            if (term_mode == TERM_MODE_TYPE)
+                term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
         }
     }
 }

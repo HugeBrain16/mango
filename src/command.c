@@ -8,6 +8,7 @@
 #include "color.h"
 #include "time.h"
 #include "file.h"
+#include "serial.h"
 
 void command_handle(const char *command) {
     char cmd[128] = {0};
@@ -140,39 +141,147 @@ void command_handle(const char *command) {
         term_write("\n", COLOR_BLACK, COLOR_BLACK);
     } else if (!strcmp(cmd, "list")) {
         static char buff[FILE_MAX_NAME + 16];
+        file_node_t *parent = NULL;
+        if (arg_count > 0)
+            parent = file_get_node(args[0]);
+        else
+            parent = file_parent;
 
-        if (file_parent->child_head) {
+        if (parent->child_head && parent->type == FILE_FOLDER) {
             term_write("\nList of files:\n", COLOR_WHITE, COLOR_BLACK);
-            file_node_t *current = file_parent->child_head;
+            file_node_t *current = parent->child_head;
             while (current) {
-                strfmt(buff, "- %s\n", current->name);
+                if (current->type == FILE_DATA)
+                    strfmt(buff, "- %s\n", current->name);
+                else if (current->type == FILE_FOLDER)
+                    strfmt(buff, "-> %s\n", current->name);
                 term_write(buff, COLOR_WHITE, COLOR_BLACK);
                 current = current->child_next;
             }
+        } else if (!parent || parent->type != FILE_FOLDER) {
+            term_write("Not a folder.\n", COLOR_WHITE, COLOR_BLACK);
         } else {
             term_write("Empty folder.\n", COLOR_WHITE, COLOR_BLACK);
         }
     } else if (!strcmp(cmd, "newfile")) {
-        if (arg_count >= 1) {
-            char *name = args[0];
+        if (arg_count > 0) {
+            file_node_t *parent = NULL;
+            char *path_parent = heap_alloc(FILE_MAX_NAME * 2);
+            char *path_basename = heap_alloc(FILE_MAX_NAME);
 
-            if (strlen(name) > FILE_MAX_NAME)
-                term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
-            else if (file_exists(file_parent, name))
-                term_write("File with the same name already exist!\n", COLOR_WHITE, COLOR_BLACK);
-            else if (!file_create(file_parent, name))
-                term_write("Failed creating a new file!", COLOR_WHITE, COLOR_BLACK);
+            if (file_split_path(args[0], path_parent, path_basename)) {
+                if (path_parent[0] == '\0')
+                    parent = file_parent;
+                else
+                    parent = file_get_node(path_parent);
+
+                if (parent) {
+                    if (strlen(path_basename) > FILE_MAX_NAME)
+                        term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+                    else if (file_exists(parent, path_basename))
+                        term_write("File with the same name already exist!\n", COLOR_WHITE, COLOR_BLACK);
+                    else if (!file_create(parent, path_basename))
+                        term_write("Failed creating a new file!\n", COLOR_WHITE, COLOR_BLACK);
+                } else
+                    term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
+            } else
+                term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
+
+            heap_free(path_parent);
+            heap_free(path_basename);
         } else
-            term_write("Usage: newfile <name>\n", COLOR_WHITE, COLOR_BLACK);
+            term_write("Usage: newfile <path>\n", COLOR_WHITE, COLOR_BLACK);
     } else if (!strcmp(cmd, "delfile")) {
-        if (arg_count >= 1) {
-            char *name = args[0];
+        if (arg_count > 0) {
+            file_node_t *target = file_get_node(args[0]);
 
-            if (!file_delete(file_parent, name))
-                term_write("Failed deleting file!", COLOR_WHITE, COLOR_BLACK);
+            if (!file_delete(target->parent, target->name))
+                term_write("Failed deleting file!\n", COLOR_WHITE, COLOR_BLACK);
         } else
-            term_write("Usage: delfile <name>\n", COLOR_WHITE, COLOR_BLACK);
-    } else {
+            term_write("Usage: delfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+    } else if (!strcmp(cmd, "editfile")) {
+        if (arg_count > 0) {
+            file_node_t *parent = NULL;
+            char *path_parent = heap_alloc(FILE_MAX_NAME * 2);
+            char *path_basename = heap_alloc(FILE_MAX_NAME);
+
+            if (file_split_path(args[0], path_parent, path_basename)) {
+                if (path_parent[0] == '\0')
+                    parent = file_parent;
+                else
+                    parent = file_get_node(path_parent);
+
+                if (parent) {
+                    if (file_exists(parent, path_basename)) {
+                        term_mode = TERM_MODE_EDIT;
+                        screen_clear(COLOR_BLACK);
+                        term_x = 0;
+                        term_y = 0;
+                    } else
+                        term_write("File does not exist!\n", COLOR_WHITE, COLOR_BLACK);
+                } else
+                    term_write("Invalid path!\n", COLOR_WHITE, COLOR_BLACK);
+            } else
+                term_write("Invalid path!\n", COLOR_WHITE, COLOR_BLACK);
+
+            heap_free(path_parent);
+            heap_free(path_basename);
+        } else
+            term_write("Usage: editfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+    } else if (!strcmp(cmd, "newfolder")) {
+        if (arg_count > 0) {
+            file_node_t *parent = NULL;
+            char *path_parent = heap_alloc(FILE_MAX_NAME * 2);
+            char *path_basename = heap_alloc(FILE_MAX_NAME);
+
+            if (file_split_path(args[0], path_parent, path_basename)) {
+                if (path_parent[0] == '\0')
+                    parent = file_parent;
+                else
+                    parent = file_get_node(path_parent);
+
+                if (parent) {
+                    if (strlen(path_basename) > FILE_MAX_NAME)
+                        term_write("Folder name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+                    else if (folder_exists(parent, path_basename))
+                        term_write("Folder with the same name already exist!\n", COLOR_WHITE, COLOR_BLACK);
+                    else if (!folder_create(parent, path_basename))
+                        term_write("Failed creating a new folder!\n", COLOR_WHITE, COLOR_BLACK);
+                } else
+                    term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
+            } else
+                term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
+
+            heap_free(path_parent);
+            heap_free(path_basename);
+        } else
+            term_write("Usage: newfolder <path>\n", COLOR_WHITE, COLOR_BLACK);
+    } else if (!strcmp(cmd, "delfolder")) {
+        if (arg_count > 0) {
+            file_node_t *target = file_get_node(args[0]);
+
+            if (target != file_root) {
+                if (!folder_delete(target->parent, target->name))
+                    term_write("Failed deleting folder!\n", COLOR_WHITE, COLOR_BLACK);
+            } else
+                term_write("Cannot delete root folder!\n", COLOR_WHITE, COLOR_BLACK);
+        } else
+            term_write("Usage: delfolder <path>\n", COLOR_WHITE, COLOR_BLACK);
+    } else if (!strcmp(cmd, "goto")) {
+        if (arg_count > 0) {
+            file_node_t *target = file_get_node(args[0]);
+
+            if (target && target->type == FILE_FOLDER)
+                file_parent = target;
+            else
+                term_write("Not a folder.\n", COLOR_WHITE, COLOR_BLACK);
+        } else
+            term_write("Usage: goto <path>\n", COLOR_WHITE, COLOR_BLACK);
+    } else if (!strcmp(cmd, "goup")) {
+        if (file_parent->parent)
+            file_parent = file_parent->parent;
+        else
+            term_write("Already at topmost folder!\n", COLOR_WHITE, COLOR_BLACK);
+    } else
         term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
-    }
 }

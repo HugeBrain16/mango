@@ -21,6 +21,13 @@ file_node_t *file_root;
 file_node_t *file_parent;
 
 void file_init();
+file_node_t *file_get(file_node_t *parent, const char *name);
+file_node_t *file_get_node(const char *path);
 int file_exists(file_node_t *parent, const char *name);
 int file_create(file_node_t *parent, const char *name);
 int file_delete(file_node_t *parent, const char *name);
+file_node_t *folder_get(file_node_t *parent, const char *name);
+int folder_exists(file_node_t *parent, const char *name);
+int folder_create(file_node_t *parent, const char *name);
+int folder_delete(file_node_t *parent, const char *name);
+int file_split_path(const char *path, char *out_parent, char *out_name);
