@@ -37,16 +37,6 @@ static char scancode_to_char(uint8_t scancode) {
 }
 
 static void keyboard_handle_type(uint8_t scancode) {
-    if (scancode & KEY_RELEASE) {
-        uint8_t key = scancode & 0x7F;
-
-        if (key == KEY_LSHIFT || key == KEY_RSHIFT)
-            keyboard_shift = 0;
-    }
-
-    if (scancode == KEY_LSHIFT || scancode == KEY_RSHIFT)
-        keyboard_shift = 1;
-
     char c = scancode_to_char(scancode);
     if (!c)
         return;
@@ -70,6 +60,16 @@ static void keyboard_handle_type(uint8_t scancode) {
 
 void keyboard_handle() {
     uint8_t scancode = inb(PS2_DATA_PORT);
+
+    if (scancode & KEY_RELEASE) {
+        uint8_t key = scancode & 0x7F;
+
+        if (key == KEY_LSHIFT || key == KEY_RSHIFT)
+            keyboard_shift = 0;
+    }
+
+    if (scancode == KEY_LSHIFT || scancode == KEY_RSHIFT)
+        keyboard_shift = 1;
 
     if (term_mode == TERM_MODE_TYPE)
         keyboard_handle_type(scancode);
