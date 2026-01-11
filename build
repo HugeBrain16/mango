@@ -39,6 +39,10 @@ echo "Linking kernel..."
 i686-elf-gcc -T src/linker.ld -o mango.bin -nostdlib \
     $CFLAGS $CRTI $CRTBEGIN $OBJECTS $CRTEND $CRTN -lgcc
 
+if [[ $? -ne 0 ]]; then
+    exit 1
+fi
+
 if [[ -f mango.bin ]]; then
 echo "Building iso..."
 mkdir -p $DIR/iso/boot/grub

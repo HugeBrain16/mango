@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "font.h"
 #include "string.h"
+#include "color.h"
 
 void screen_init(multiboot_info_t *mbi) {
     screen_buffer = (uint32_t *)(uint32_t) mbi->framebuffer_addr;
@@ -31,7 +32,7 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
 
                     if (line & (0x80 >> col))
                         screen_buffer[pixel_y * screen_width + pixel_x] = fg_color;
-                    else
+                    else if (bg_color != COLOR_TRANSPARENT)
                         screen_buffer[pixel_y * screen_width + pixel_x] = bg_color;
 
                     if (c == '\b')

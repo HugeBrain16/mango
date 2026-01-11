@@ -8,7 +8,6 @@
 #include "color.h"
 #include "time.h"
 #include "file.h"
-#include "serial.h"
 
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
@@ -93,7 +92,7 @@ static void command_fetch(int argc, char *argv[]) {
     }
     strfmt(buff, "CPU: %s\n", cpu_name);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    strfmt(buff, "Memory: %d MB\n", ((heap_end - heap_start) >> 20) + 2);
+    strfmt(buff, "Memory: %d MB (Free: %d MB)\n", ((heap_end - heap_start) >> 20) + 2, ((heap_end - heap_current) >> 20) + 2);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
     strcpy(buff, "Uptime:");
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
@@ -155,7 +154,7 @@ static void command_list(int argc, char *argv[]) {
 static void command_newfile(int argc, char *argv[]) {
     if (argc > 0) {
         file_node_t *parent = NULL;
-        char *path_parent = heap_alloc(FILE_MAX_NAME * 2);
+        char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
 
         if (file_split_path(argv[0], path_parent, path_basename)) {
@@ -195,7 +194,7 @@ static void command_delfile(int argc, char *argv[]) {
 static void command_editfile(int argc, char *argv[]) {
     if (argc > 0) {
         file_node_t *parent = NULL;
-        char *path_parent = heap_alloc(FILE_MAX_NAME * 2);
+        char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
 
         if (file_split_path(argv[0], path_parent, path_basename)) {
@@ -224,7 +223,7 @@ static void command_editfile(int argc, char *argv[]) {
 static void command_newfolder(int argc, char *argv[]) {
     if (argc > 0) {
         file_node_t *parent = NULL;
-        char *path_parent = heap_alloc(FILE_MAX_NAME * 2);
+        char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
 
         if (file_split_path(argv[0], path_parent, path_basename)) {
@@ -285,9 +284,20 @@ static void command_goup(int argc, char *argv[]) {
         term_write("Already at topmost folder!\n", COLOR_WHITE, COLOR_BLACK);
 }
 
+static void command_whereami(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    char *path = heap_alloc(FILE_MAX_PATH);
+    file_get_abspath(file_parent, path, FILE_MAX_PATH);
+
+    term_write(path, COLOR_WHITE, COLOR_BLACK);
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+    heap_free(path);
+}
+
 void command_handle(const char *command) {
-    char cmd[128] = {0};
-    static char args[32][512] = {0};
+    char cmd[COMMAND_MAX_NAME] = {0};
+    static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
     char *argv[32];
     int argc = 0;
     int idx = 0;
@@ -337,5 +347,12 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "delfolder")) command_delfolder(argc, argv);
     else if (!strcmp(cmd, "goto")) command_goto(argc, argv);
     else if (!strcmp(cmd, "goup")) command_goup(argc, argv);
-    else term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+    else if (!strcmp(cmd, "whereami")) command_whereami(argc, argv);
+    else
+        if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+
+    if (term_mode == TERM_MODE_TYPE) {
+        term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
+        term_prompt = term_x;
+    }
 }

@@ -1,7 +1,6 @@
 #include "file.h"
 #include "string.h"
 #include "heap.h"
-#include "serial.h"
 
 file_node_t *file_root = NULL;
 file_node_t *file_parent = NULL;
@@ -73,6 +72,46 @@ int file_split_path(const char *path, char *out_parent, char *out_name) {
     return 1;
 }
 
+void file_get_abspath(file_node_t *node, char *path, size_t size) {
+    size_t pos;
+    size_t out = 0;
+
+    if (!node || !path || size < 2) {
+        if (path && size > 0)
+            path[0] = '\0';
+        return;
+    }
+
+    pos = size - 1;
+    path[pos] = '\0';
+
+    while (node && node != file_root) {
+        size_t len = strlen(node->name);
+
+        if (pos < len + 1) {
+            path[0] = '\0';
+            return;
+        }
+
+        pos -= len;
+        memcpy(path + pos, node->name, len);
+
+        path[--pos] = '/';
+        node = node->parent;
+    }
+
+    if (pos == size - 1) {
+        path[0] = '/';
+        path[1] = '\0';
+        return;
+    }
+
+    while (path[pos] != '\0') {
+        path[out++] = path[pos++];
+    }
+    path[out] = '\0';
+}
+
 file_node_t *file_get_node(const char *path) {
     size_t name_index = 0;
     char *name = heap_alloc(FILE_MAX_NAME);
@@ -136,7 +175,7 @@ file_node_t *file_get_node(const char *path) {
 }
 
 int file_exists(file_node_t *parent, const char *name) {
-   return file_get(parent, name) != NULL;
+    return file_get(parent, name) != NULL;
 }
 
 int file_create(file_node_t *parent, const char *name) {

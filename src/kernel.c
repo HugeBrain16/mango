@@ -61,6 +61,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
     term_mode = TERM_MODE_TYPE;
+    term_prompt = term_x;
 
     while(1) {
         __asm__ volatile("hlt");
