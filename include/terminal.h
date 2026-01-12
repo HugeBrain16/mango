@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include "list.h"
 
 #define TERM_BUFFER_SIZE 1024
 #define TERM_INPUT_SIZE 1024
@@ -8,7 +7,6 @@
 #define TERM_MODE_TYPE 1
 #define TERM_MODE_EDIT 2
 
-list_t term_buffer;
 int term_input_cursor;
 int term_input_pos;
 int term_prompt;

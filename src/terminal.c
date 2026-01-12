@@ -17,7 +17,6 @@ static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
 
 void term_init() {
-    list_init(&term_buffer);
     term_input_cursor = 0;
     term_input_pos = 0;
 }
@@ -68,10 +67,6 @@ void term_write(const char *msg, uint32_t fg_color, uint32_t bg_color) {
             }
         }
     }
-    list_push(&term_buffer, (char *) msg);
-
-    if (term_buffer.size >= TERM_BUFFER_SIZE)
-        list_pop(&term_buffer);
 }
 
 static void term_handle_backspace() {
