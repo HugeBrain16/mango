@@ -300,7 +300,7 @@ static void command_copyfile(int argc, char *argv[]) {
 
     file_node_t *src = file_get_node(argv[0]);
     if (!src) return term_write("Source file doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
-    if (src->type == FILE_FOLDER) return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+    if (src->type != FILE_DATA) return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
 
     char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
     char *dest_basename = heap_alloc(FILE_MAX_NAME);
@@ -348,6 +348,65 @@ static void command_movefile(int argc, char *argv[]) {
 
     file_node_t *src = file_get_node(argv[0]);
     file_delete(src->parent, src->name);
+}
+
+static void command_copyfolder(int argc, char *argv[]) {
+    if (argc < 2) return term_write("Usage: copyfolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+
+    file_node_t *src = file_get_node(argv[0]);
+    if (!src) return term_write("Source folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+    if (src->type != FILE_FOLDER) return term_write("Not a folder!\n", COLOR_WHITE, COLOR_BLACK);
+
+    char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
+    char *dest_basename = heap_alloc(FILE_MAX_NAME);
+    if (!file_split_path(argv[1], dest_parent, dest_basename)) {
+        term_write("Invalid destination path!\n", COLOR_WHITE, COLOR_BLACK);
+        goto cleanup;
+    }
+
+    file_node_t *dest_parent_node = NULL;
+    if (dest_parent[0] == '\0')
+        dest_parent_node = file_parent;
+    else
+        dest_parent_node = file_get_node(dest_parent);
+
+    if (!dest_parent_node) {
+        term_write("Parent folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+        goto cleanup;
+    }
+
+    file_node_t *dest = file_get_node2(dest_parent, dest_basename);
+    if (dest) {
+        if (dest->type == FILE_FOLDER) {
+            folder_create(dest, src->name);
+            dest = folder_get(dest, src->name);
+        }
+    } else {
+        if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("Folder name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+        folder_create(dest_parent_node, dest_basename);
+        dest = folder_get(dest_parent_node, dest_basename);
+    }
+
+    file_node_t *child = src->child_head;
+    while (child) {
+        file_create(dest, child->name);
+        file_node_t *dest_child = file_get(dest, child->name);
+        memcpy(dest_child->data, child->data, FILE_MAX_SIZE);
+        child = child->child_next;
+    }
+
+cleanup:
+    heap_free(dest_parent);
+    heap_free(dest_basename);
+}
+
+static void command_movefolder(int argc, char *argv[]) {
+    if (argc < 2) return term_write("Usage: movefolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+
+    command_copyfolder(argc, argv);
+
+    file_node_t *src = file_get_node(argv[0]);
+    folder_delete(src->parent, src->name);
 }
 
 void command_handle(const char *command) {
@@ -405,6 +464,8 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "whereami")) command_whereami(argc, argv);
     else if (!strcmp(cmd, "copyfile")) command_copyfile(argc, argv);
     else if (!strcmp(cmd, "movefile")) command_movefile(argc, argv);
+    else if (!strcmp(cmd, "copyfolder")) command_copyfolder(argc, argv);
+    else if (!strcmp(cmd, "movefolder")) command_movefolder(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 

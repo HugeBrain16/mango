@@ -24,6 +24,8 @@ commands:
 - `delfile` delete a file
 - `editfile` edit a file (todo)
 - `newfolder` create a new folder
+- `copyfolder` copy a folder
+- `movefolder` move a folder
 - `delfolder` delete a folder including the child items
 - `goto` go into a folder
 - `goup` go one step up from a folder
