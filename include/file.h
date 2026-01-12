@@ -25,6 +25,7 @@ file_node_t *file_parent;
 void file_init();
 file_node_t *file_get(file_node_t *parent, const char *name);
 file_node_t *file_get_node(const char *path);
+file_node_t *file_get_node2(const char *parent, const char *basename);
 int file_exists(file_node_t *parent, const char *name);
 int file_create(file_node_t *parent, const char *name);
 int file_delete(file_node_t *parent, const char *name);

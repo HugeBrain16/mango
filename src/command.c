@@ -295,6 +295,61 @@ static void command_whereami(int argc, char *argv[]) {
     heap_free(path);
 }
 
+static void command_copyfile(int argc, char *argv[]) {
+    if (argc < 2) return term_write("Usage: copyfile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+
+    file_node_t *src = file_get_node(argv[0]);
+    if (!src) return term_write("Source file doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+    if (src->type == FILE_FOLDER) return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+
+    char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
+    char *dest_basename = heap_alloc(FILE_MAX_NAME);
+    if (!file_split_path(argv[1], dest_parent, dest_basename)) {
+        term_write("Invalid destination path!\n", COLOR_WHITE, COLOR_BLACK);
+        goto cleanup;
+    }
+
+    file_node_t *dest_parent_node = NULL;
+    if (dest_parent[0] == '\0')
+        dest_parent_node = file_parent;
+    else
+        dest_parent_node = file_get_node(dest_parent);
+
+    if (!dest_parent_node) {
+        term_write("Parent folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+        goto cleanup;
+    }
+
+    file_node_t *dest = file_get_node2(dest_parent, dest_basename);
+    if (dest) {
+        if (dest->type == FILE_FOLDER) {
+            file_create(dest, src->name);
+            dest = file_get(dest, src->name);
+        }
+
+        memcpy(dest->data, src->data, FILE_MAX_SIZE);
+    } else {
+        if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+        file_create(dest_parent_node, dest_basename);
+        dest = file_get(dest_parent_node, dest_basename);
+
+        memcpy(dest->data, src->data, FILE_MAX_SIZE);
+    }
+
+cleanup:
+    heap_free(dest_parent);
+    heap_free(dest_basename);
+}
+
+static void command_movefile(int argc, char *argv[]) {
+    if (argc < 2) return term_write("Usage: movefile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+
+    command_copyfile(argc, argv);
+
+    file_node_t *src = file_get_node(argv[0]);
+    file_delete(src->parent, src->name);
+}
+
 void command_handle(const char *command) {
     char cmd[COMMAND_MAX_NAME] = {0};
     static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
@@ -348,6 +403,8 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "goto")) command_goto(argc, argv);
     else if (!strcmp(cmd, "goup")) command_goup(argc, argv);
     else if (!strcmp(cmd, "whereami")) command_whereami(argc, argv);
+    else if (!strcmp(cmd, "copyfile")) command_copyfile(argc, argv);
+    else if (!strcmp(cmd, "movefile")) command_movefile(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 

@@ -174,6 +174,17 @@ file_node_t *file_get_node(const char *path) {
     return parent;
 }
 
+file_node_t *file_get_node2(const char *parent, const char *basename) {
+    file_node_t *node = NULL;
+    char *path = heap_alloc(FILE_MAX_PATH);
+    strcat(path, parent);
+    strcat(path, basename);
+
+    node = file_get_node(path);
+    heap_free(path);
+    return node;
+}
+
 int file_exists(file_node_t *parent, const char *name) {
     return file_get(parent, name) != NULL;
 }
