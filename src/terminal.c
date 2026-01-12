@@ -119,18 +119,29 @@ void term_handle_type(uint8_t scancode) {
     char c = scancode_to_char(scancode);
     if (!c) return;
 
-    if (c == '\b') term_handle_backspace();
+    if (c == '\b') return term_handle_backspace();
 
-    char s[2] = { c, '\0' };
-    term_write(s, COLOR_WHITE, COLOR_BLACK);
+    if (c != '\n') {
+        term_clear_cursor();
 
-    if (c != '\b' && c != '\n') {
+        for (int i = term_input_cursor; i > term_input_pos; i--)
+            term_input[i] = term_input[i - 1];
+
+        term_input[term_input_pos] = c;
+        term_input[++term_input_cursor] = '\0';
+
+        int saved_x = term_x;
+        for (int i = term_input_pos; i < term_input_cursor; i++) {
+            screen_draw_char(term_x, term_y, term_input[i], COLOR_WHITE, COLOR_BLACK, term_scale);
+            term_x += FONT_WIDTH * term_scale;
+        }
+
         term_input_pos++;
-        term_input[term_input_cursor++] = c;
-        term_input[term_input_cursor] = '\0';
-    }
-
-    if (c == '\n') {
+        term_x = saved_x + FONT_WIDTH * term_scale;
+        term_redraw_cursor(0);
+    } else {
+        char s[2] = { c, '\0' };
+        term_write(s, COLOR_WHITE, COLOR_BLACK);
         command_handle(term_input);
         term_input_cursor = 0;
         term_input_pos = 0;
