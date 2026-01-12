@@ -11,7 +11,9 @@ features:
 - basic commands
 - memory file system (file editing is yet to be implemented)
 
-commands:
+<details>
+<summary>commands</summary>
+
 - `scaleup` scale up font
 - `scaledown` scale down font
 - `clear` clear screen
@@ -31,6 +33,7 @@ commands:
 - `goup` go one step up from a folder
 - `whereami` show current path
 - `exit`
+</details>
 
 install i686-elf toolchain (Binutils, GCC, GDB) into "toolchain" folder
 ```sh
