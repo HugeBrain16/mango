@@ -1,8 +1,6 @@
-# Mango
+# Mango OS
 
-![mango](https://i.imgur.com/zJ1AO2Y.png)
-
-yummy kernel :3  
+![mango](https://i.imgur.com/zJ1AO2Y.png) 
 
 features:
 - it boots
