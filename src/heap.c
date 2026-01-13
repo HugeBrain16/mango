@@ -1,4 +1,5 @@
 #include "heap.h"
+#include "string.h"
 
 #define KB(x) ((x) << 10)
 #define MB(x) ((x) << 20)
@@ -25,6 +26,10 @@ void heap_init(uint32_t mem_upper) {
     uint32_t total_mem = KB(mem_upper) + MB(1);
     heap_end = (uint8_t *) total_mem - MB(1);
     heap_current = heap_start;
+}
+
+block_t *heap_header(void *ptr) {
+    return (block_t *) ((uint8_t *) ptr - sizeof(block_t));
 }
 
 void *heap_alloc(size_t size) {
@@ -72,7 +77,7 @@ void *heap_alloc(size_t size) {
 void heap_free(void *ptr) {
     if (!ptr) return;
 
-    block_t *block = (block_t *) ((uint8_t *) ptr - sizeof(block_t));
+    block_t *block = heap_header(ptr);
     block->is_free = 1;
 
     block_t *current = block_current;
@@ -85,4 +90,23 @@ void heap_free(void *ptr) {
             current = current->next;
         }
     }
+}
+
+void *heap_realloc(void *ptr, size_t size) {
+    if (!ptr) return heap_alloc(size);
+    if (size == 0) {
+        heap_free(ptr);
+        return NULL;
+    }
+
+    block_t *block = heap_header(ptr);
+
+    void *new = heap_alloc(size);
+    if (!new) return NULL;
+
+    size_t resize = block->size < size ? block->size : size;
+    memcpy(new, ptr, resize);
+
+    heap_free(ptr);
+    return new;
 }
