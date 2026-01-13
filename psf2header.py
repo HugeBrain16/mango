@@ -63,7 +63,10 @@ with open(file, 'rb') as psf:
         psf_glyph_size = struct.unpack("<B", psf.read(1))[0]
         psf.seek(4)
 
-    c_header += f"""#include <stdint.h>
+    c_header += f"""#ifndef FONT_H
+#define FONT_H
+
+#include <stdint.h>
 
 #define FONT_WIDTH {psf_width}
 #define FONT_HEIGHT {psf_height}
@@ -80,6 +83,6 @@ static const uint8_t font_bitmaps[FONT_GLYPHS][FONT_GLYPH_SIZE] = {{
             c_header += "}\n"
         else:
             c_header += "},\n"
-    c_header += "};"
+    c_header += "};\n\n#endif"
 
     print(c_header)
