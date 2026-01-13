@@ -1,3 +1,6 @@
+#ifndef IDT_H
+#define IDT_H
+
 #include <stdint.h>
 
 typedef struct idt_entry {
@@ -22,3 +25,5 @@ typedef struct int_frame {
 
 void idt_init();
 void set_idt_entry(uint8_t vector, void *isr, uint8_t flags);
+
+#endif

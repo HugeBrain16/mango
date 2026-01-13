@@ -1,6 +1,8 @@
+#ifndef STRING_H
+#define STRING_H
+
 #include <stddef.h>
 #include <stdint.h>
-
 
 void *memset(void *bufptr, int value, size_t size);
 int memcmp(const void *aptr, const void *bptr, size_t size);
@@ -17,3 +19,5 @@ void strint(char *dest, int value);
 void strfmt(char *dest, const char *fmt, ...);
 void strdouble(char *dest, double value, int precision);
 int strcmp(const char *a, const char *b);
+
+#endif

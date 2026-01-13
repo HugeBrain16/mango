@@ -2,8 +2,10 @@
 #include "io.h"
 #include "ps2.h"
 #include "terminal.h"
+#include "editor.h"
 
 int keyboard_shift = 0;
+int keyboard_mode = KEYBOARD_MODE_NONE;
 
 static const char ascii[] = {
     0, 0, '1', '2', '3', '4', '5', '6',
@@ -47,6 +49,8 @@ void keyboard_handle() {
     if (scancode == KEY_LSHIFT || scancode == KEY_RSHIFT)
         keyboard_shift = 1;
 
-    if (term_mode == TERM_MODE_TYPE)
+    if (keyboard_mode == KEYBOARD_MODE_TERM)
         term_handle_type(scancode);
+    else if (keyboard_mode == KEYBOARD_MODE_EDIT)
+        edit_handle_type(scancode);
 }

@@ -1,3 +1,6 @@
+#ifndef COLOR_H
+#define COLOR_H
+
 #define COLOR_RED 0xFF0000
 #define COLOR_GREEN 0x00FF00
 #define COLOR_BLUE 0x0000FF
@@ -11,3 +14,5 @@
 #define COLOR_DARKGRAY 0x222222
 #define COLOR_LIGHTGRAY 0x666666
 #define COLOR_TRANSPARENT 0xFFFFFFFF
+
+#endif

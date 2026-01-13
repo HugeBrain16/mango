@@ -1,3 +1,6 @@
+#ifndef LIST_H
+#define LIST_H
+
 #include <stddef.h>
 
 typedef struct list_node {
@@ -17,3 +20,5 @@ void *list_get(list_t *list, size_t index);
 int list_remove(list_t *list, size_t index);
 void list_clear(list_t *list);
 void list_free(list_t *list);
+
+#endif

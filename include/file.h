@@ -1,10 +1,13 @@
+#ifndef FILE_H
+#define FILE_H
+
 #include <stdint.h>
 #include <stddef.h>
 
 #define FILE_DATA 0
 #define FILE_FOLDER 1
 
-#define FILE_MAX_SIZE 1024
+#define FILE_MAX_SIZE 16384
 #define FILE_MAX_NAME 512
 #define FILE_MAX_PATH 4096
 
@@ -35,3 +38,5 @@ int folder_create(file_node_t *parent, const char *name);
 int folder_delete(file_node_t *parent, const char *name);
 int file_split_path(const char *path, char *out_parent, char *out_name);
 void file_get_abspath(file_node_t *parent, char *path, size_t size);
+
+#endif

@@ -15,6 +15,8 @@
 #include "pic.h"
 #include "pit.h"
 #include "file.h"
+#include "keyboard.h"
+#include "editor.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -60,7 +62,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
-    term_mode = TERM_MODE_TYPE;
+    keyboard_mode = KEYBOARD_MODE_TERM;
     term_prompt = term_x;
 
     while(1) {

@@ -9,7 +9,8 @@ features:
 - keyboard input
 - terminal (/w scrolling)
 - basic commands
-- memory file system (file editing is yet to be implemented)
+- memory file system
+- basic text editor
 
 <details>
 <summary>commands</summary>
@@ -24,7 +25,7 @@ features:
 - `copyfile` copy a file
 - `movefile` move a file
 - `delfile` delete a file
-- `editfile` edit a file (todo)
+- `edit` edit a file
 - `newfolder` create a new folder
 - `copyfolder` copy a folder
 - `movefolder` move a folder

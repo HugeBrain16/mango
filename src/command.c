@@ -8,18 +8,21 @@
 #include "color.h"
 #include "time.h"
 #include "file.h"
+#include "keyboard.h"
+#include "editor.h"
+#include "font.h"
 
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    term_scale++;
+    screen_scale++;
 }
 
 static void command_scaledown(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (term_scale > 1)
-        term_scale--;
+    if (screen_scale > 1)
+        screen_scale--;
 }
 
 static void command_clear(int argc, char *argv[]) {
@@ -191,7 +194,7 @@ static void command_delfile(int argc, char *argv[]) {
         term_write("Usage: delfile <path>\n", COLOR_WHITE, COLOR_BLACK);
 }
 
-static void command_editfile(int argc, char *argv[]) {
+static void command_edit(int argc, char *argv[]) {
     if (argc > 0) {
         file_node_t *parent = NULL;
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
@@ -205,8 +208,37 @@ static void command_editfile(int argc, char *argv[]) {
 
             if (parent) {
                 if (file_exists(parent, path_basename)) {
-                    term_mode = TERM_MODE_EDIT;
+                    edit_init();
+                    keyboard_mode = KEYBOARD_MODE_EDIT;
+                    edit_node = file_get(parent, path_basename);
+
                     command_clear(argc, argv);
+                    edit_x = 0;
+                    edit_y = 0;
+
+                    char *data = (char *) edit_node->data;
+
+                    int line = 0;
+                    int line_cursor = 0;
+                    for (size_t i = 0; i < strlen(data); i++) {
+                        if (data[i] != '\n') {
+                            line_buffer[line][line_cursor++] = data[i];
+                            screen_draw_char(edit_x, edit_y, data[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+                            edit_x += FONT_WIDTH * screen_scale;
+                        } else {
+                            line_buffer[line][line_cursor] = '\0';
+                            line++;
+                            line_cursor = 0;
+                            edit_x = 0;
+                            edit_y += FONT_HEIGHT * screen_scale;
+                        }
+                    }
+
+                    line_buffer[line][line_cursor] = '\0';
+
+                    edit_cursor = strlen(line_buffer[line]);
+                    edit_line = line;
+                    edit_pos = 0;
                 } else
                     term_write("File does not exist!\n", COLOR_WHITE, COLOR_BLACK);
             } else
@@ -217,7 +249,7 @@ static void command_editfile(int argc, char *argv[]) {
         heap_free(path_parent);
         heap_free(path_basename);
     } else
-        term_write("Usage: editfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+        term_write("Usage: edit <path>\n", COLOR_WHITE, COLOR_BLACK);
 }
 
 static void command_newfolder(int argc, char *argv[]) {
@@ -456,7 +488,7 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "list")) command_list(argc, argv);
     else if (!strcmp(cmd, "newfile")) command_newfile(argc, argv);
     else if (!strcmp(cmd, "delfile")) command_delfile(argc, argv);
-    else if (!strcmp(cmd, "editfile")) command_editfile(argc, argv);
+    else if (!strcmp(cmd, "edit")) command_edit(argc, argv);
     else if (!strcmp(cmd, "newfolder")) command_newfolder(argc, argv);
     else if (!strcmp(cmd, "delfolder")) command_delfolder(argc, argv);
     else if (!strcmp(cmd, "goto")) command_goto(argc, argv);
@@ -469,7 +501,7 @@ void command_handle(const char *command) {
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 
-    if (term_mode == TERM_MODE_TYPE) {
+    if (keyboard_mode == KEYBOARD_MODE_TERM) {
         term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
         term_prompt = term_x;
     }

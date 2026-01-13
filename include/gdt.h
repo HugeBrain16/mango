@@ -1,3 +1,6 @@
+#ifndef GDT_H
+#define GDT_H
+
 #include <stdint.h>
 
 typedef struct gdt_entry {
@@ -15,3 +18,5 @@ typedef struct gdt_descriptor {
 } __attribute__((packed)) gdt_descriptor_t;
 
 void gdt_init();
+
+#endif

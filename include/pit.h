@@ -1,3 +1,6 @@
+#ifndef PIT_H
+#define PIT_H
+
 #include <stdint.h>
 
 #define PIT_CHANNEL0 0x40
@@ -29,3 +32,5 @@
 uint32_t pit_ticks;
 void pit_handle();
 void pit_set_frequency(uint32_t hz);
+
+#endif

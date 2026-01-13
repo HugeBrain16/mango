@@ -1,3 +1,6 @@
+#ifndef PS2_H
+#define PS2_H
+
 #include <stdint.h>
 
 #define PS2_DATA_PORT 0x60
@@ -13,3 +16,5 @@
 #define PS2_COMMAND_ENABLE_MOUSE 0xA8
 
 void ps2_init();
+
+#endif

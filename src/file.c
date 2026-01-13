@@ -2,9 +2,6 @@
 #include "string.h"
 #include "heap.h"
 
-file_node_t *file_root = NULL;
-file_node_t *file_parent = NULL;
-
 void file_init() {
     file_root = heap_alloc(sizeof(file_node_t));
     file_root->type = FILE_FOLDER;
@@ -199,6 +196,7 @@ int file_create(file_node_t *parent, const char *name) {
     file->child_head = NULL;
     file->child_next = NULL;
     file->data = heap_alloc(FILE_MAX_SIZE);
+    memset(file->data, 0, FILE_MAX_SIZE);
     file->name = heap_alloc(FILE_MAX_NAME);
     strcpy(file->name, name);
 
