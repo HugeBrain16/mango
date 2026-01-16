@@ -135,12 +135,11 @@ void exception_handler(int_frame_t *frame) {
 
 void irq_handler(int_frame_t *frame) {
     uint8_t irq = frame->vector - 32;
+    pic_eoi(irq);
 
     if (irq == 0) {
         pit_handle();
     } else if (irq == 1) {
         keyboard_handle();
     }
-
-    pic_eoi(irq);    
 }

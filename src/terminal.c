@@ -6,6 +6,7 @@
 #include "color.h"
 #include "keyboard.h"
 #include "command.h"
+#include "pic.h"
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
@@ -15,6 +16,7 @@ void term_init() {
     term_y = 0;
     term_input_cursor = 0;
     term_input_pos = 0;
+    term_input_buffer = NULL;
 }
 
 static void term_clear_cursor() {
@@ -108,6 +110,18 @@ static void term_handle_right() {
     term_redraw_cursor(0);
 }
 
+void term_get_input(const char* prompt, char *buffer, size_t size, uint32_t fg_color, uint32_t bg_color) {
+    memset(buffer, 0, size);
+    term_input_buffer = buffer;
+    term_write(prompt, fg_color, bg_color);
+    term_prompt = term_x;
+
+    __asm__ volatile("sti");
+    while (term_input_buffer != NULL) {
+        __asm__ volatile("hlt");
+    }
+}
+
 void term_handle_type(uint8_t scancode) {
     if (scancode == KEY_ARROW_LEFT) return term_handle_left();
     else if (scancode == KEY_ARROW_RIGHT) return term_handle_right();
@@ -138,9 +152,16 @@ void term_handle_type(uint8_t scancode) {
     } else {
         char s[2] = { c, '\0' };
         term_write(s, COLOR_WHITE, COLOR_BLACK);
-        command_handle(term_input);
         term_input_cursor = 0;
         term_input_pos = 0;
+
+        if (term_input_buffer != NULL) {
+            strcpy(term_input_buffer, term_input);
+            term_input_buffer = NULL;
+        } else {
+            command_handle(term_input);
+        }
+
         term_input[0] = '\0';
     }
 }

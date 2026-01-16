@@ -40,6 +40,8 @@ typedef struct file_data {
 uint32_t file_current;
 
 void file_init();
+void file_format();
+int file_is_formatted();
 void file_node(uint32_t sector, file_node_t *node);
 void file_node_write(uint32_t sector, file_node_t *node);
 void file_data(uint32_t sector, file_data_t *node);

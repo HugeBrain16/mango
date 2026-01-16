@@ -18,6 +18,7 @@ features:
 - `clear` clear screen
 - `echo ...` print text
 - `fetch` print system info
+- `formatdisk` format primary disk drive
 - `list` list items in current folder
 - `newfile` create a new file
 - `copyfile` copy a file

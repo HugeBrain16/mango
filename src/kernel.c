@@ -52,6 +52,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     gdt_init();
     idt_init();
+    ps2_init();
     heap_init(mbi->mem_upper);
     screen_init(mbi);
     term_init();

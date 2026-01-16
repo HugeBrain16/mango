@@ -137,6 +137,8 @@ static void command_echo(int argc, char *argv[]) {
 }
 
 static void command_list(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     static char buff[FILE_MAX_NAME + 16];
     uint32_t parent;
     file_node_t parent_node;
@@ -148,7 +150,7 @@ static void command_list(int argc, char *argv[]) {
 
     if (parent_node.child_head && (parent_node.flags & FILE_FOLDER)) {
         term_write("\nList of files:\n", COLOR_WHITE, COLOR_BLACK);
-        
+
         uint32_t current = parent_node.child_head;
         file_node_t current_node;
 
@@ -169,6 +171,8 @@ static void command_list(int argc, char *argv[]) {
 }
 
 static void command_newfile(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc > 0) {
         uint32_t parent;
 
@@ -200,6 +204,8 @@ static void command_newfile(int argc, char *argv[]) {
 }
 
 static void command_delfile(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
 
@@ -215,6 +221,8 @@ static void command_delfile(int argc, char *argv[]) {
 }
 
 static void command_edit(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc > 0) {
         uint32_t parent;
 
@@ -247,6 +255,8 @@ static void command_edit(int argc, char *argv[]) {
 }
 
 static void command_newfolder(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc > 0) {
         uint32_t parent;
 
@@ -278,6 +288,8 @@ static void command_newfolder(int argc, char *argv[]) {
 }
 
 static void command_delfolder(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
         file_node_t target_node;
@@ -293,6 +305,8 @@ static void command_delfolder(int argc, char *argv[]) {
 }
 
 static void command_goto(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
         file_node_t target_node;
@@ -309,6 +323,8 @@ static void command_goto(int argc, char *argv[]) {
 static void command_goup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     file_node_t parent_node;
     file_node(file_current, &parent_node);
 
@@ -321,6 +337,8 @@ static void command_goup(int argc, char *argv[]) {
 static void command_whereami(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     char *path = heap_alloc(FILE_MAX_PATH);
     file_get_abspath(file_current, path, FILE_MAX_PATH);
 
@@ -330,6 +348,8 @@ static void command_whereami(int argc, char *argv[]) {
 }
 
 static void command_copyfile(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc < 2) return term_write("Usage: copyfile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
 
     uint32_t src = file_get_node(argv[0]);
@@ -401,6 +421,8 @@ cleanup:
 }
 
 static void command_movefile(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc < 2) return term_write("Usage: movefile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
 
     command_copyfile(argc, argv);
@@ -413,6 +435,8 @@ static void command_movefile(int argc, char *argv[]) {
 }
 
 static void command_copyfolder(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc < 2) return term_write("Usage: copyfolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
 
     uint32_t src = file_get_node(argv[0]);
@@ -472,7 +496,7 @@ static void command_copyfolder(int argc, char *argv[]) {
         if (dest_child_node.first_block && child_node.first_block) {
             file_data_t dest_child_data;
             file_data_t child_node_data;
-            
+
             file_data(dest_child_node.first_block, &dest_child_data);
             file_data(child_node.first_block, &child_node_data);
 
@@ -488,6 +512,8 @@ cleanup:
 }
 
 static void command_movefolder(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
     if (argc < 2) return term_write("Usage: movefolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
 
     command_copyfolder(argc, argv);
@@ -497,6 +523,19 @@ static void command_movefolder(int argc, char *argv[]) {
     file_node(src, &src_node);
 
     folder_delete(src_node.parent, src_node.name);
+}
+
+static void command_formatdisk(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    char confirm[TERM_INPUT_SIZE];
+    term_get_input("This will erase the whole disk. Are you sure? (type \"y\"): ",
+        confirm, sizeof(confirm), COLOR_WHITE, COLOR_BLACK);
+
+    if (!strcmp(confirm, "y")) {
+        file_format();
+        term_write("Disk formatted.\n", COLOR_WHITE, COLOR_BLACK);
+    }
 }
 
 void command_handle(const char *command) {
@@ -556,11 +595,14 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "movefile")) command_movefile(argc, argv);
     else if (!strcmp(cmd, "copyfolder")) command_copyfolder(argc, argv);
     else if (!strcmp(cmd, "movefolder")) command_movefolder(argc, argv);
+    else if (!strcmp(cmd, "formatdisk")) command_formatdisk(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
-        term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
-        term_prompt = term_x;
+        if (!term_input_buffer) {
+            term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
+            term_prompt = term_x;
+        }
     }
 }

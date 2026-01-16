@@ -15,17 +15,18 @@ static void file_write_sb(file_superblock_t *sb) {
     ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
 }
 
-static void file_format() {
+void file_format() {
     uint16_t buffer[256] = {0};
 
-    file_superblock_t *sb = (file_superblock_t*) buffer;
-    sb->magic = FILE_MAGIC;
+    file_superblock_t sb;
+    sb.magic = FILE_MAGIC;
 
     uint16_t ata_id[256]; ata_identify(ata_id);
-    sb->sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
-    sb->free = FILE_SECTOR_ROOT + 1;
-    sb->free_list = 0;
+    sb.sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
+    sb.free = FILE_SECTOR_ROOT + 1;
+    sb.free_list = 0;
 
+    memcpy(buffer, &sb, sizeof(sb));
     ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
 
     file_node_t root = {0};
@@ -40,14 +41,15 @@ static void file_format() {
     ata_write_sector(FILE_SECTOR_ROOT, buffer);
 }
 
-void file_init() {
-    file_current = FILE_SECTOR_ROOT;
-
+int file_is_formatted() {
     file_superblock_t sb;
     file_read_sb(&sb);
 
-    if (sb.magic != FILE_MAGIC)
-        file_format();
+    return sb.magic == FILE_MAGIC;
+}
+
+void file_init() {
+    file_current = FILE_SECTOR_ROOT;
 }
 
 uint32_t file_get(uint32_t parent, const char *name) {
