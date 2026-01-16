@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ $MANGO_TOOLCHAIN -ne 1 ]]; then
+    echo "Not using toolchain, exiting..."
+    exit 1
+fi
+
 CFLAGS="-std=gnu99 -ffreestanding -O2 -g -Wall -Wextra -fstack-protector"
 
 DIR="$(mktemp -t mango.XXXX -d)"
@@ -57,6 +62,11 @@ menuentry "Mango" {
 }
 EOF
 grub-mkrescue -o mango.iso $DIR/iso > /dev/null 2>&1
+fi
+
+if [[ $1 == "dist" ]]; then
+    echo "[dist] Compressing iso.."
+    XZ_OPT=-e9 tar caf mango.tar.xz mango.iso
 fi
 
 echo "Done! cleanup..."
