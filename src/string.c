@@ -4,17 +4,17 @@
 
 void *memset(void *bufptr, int value, size_t size) {
     unsigned char *buf = (unsigned char *) bufptr;
-    
+
     for (size_t i = 0; i < size; i++)
         buf[i] = (unsigned char) value;
-    
+
     return bufptr;
 }
 
 int memcmp(const void *aptr, const void *bptr, size_t size) {
     const unsigned char *a = (const unsigned char *) aptr;
     const unsigned char *b = (const unsigned char *) bptr;
-    
+
     for (size_t i = 0; i < size; i++) {
         if (a[i] < b[i])
             return -1;
@@ -64,19 +64,31 @@ void strcat(char *dest, const char *src) {
 }
 
 void strncpy(char *dest, const char *src, size_t size) {
-    for (size_t i = 0; i < size; i++) {
+    size_t i = 0;
+
+    if (size == 0)
+        return;
+
+    while (i < size - 1 && src[i]) {
         dest[i] = src[i];
+        i++;
     }
 
-    dest[size] = '\0';
+    dest[i] = '\0';
 }
 
 void strncat(char *dest, const char *src, size_t dsize, size_t ssize) {
-    for (size_t i = 0; i < ssize; i++) {
+    size_t i = 0;
+
+    if (ssize == 0)
+        return;
+
+    while (i < ssize - 1 && src[i]) {
         dest[dsize + i] = src[i];
+        i++;
     }
 
-    dest[dsize + ssize] = '\0';
+    dest[dsize + i] = '\0';
 }
 
 void strhex(char *dest, uint32_t value) {
@@ -150,6 +162,95 @@ void strdouble(char *dest, double value, int precision) {
     dest[i] = '\0';
 }
 
+uint32_t hexstr(const char *src) {
+    uint32_t value = 0;
+    char c;
+
+    while ((c = *src++)) {
+        value <<= 4;
+
+        if (c >= '0' && c <= '9')
+            value |= c - '0';
+        else if (c >= 'A' && c <= 'F')
+            value |= c - 'A' + 10;
+        else if (c >= 'a' && c <= 'f')
+            value |= c - 'a' + 10;
+        else
+            break;
+    }
+
+    return value;
+}
+
+int intstr(const char *src) {
+    int value = 0;
+    int sign = 1;
+
+    if (*src == '-') {
+        sign = -1;
+        src++;
+    }
+
+    while (*src >= '0' && *src <= '9') {
+        value = value * 10 + (*src - '0');
+        src++;
+    }
+
+    return value * sign;
+}
+
+double doublestr(const char *src) {
+    double value = 0.0;
+    double frac = 0.0;
+    double base = 0.1;
+    int sign = 1;
+
+    if (*src == '-') {
+        sign = -1;
+        src++;
+    }
+
+    while (*src >= '0' && *src <= '9') {
+        value = value * 10 + (*src - '0');
+        src++;
+    }
+
+    if (*src == '.') {
+        src++;
+
+        while (*src >= '0' && *src <= '9') {
+            frac += (*src - '0') * base;
+            base *= 0.1;
+            src++;
+        }
+    }
+
+    return sign * (value + frac);
+}
+
+void strtrim(char *str) {
+    size_t start = 0;
+    size_t end;
+    size_t i = 0;
+
+    if (!str) return;
+
+    while (str[start] == ' ' || str[start] == '\t' || str[start] == '\n' || str[start] == '\r')
+        start++;
+
+    end = start;
+    while (str[end])
+        end++;
+
+    while (end > start && (str[end - 1] == ' ' || str[end - 1] == '\t' || str[end - 1] == '\n' || str[end - 1] == '\r'))
+        end--;
+
+    while (start < end)
+        str[i++] = str[start++];
+
+    str[i] = '\0';
+}
+
 void strfmt(char *dest, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -174,7 +275,7 @@ void strfmt(char *dest, const char *fmt, ...) {
 
                 if ((f + 2) < len) {
                     char p = fmt[f + 2];
-                    
+
                     if (p >= '0' && p <= '9') {
                         precision = p - '0';
                     }
@@ -188,7 +289,7 @@ void strfmt(char *dest, const char *fmt, ...) {
                 f += 2;
             } else if (type == 's') {
                 const char *arg = va_arg(args, const char *);
-                
+
                 for (size_t x = 0; x < strlen(arg); x++) {
                     dest[i++] = arg[x];
                 }
