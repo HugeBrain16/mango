@@ -1,6 +1,6 @@
 # Mango OS
 
-![mango](https://i.imgur.com/zJ1AO2Y.png) 
+![mango](https://i.imgur.com/5RssEB5.png)
 
 features:
 - it boots
