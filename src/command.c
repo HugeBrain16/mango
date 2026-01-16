@@ -12,6 +12,7 @@
 #include "editor.h"
 #include "font.h"
 #include "ata.h"
+#include "unit.h"
 
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
@@ -96,13 +97,30 @@ static void command_fetch(int argc, char *argv[]) {
     }
     strfmt(buff, "CPU: %s\n", cpu_name);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    strfmt(buff, "Memory: %d MB (Free: %d MB)\n", ((heap_end - heap_start) >> 20) + 2, ((heap_end - heap_current) >> 20) + 2);
+
+    char mem_total[16];
+    char mem_free[16];
+    unit_get_size(heap_end - heap_start + (2 << 20), mem_total);
+    unit_get_size(heap_end - heap_current + (2 << 20), mem_free);
+    strfmt(buff, "Memory: %s (Free: %s)\n", mem_total, mem_free);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
 
     uint16_t ata_id[256]; ata_identify(ata_id);
     uint32_t sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
-    strfmt(buff, "Disk: %d MB\n", (sectors * 512) >> 20);
+    char disk_total[16];
+    unit_get_size(sectors * 512, disk_total);
+    strfmt(buff, "Disk: %s ", disk_total);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    if (file_is_formatted()) {
+        file_superblock_t sb;
+        file_read_sb(&sb);
+
+        char disk_used[16];
+        unit_get_size(sb.used * 512, disk_used);
+        strfmt(buff, "(Used: %s) ", disk_used);
+        term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    }
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
 
     strcpy(buff, "Uptime:");
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
@@ -125,7 +143,7 @@ static void command_fetch(int argc, char *argv[]) {
     term_write("=", COLOR_WHITE, COLOR_WHITE);
     term_write("=", COLOR_PURPLE, COLOR_PURPLE);
     term_write("=", COLOR_DARKGRAY, COLOR_DARKGRAY);
-    term_write("\n", COLOR_BLACK, COLOR_BLACK);
+    term_write("\n\n", COLOR_BLACK, COLOR_BLACK);
 }
 
 static void command_echo(int argc, char *argv[]) {
@@ -530,12 +548,38 @@ static void command_formatdisk(int argc, char *argv[]) {
 
     char confirm[TERM_INPUT_SIZE];
     term_get_input("This will erase the whole disk. Are you sure? (type \"y\"): ",
-        confirm, sizeof(confirm), COLOR_WHITE, COLOR_BLACK);
+            confirm, sizeof(confirm), COLOR_WHITE, COLOR_BLACK);
 
     if (!strcmp(confirm, "y")) {
         file_format();
         term_write("Disk formatted.\n", COLOR_WHITE, COLOR_BLACK);
     }
+}
+
+static void command_nodeinfo(int argc, char *argv[]) {
+    if (argc < 1) return term_write("Usage: nodeinfo <node>\n", COLOR_WHITE, COLOR_BLACK);
+
+    uint32_t node_sector = file_get_node(argv[0]);
+    if (!node_sector) return term_write("Not found\n", COLOR_WHITE, COLOR_BLACK);
+
+    file_node_t node;
+    file_data_t block;
+    file_node(node_sector, &node);
+    file_data(node.first_block, &block);
+
+    char buff[128];
+    strfmt(buff, "NAME = %s\n", node.name);
+    term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    strfmt(buff, "SECTOR = %d\n", node_sector);
+    term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    if (node.flags & FILE_FOLDER)
+        strcpy(buff, "TYPE = FOLDER\n");
+    else if (node.flags & FILE_DATA) {
+        strfmt(buff, "SIZE = %d (%d sectors)\n", sizeof(block.data) * node.size, node.size);
+        term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        strcpy(buff, "TYPE = FILE\n");
+    }
+    term_write(buff, COLOR_WHITE, COLOR_BLACK);
 }
 
 void command_handle(const char *command) {
@@ -596,6 +640,7 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "copyfolder")) command_copyfolder(argc, argv);
     else if (!strcmp(cmd, "movefolder")) command_movefolder(argc, argv);
     else if (!strcmp(cmd, "formatdisk")) command_formatdisk(argc, argv);
+    else if (!strcmp(cmd, "nodeinfo")) command_nodeinfo(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 

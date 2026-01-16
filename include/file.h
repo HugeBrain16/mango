@@ -17,6 +17,7 @@
 typedef struct file_superblock {
     uint32_t magic;
     uint32_t sectors;
+    uint32_t used;
     uint32_t free;
     uint32_t free_list;
 } file_superblock_t;
@@ -42,6 +43,8 @@ uint32_t file_current;
 void file_init();
 void file_format();
 int file_is_formatted();
+void file_read_sb(file_superblock_t *sb);
+void file_write_sb(file_superblock_t *sb);
 void file_node(uint32_t sector, file_node_t *node);
 void file_node_write(uint32_t sector, file_node_t *node);
 void file_data(uint32_t sector, file_data_t *node);

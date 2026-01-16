@@ -3,13 +3,13 @@
 #include "heap.h"
 #include "ata.h"
 
-static void file_read_sb(file_superblock_t *sb) {
+void file_read_sb(file_superblock_t *sb) {
     uint16_t buffer[256];
     ata_read_sector(FILE_SECTOR_SUPERBLOCK, buffer);
     memcpy(sb, buffer, sizeof(*sb));
 }
 
-static void file_write_sb(file_superblock_t *sb) {
+void file_write_sb(file_superblock_t *sb) {
     uint16_t buffer[256] = {0};
     memcpy(buffer, sb, sizeof(*sb));
     ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
@@ -271,7 +271,7 @@ uint32_t file_get_node(const char *path) {
             uint32_t current;
             file_node_t current_node;
             if (!parent)
-                current = parent_node.child_head;
+                current = file_current;
             else
                 current = parent_node.child_head;
 
@@ -481,7 +481,7 @@ int folder_create(uint32_t parent, const char *name) {
         parent_node.child_head = node_sector;
         file_node_write(parent, &parent_node);
     }
-    file_node_write(sb.free, &folder);
+    file_node_write(node_sector, &folder);
 
     return 1;
 }
@@ -543,26 +543,32 @@ void file_sector_free(uint32_t sector) {
     ata_write_sector(sector, buffer);
 
     sb.free_list = sector;
+    sb.used--;
     file_write_sb(&sb);
 }
 
 uint32_t file_sector_alloc() {
     file_superblock_t sb;
     file_read_sb(&sb);
+    sb.used++;
 
     if (sb.free_list != 0) {
+        uint32_t sector = sb.free_list;
+
         uint16_t buffer[256];
-        ata_read_sector(sb.free_list, buffer);
+        ata_read_sector(sector, buffer);
+
         uint32_t free;
         memcpy(&free, buffer, sizeof(uint32_t));
 
         sb.free_list = free;
         file_write_sb(&sb);
 
-        return sb.free_list;
+        return sector;
     }
 
+    uint32_t sector = sb.free;
     sb.free++;
     file_write_sb(&sb);
-    return sb.free;
+    return sector;
 }
