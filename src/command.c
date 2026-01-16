@@ -11,6 +11,7 @@
 #include "keyboard.h"
 #include "editor.h"
 #include "font.h"
+#include "ata.h"
 
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
@@ -97,6 +98,12 @@ static void command_fetch(int argc, char *argv[]) {
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
     strfmt(buff, "Memory: %d MB (Free: %d MB)\n", ((heap_end - heap_start) >> 20) + 2, ((heap_end - heap_current) >> 20) + 2);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
+
+    uint16_t ata_id[256]; ata_identify(ata_id);
+    uint32_t sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
+    strfmt(buff, "Disk: %d MB\n", (sectors * 512) >> 20);
+    term_write(buff, COLOR_WHITE, COLOR_BLACK);
+
     strcpy(buff, "Uptime:");
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
     if (uptime_hours > 0) {
@@ -131,24 +138,31 @@ static void command_echo(int argc, char *argv[]) {
 
 static void command_list(int argc, char *argv[]) {
     static char buff[FILE_MAX_NAME + 16];
-    file_node_t *parent = NULL;
+    uint32_t parent;
+    file_node_t parent_node;
     if (argc > 0)
         parent = file_get_node(argv[0]);
     else
-        parent = file_parent;
+        parent = file_current;
+    file_node(parent, &parent_node);
 
-    if (parent->child_head && parent->type == FILE_FOLDER) {
+    if (parent_node.child_head && (parent_node.flags & FILE_FOLDER)) {
         term_write("\nList of files:\n", COLOR_WHITE, COLOR_BLACK);
-        file_node_t *current = parent->child_head;
+        
+        uint32_t current = parent_node.child_head;
+        file_node_t current_node;
+
         while (current) {
-            if (current->type == FILE_DATA)
-                strfmt(buff, "- %s\n", current->name);
-            else if (current->type == FILE_FOLDER)
-                strfmt(buff, "-> %s\n", current->name);
+            file_node(current, &current_node);
+
+            if (current_node.flags & FILE_DATA)
+                strfmt(buff, "- %s\n", current_node.name);
+            else if (current_node.flags & FILE_FOLDER)
+                strfmt(buff, "-> %s\n", current_node.name);
             term_write(buff, COLOR_WHITE, COLOR_BLACK);
-            current = current->child_next;
+            current = current_node.child_next;
         }
-    } else if (!parent || parent->type != FILE_FOLDER)
+    } else if (!parent || !(parent_node.flags & FILE_FOLDER))
         term_write("Not a folder.\n", COLOR_WHITE, COLOR_BLACK);
     else
         term_write("Empty folder.\n", COLOR_WHITE, COLOR_BLACK);
@@ -156,13 +170,14 @@ static void command_list(int argc, char *argv[]) {
 
 static void command_newfile(int argc, char *argv[]) {
     if (argc > 0) {
-        file_node_t *parent = NULL;
+        uint32_t parent;
+
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
 
         if (file_split_path(argv[0], path_parent, path_basename)) {
             if (path_parent[0] == '\0')
-                parent = file_parent;
+                parent = file_current;
             else
                 parent = file_get_node(path_parent);
 
@@ -186,9 +201,14 @@ static void command_newfile(int argc, char *argv[]) {
 
 static void command_delfile(int argc, char *argv[]) {
     if (argc > 0) {
-        file_node_t *target = file_get_node(argv[0]);
+        uint32_t target = file_get_node(argv[0]);
 
-        if (!file_delete(target->parent, target->name))
+        if (!target) return term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+
+        file_node_t target_node;
+        file_node(target, &target_node);
+
+        if (!file_delete(target_node.parent, target_node.name))
             term_write("Failed deleting file!\n", COLOR_WHITE, COLOR_BLACK);
     } else
         term_write("Usage: delfile <path>\n", COLOR_WHITE, COLOR_BLACK);
@@ -196,49 +216,23 @@ static void command_delfile(int argc, char *argv[]) {
 
 static void command_edit(int argc, char *argv[]) {
     if (argc > 0) {
-        file_node_t *parent = NULL;
+        uint32_t parent;
+
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
 
         if (file_split_path(argv[0], path_parent, path_basename)) {
             if (path_parent[0] == '\0')
-                parent = file_parent;
+                parent = file_current;
             else
                 parent = file_get_node(path_parent);
 
             if (parent) {
                 if (file_exists(parent, path_basename)) {
-                    edit_init();
                     keyboard_mode = KEYBOARD_MODE_EDIT;
-                    edit_node = file_get(parent, path_basename);
-
                     command_clear(argc, argv);
-                    edit_x = 0;
-                    edit_y = 0;
 
-                    char *data = (char *) edit_node->data;
-
-                    int line = 0;
-                    int line_cursor = 0;
-                    for (size_t i = 0; i < strlen(data); i++) {
-                        if (data[i] != '\n') {
-                            line_buffer[line][line_cursor++] = data[i];
-                            screen_draw_char(edit_x, edit_y, data[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
-                            edit_x += FONT_WIDTH * screen_scale;
-                        } else {
-                            line_buffer[line][line_cursor] = '\0';
-                            line++;
-                            line_cursor = 0;
-                            edit_x = 0;
-                            edit_y += FONT_HEIGHT * screen_scale;
-                        }
-                    }
-
-                    line_buffer[line][line_cursor] = '\0';
-
-                    edit_cursor = strlen(line_buffer[line]);
-                    edit_line = line;
-                    edit_pos = 0;
+                    edit_init(file_get(parent, path_basename));
                 } else
                     term_write("File does not exist!\n", COLOR_WHITE, COLOR_BLACK);
             } else
@@ -254,13 +248,14 @@ static void command_edit(int argc, char *argv[]) {
 
 static void command_newfolder(int argc, char *argv[]) {
     if (argc > 0) {
-        file_node_t *parent = NULL;
+        uint32_t parent;
+
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
 
         if (file_split_path(argv[0], path_parent, path_basename)) {
             if (path_parent[0] == '\0')
-                parent = file_parent;
+                parent = file_current;
             else
                 parent = file_get_node(path_parent);
 
@@ -284,10 +279,12 @@ static void command_newfolder(int argc, char *argv[]) {
 
 static void command_delfolder(int argc, char *argv[]) {
     if (argc > 0) {
-        file_node_t *target = file_get_node(argv[0]);
+        uint32_t target = file_get_node(argv[0]);
+        file_node_t target_node;
+        file_node(target, &target_node);
 
-        if (target != file_root) {
-            if (!folder_delete(target->parent, target->name))
+        if (target != FILE_SECTOR_ROOT) {
+            if (!folder_delete(target_node.parent, target_node.name))
                 term_write("Failed deleting folder!\n", COLOR_WHITE, COLOR_BLACK);
         } else
             term_write("Cannot delete root folder!\n", COLOR_WHITE, COLOR_BLACK);
@@ -297,10 +294,12 @@ static void command_delfolder(int argc, char *argv[]) {
 
 static void command_goto(int argc, char *argv[]) {
     if (argc > 0) {
-        file_node_t *target = file_get_node(argv[0]);
+        uint32_t target = file_get_node(argv[0]);
+        file_node_t target_node;
+        file_node(target, &target_node);
 
-        if (target && target->type == FILE_FOLDER)
-            file_parent = target;
+        if (target && (target_node.flags & FILE_FOLDER))
+            file_current = target;
         else
             term_write("Not a folder.\n", COLOR_WHITE, COLOR_BLACK);
     } else
@@ -310,8 +309,11 @@ static void command_goto(int argc, char *argv[]) {
 static void command_goup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_parent->parent)
-        file_parent = file_parent->parent;
+    file_node_t parent_node;
+    file_node(file_current, &parent_node);
+
+    if (parent_node.parent)
+        file_current = parent_node.parent;
     else
         term_write("Already at topmost folder!\n", COLOR_WHITE, COLOR_BLACK);
 }
@@ -320,7 +322,7 @@ static void command_whereami(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     char *path = heap_alloc(FILE_MAX_PATH);
-    file_get_abspath(file_parent, path, FILE_MAX_PATH);
+    file_get_abspath(file_current, path, FILE_MAX_PATH);
 
     term_write(path, COLOR_WHITE, COLOR_BLACK);
     term_write("\n", COLOR_WHITE, COLOR_BLACK);
@@ -330,9 +332,12 @@ static void command_whereami(int argc, char *argv[]) {
 static void command_copyfile(int argc, char *argv[]) {
     if (argc < 2) return term_write("Usage: copyfile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
 
-    file_node_t *src = file_get_node(argv[0]);
+    uint32_t src = file_get_node(argv[0]);
+    file_node_t src_node;
+    file_node(src, &src_node);
+
     if (!src) return term_write("Source file doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
-    if (src->type != FILE_DATA) return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!(src_node.flags & FILE_DATA)) return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
 
     char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
     char *dest_basename = heap_alloc(FILE_MAX_NAME);
@@ -341,9 +346,9 @@ static void command_copyfile(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    file_node_t *dest_parent_node = NULL;
+    uint32_t dest_parent_node;
     if (dest_parent[0] == '\0')
-        dest_parent_node = file_parent;
+        dest_parent_node = file_current;
     else
         dest_parent_node = file_get_node(dest_parent);
 
@@ -352,20 +357,42 @@ static void command_copyfile(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    file_node_t *dest = file_get_node2(dest_parent, dest_basename);
+    uint32_t dest = file_get_node2(dest_parent, dest_basename);
+    file_node_t dest_node;
+    file_node(dest, &dest_node);
+
     if (dest) {
-        if (dest->type == FILE_FOLDER) {
-            file_create(dest, src->name);
-            dest = file_get(dest, src->name);
+        if ((dest_node.flags & FILE_FOLDER)) {
+            file_create(dest, src_node.name);
+            dest = file_get(dest, src_node.name);
+            file_node(dest, &dest_node);
         }
 
-        memcpy(dest->data, src->data, FILE_MAX_SIZE);
+        file_data_t src_data;
+        file_data_t dest_data;
+
+        if (src_node.first_block && dest_node.first_block) {
+            file_data(src_node.first_block, &src_data);
+            file_data(dest_node.first_block, &dest_data);
+
+            memcpy(dest_data.data, src_data.data, sizeof(src_data.data));
+        }
+
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
         file_create(dest_parent_node, dest_basename);
         dest = file_get(dest_parent_node, dest_basename);
+        file_node(dest, &dest_node);
 
-        memcpy(dest->data, src->data, FILE_MAX_SIZE);
+        file_data_t src_data;
+        file_data_t dest_data;
+
+        if (src_node.first_block && dest_node.first_block) {
+            file_data(src_node.first_block, &src_data);
+            file_data(dest_node.first_block, &dest_data);
+
+            memcpy(dest_data.data, src_data.data, sizeof(src_data.data));
+        }
     }
 
 cleanup:
@@ -378,16 +405,22 @@ static void command_movefile(int argc, char *argv[]) {
 
     command_copyfile(argc, argv);
 
-    file_node_t *src = file_get_node(argv[0]);
-    file_delete(src->parent, src->name);
+    uint32_t src = file_get_node(argv[0]);
+    file_node_t src_node;
+    file_node(src, &src_node);
+
+    file_delete(src_node.parent, src_node.name);
 }
 
 static void command_copyfolder(int argc, char *argv[]) {
     if (argc < 2) return term_write("Usage: copyfolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
 
-    file_node_t *src = file_get_node(argv[0]);
+    uint32_t src = file_get_node(argv[0]);
+    file_node_t src_node;
+    file_node(src, &src_node);
+
     if (!src) return term_write("Source folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
-    if (src->type != FILE_FOLDER) return term_write("Not a folder!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!(src_node.flags & FILE_FOLDER)) return term_write("Not a folder!\n", COLOR_WHITE, COLOR_BLACK);
 
     char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
     char *dest_basename = heap_alloc(FILE_MAX_NAME);
@@ -396,9 +429,9 @@ static void command_copyfolder(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    file_node_t *dest_parent_node = NULL;
+    uint32_t dest_parent_node;
     if (dest_parent[0] == '\0')
-        dest_parent_node = file_parent;
+        dest_parent_node = file_current;
     else
         dest_parent_node = file_get_node(dest_parent);
 
@@ -407,24 +440,46 @@ static void command_copyfolder(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    file_node_t *dest = file_get_node2(dest_parent, dest_basename);
+    uint32_t dest = file_get_node2(dest_parent, dest_basename);
+    file_node_t dest_node;
+    file_node(dest, &dest_node);
+
     if (dest) {
-        if (dest->type == FILE_FOLDER) {
-            folder_create(dest, src->name);
-            dest = folder_get(dest, src->name);
+        if (!(dest_node.flags & FILE_FOLDER)) {
+            folder_create(dest, src_node.name);
+            dest = folder_get(dest, src_node.name);
+            file_node(dest, &dest_node);
         }
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("Folder name is too long!\n", COLOR_WHITE, COLOR_BLACK);
         folder_create(dest_parent_node, dest_basename);
         dest = folder_get(dest_parent_node, dest_basename);
+        file_node(dest, &dest_node);
     }
 
-    file_node_t *child = src->child_head;
+    uint32_t child = src_node.child_head;
+    file_node_t child_node;
+
     while (child) {
-        file_create(dest, child->name);
-        file_node_t *dest_child = file_get(dest, child->name);
-        memcpy(dest_child->data, child->data, FILE_MAX_SIZE);
-        child = child->child_next;
+        file_node(child, &child_node);
+
+        file_create(dest, child_node.name);
+
+        uint32_t dest_child = file_get(dest, child_node.name);
+        file_node_t dest_child_node;
+        file_node(dest_child, &dest_child_node);
+
+        if (dest_child_node.first_block && child_node.first_block) {
+            file_data_t dest_child_data;
+            file_data_t child_node_data;
+            
+            file_data(dest_child_node.first_block, &dest_child_data);
+            file_data(child_node.first_block, &child_node_data);
+
+            memcpy(dest_child_data.data, child_node_data.data, sizeof(child_node_data.data));
+        }
+
+        child = child_node.child_next;
     }
 
 cleanup:
@@ -437,8 +492,11 @@ static void command_movefolder(int argc, char *argv[]) {
 
     command_copyfolder(argc, argv);
 
-    file_node_t *src = file_get_node(argv[0]);
-    folder_delete(src->parent, src->name);
+    uint32_t src = file_get_node(argv[0]);
+    file_node_t src_node;
+    file_node(src, &src_node);
+
+    folder_delete(src_node.parent, src_node.name);
 }
 
 void command_handle(const char *command) {

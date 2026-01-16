@@ -1,5 +1,6 @@
 *.bin
 *.iso
 *.psf
+*.img
 toolchain/*
 !toolchain/init.sh

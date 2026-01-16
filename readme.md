@@ -7,7 +7,7 @@ features:
 - keyboard input
 - terminal (/w scrolling)
 - basic commands
-- memory file system
+- custom file system
 - basic text editor
 
 <details>

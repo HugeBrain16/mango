@@ -1,32 +1,168 @@
 #include "file.h"
 #include "string.h"
 #include "heap.h"
+#include "ata.h"
 
-void file_init() {
-    file_root = heap_alloc(sizeof(file_node_t));
-    file_root->type = FILE_FOLDER;
-    file_root->parent = NULL;
-    file_root->child_head = NULL;
-    file_root->child_next = NULL;
-    file_root->name = NULL;
-    file_root->data = NULL;
-
-    file_parent = file_root;
+static void file_read_sb(file_superblock_t *sb) {
+    uint16_t buffer[256];
+    ata_read_sector(FILE_SECTOR_SUPERBLOCK, buffer);
+    memcpy(sb, buffer, sizeof(*sb));
 }
 
-file_node_t *file_get(file_node_t *parent, const char *name) {
-    if (!parent->child_head)
-        return NULL;
+static void file_write_sb(file_superblock_t *sb) {
+    uint16_t buffer[256] = {0};
+    memcpy(buffer, sb, sizeof(*sb));
+    ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
+}
 
-    file_node_t *current = parent->child_head;
+static void file_format() {
+    uint16_t buffer[256] = {0};
+
+    file_superblock_t *sb = (file_superblock_t*) buffer;
+    sb->magic = FILE_MAGIC;
+
+    uint16_t ata_id[256]; ata_identify(ata_id);
+    sb->sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
+    sb->free = FILE_SECTOR_ROOT + 1;
+    sb->free_list = 0;
+
+    ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
+
+    file_node_t root = {0};
+    root.parent = 0;
+    root.flags = FILE_FOLDER;
+    root.child_head = 0;
+    root.child_next = 0;
+    root.size = 0;
+    root.first_block = 0;
+    root.name[0] = '\0';
+    memcpy(buffer, &root, sizeof(root));
+    ata_write_sector(FILE_SECTOR_ROOT, buffer);
+}
+
+void file_init() {
+    file_current = FILE_SECTOR_ROOT;
+
+    file_superblock_t sb;
+    file_read_sb(&sb);
+
+    if (sb.magic != FILE_MAGIC)
+        file_format();
+}
+
+uint32_t file_get(uint32_t parent, const char *name) {
+    file_node_t parent_node;
+    file_node(parent, &parent_node);
+
+    uint32_t current = parent_node.child_head;
+    file_node_t current_node;
+
     while (current) {
-        if (!strcmp(current->name, name) && current->type == FILE_DATA)
+        file_node(current, &current_node);
+        if (!strcmp(current_node.name, name) && (current_node.flags & FILE_DATA))
             return current;
 
-        current = current->child_next;
+        current = current_node.child_next;
     }
 
-    return NULL;
+    return 0;
+}
+
+void file_node(uint32_t sector, file_node_t *node) {
+    uint16_t buffer[256];
+    ata_read_sector(sector, buffer);
+    memcpy(node, buffer, sizeof(file_node_t));
+}
+
+void file_node_write(uint32_t sector, file_node_t *node) {
+    uint16_t buffer[256];
+    memcpy(buffer, node, sizeof(file_node_t));
+    ata_write_sector(sector, buffer);
+}
+
+void file_data(uint32_t sector, file_data_t *data) {
+    uint16_t buffer[256];
+    ata_read_sector(sector, buffer);
+    memcpy(data, buffer, sizeof(file_data_t));
+}
+
+void file_data_write(uint32_t sector, file_data_t *data) {
+    uint16_t buffer[256];
+    memcpy(buffer, data, sizeof(file_data_t));
+    ata_write_sector(sector, buffer);
+}
+
+int file_write(uint32_t sector, const char *data, size_t size) {
+    file_node_t file;
+    file_node(sector, &file);
+
+    size_t written = 0;
+    uint32_t current = file.first_block;
+
+    while (written < size) {
+        file_data_t block;
+        file_data(current, &block);
+
+        size_t to_write = sizeof(block.data);
+        if (size - written < to_write)
+            to_write = size - written;
+
+        memcpy(block.data, data + written, to_write);
+        file_data_write(current, &block);
+        written += to_write;
+
+        if (written < size) {
+            if (block.next == 0) {
+                uint32_t new_block = file_sector_alloc();
+
+                block.next = new_block;
+                file_data_write(current, &block);
+
+                file.size++;
+                file_node_write(sector, &file);
+
+                file_data_t data = {0};
+                data.next = 0;
+                file_data_write(new_block, &data);
+
+                current = new_block;
+            } else {
+                current = block.next;
+            }
+        }
+    }
+
+    return 1;
+}
+
+char *file_read(uint32_t sector) {
+    file_node_t file;
+    file_node(sector, &file);
+
+    size_t offset = 0;
+    size_t buffer_size;
+    char *buffer = NULL;
+
+    uint32_t current = file.first_block;
+    while (current) {
+        file_data_t block;
+        file_data(current, &block);
+
+        if (!buffer) {
+            buffer_size = sizeof(block.data) * file.size;
+            buffer = heap_alloc(buffer_size + 1);
+        }
+
+        memcpy(buffer + offset, block.data, sizeof(block.data));
+        offset += sizeof(block.data);
+
+        current = block.next;
+    }
+
+    if (buffer)
+        buffer[buffer_size] = '\0';
+
+    return buffer;
 }
 
 int file_split_path(const char *path, char *out_parent, char *out_name) {
@@ -69,7 +205,8 @@ int file_split_path(const char *path, char *out_parent, char *out_name) {
     return 1;
 }
 
-void file_get_abspath(file_node_t *node, char *path, size_t size) {
+void file_get_abspath(uint32_t node, char *path, size_t size) {
+    file_node_t node_node;
     size_t pos;
     size_t out = 0;
 
@@ -82,8 +219,9 @@ void file_get_abspath(file_node_t *node, char *path, size_t size) {
     pos = size - 1;
     path[pos] = '\0';
 
-    while (node && node != file_root) {
-        size_t len = strlen(node->name);
+    while (node && node != FILE_SECTOR_ROOT) {
+        file_node(node, &node_node);
+        size_t len = strlen(node_node.name);
 
         if (pos < len + 1) {
             path[0] = '\0';
@@ -91,10 +229,10 @@ void file_get_abspath(file_node_t *node, char *path, size_t size) {
         }
 
         pos -= len;
-        memcpy(path + pos, node->name, len);
+        memcpy(path + pos, node_node.name, len);
 
         path[--pos] = '/';
-        node = node->parent;
+        node = node_node.parent;
     }
 
     if (pos == size - 1) {
@@ -109,16 +247,18 @@ void file_get_abspath(file_node_t *node, char *path, size_t size) {
     path[out] = '\0';
 }
 
-file_node_t *file_get_node(const char *path) {
+uint32_t file_get_node(const char *path) {
     size_t name_index = 0;
-    char *name = heap_alloc(FILE_MAX_NAME);
-    file_node_t *parent = NULL;
+    char name[FILE_MAX_NAME];
+    uint32_t parent = 0;
+    file_node_t parent_node;
 
     for (size_t i = 0; i < strlen(path); i++) {
         char c = path[i];
 
         if (c == '/' && i == 0) {
-            parent = file_root;
+            parent = FILE_SECTOR_ROOT;
+            file_node(parent, &parent_node);
             continue;
         } else if (c == '/') {
             if (name_index < 1)
@@ -126,26 +266,27 @@ file_node_t *file_get_node(const char *path) {
 
             name[name_index] = '\0';
 
-            file_node_t *current;
+            uint32_t current;
+            file_node_t current_node;
             if (!parent)
-                current = file_parent->child_head;
+                current = parent_node.child_head;
             else
-                current = parent->child_head;
+                current = parent_node.child_head;
 
             while (current) {
-                if (!strcmp(current->name, name)) {
+                file_node(current, &current_node);
+                if (!strcmp(current_node.name, name)) {
                     parent = current;
+                    file_node(parent, &parent_node);
                     name_index = 0;
-                    memset(name, 0, sizeof(name));
+                    memset(name, 0, FILE_MAX_NAME);
                     break;
                 }
-                current = current->child_next;
+                current = current_node.child_next;
             }
 
-            if (!current) {
-                heap_free(name);
-                return NULL;
-            }
+            if (!current)
+                return 0;
         } else
             name[name_index++] = c;
     }
@@ -153,26 +294,29 @@ file_node_t *file_get_node(const char *path) {
     if (name_index > 0) {
         name[name_index] = '\0';
 
-        file_node_t *current;
-        if (!parent)
-            current = file_parent->child_head;
-        else
-            current = parent->child_head;
+        uint32_t current;
+        file_node_t current_node;
+        if (!parent) {
+            file_node_t file_current_node;
+            file_node(file_current, &file_current_node);
+            current = file_current_node.child_head;
+        } else
+            current = parent_node.child_head;
 
         while (current) {
-            if (!strcmp(current->name, name))
+            file_node(current, &current_node);
+            if (!strcmp(current_node.name, name))
                 return current;
 
-            current = current->child_next;
+            current = current_node.child_next;
         }
     }
 
-    heap_free(name);
     return parent;
 }
 
-file_node_t *file_get_node2(const char *parent, const char *basename) {
-    file_node_t *node = NULL;
+uint32_t file_get_node2(const char *parent, const char *basename) {
+    uint32_t node;
     char *path = heap_alloc(FILE_MAX_PATH);
     strcat(path, parent);
     strcat(path, basename);
@@ -182,145 +326,241 @@ file_node_t *file_get_node2(const char *parent, const char *basename) {
     return node;
 }
 
-int file_exists(file_node_t *parent, const char *name) {
-    return file_get(parent, name) != NULL;
+int file_exists(uint32_t parent, const char *name) {
+    return file_get(parent, name) != 0;
 }
 
-int file_create(file_node_t *parent, const char *name) {
-    if (file_exists(parent, name) || parent->type != FILE_FOLDER)
+int file_create(uint32_t parent, const char *name) {
+    file_node_t parent_node;
+    file_node(parent, &parent_node);
+
+    if (file_exists(parent, name) || !(parent_node.flags & FILE_FOLDER))
         return 0;
 
-    file_node_t *file = heap_alloc(sizeof(file_node_t));
-    file->parent = parent;
-    file->type = FILE_DATA;
-    file->child_head = NULL;
-    file->child_next = NULL;
-    file->data = heap_alloc(FILE_MAX_SIZE);
-    memset(file->data, 0, FILE_MAX_SIZE);
-    file->name = heap_alloc(FILE_MAX_NAME);
-    strcpy(file->name, name);
+    uint32_t node_sector = file_sector_alloc();
+    uint32_t data_sector = file_sector_alloc();
 
-    if (parent->child_head) {
-        file_node_t *current = parent->child_head;
+    file_superblock_t sb; file_read_sb(&sb);
+    file_node_t file = {0};
+    file.parent = parent;
+    file.flags = FILE_DATA;
+    file.child_head = 0;
+    file.child_next = 0;
+    file.first_block = data_sector;
+    file.size = 1;
+    strcpy(file.name, name);
 
-        while(current->child_next) {
-            current = current->child_next;
+    if (parent_node.child_head) {
+        uint32_t current = parent_node.child_head;
+        file_node_t current_node;
+        file_node(current, &current_node);
+
+        while(current_node.child_next) {
+            current = current_node.child_next;
+            file_node(current, &current_node);
         }
-        current->child_next = file;
+
+        current_node.child_next = node_sector;
+        file_node_write(current, &current_node);
     } else {
-        parent->child_head = file;
+        parent_node.child_head = node_sector;
+        file_node_write(parent, &parent_node);
     }
+    file_node_write(node_sector, &file);
+
+    file_data_t data = {0};
+    data.next = 0;
+    file_data_write(data_sector, &data);
 
     return 1;
 }
 
-int file_delete(file_node_t *parent, const char *name) {
-    file_node_t *prev = NULL;
-    file_node_t *current = parent->child_head;
+int file_delete(uint32_t parent, const char *name) {
+    file_node_t parent_node;
+    file_node(parent, &parent_node);
+
+    uint32_t prev = 0;
+    uint32_t current = parent_node.child_head;
+    file_node_t prev_node;
+    file_node_t current_node;
 
     while (current) {
-        if (!strcmp(current->name, name)) {
-            if (current->type != FILE_DATA)
+        file_node(current, &current_node);
+        if (!strcmp(current_node.name, name)) {
+            if (!(current_node.flags & FILE_DATA))
                 return 0;
 
-            heap_free(current->data);
-            heap_free(current->name);
+            uint32_t current_data = current_node.first_block;
+            while(current_data) {
+                file_data_t data_block;
+                file_data(current_data, &data_block);
 
-            if (prev) {
-                prev->child_next = current->child_next;
-            } else {
-                parent->child_head = current->child_next;
+                uint32_t next = data_block.next;
+                file_sector_free(current_data);
+
+                current_data = next;
             }
 
-            heap_free(current);
+            file_sector_free(current);
+
+            if (prev) {
+                file_node(prev, &prev_node);
+                prev_node.child_next = current_node.child_next;
+                file_node_write(prev, &prev_node);
+            } else {
+                parent_node.child_head = current_node.child_next;
+                file_node_write(parent, &parent_node);
+            }
+
             return 1;
         }
 
         prev = current;
-        current = current->child_next;
+        current = current_node.child_next;
     }
 
     return 0;
 }
 
-file_node_t *folder_get(file_node_t *parent, const char *name) {
-    if (!parent->child_head)
-        return NULL;
+uint32_t folder_get(uint32_t parent, const char *name) {
+    file_node_t parent_node;
+    file_node(parent, &parent_node);
 
-    file_node_t *current = parent->child_head;
+    uint32_t current = parent_node.child_head;
+    file_node_t current_node;
+
     while (current) {
-        if (!strcmp(current->name, name) && current->type == FILE_FOLDER)
+        file_node(current, &current_node);
+        if (!strcmp(current_node.name, name) && (current_node.flags & FILE_FOLDER))
             return current;
 
-        current = current->child_next;
+        current = current_node.child_next;
     }
 
-    return NULL;
+    return 0;
 }
 
-int folder_exists(file_node_t *parent, const char *name) {
-    return folder_get(parent, name) != NULL;
+int folder_exists(uint32_t parent, const char *name) {
+    return folder_get(parent, name) != 0;
 }
 
-int folder_create(file_node_t *parent, const char *name) {
-    if (folder_exists(parent, name) || parent->type != FILE_FOLDER)
+int folder_create(uint32_t parent, const char *name) {
+    file_node_t parent_node;
+    file_node(parent, &parent_node);
+
+    if (folder_exists(parent, name) || !(parent_node.flags & FILE_FOLDER))
         return 0;
 
-    file_node_t *folder = heap_alloc(sizeof(file_node_t));
-    folder->parent = parent;
-    folder->type = FILE_FOLDER;
-    folder->child_head = NULL;
-    folder->child_next = NULL;
-    folder->data = NULL;
-    folder->name = heap_alloc(FILE_MAX_NAME);
-    strcpy(folder->name, name);
+    uint32_t node_sector = file_sector_alloc();
 
-    if (parent->child_head) {
-        file_node_t *current = parent->child_head;
+    file_superblock_t sb; file_read_sb(&sb);
+    file_node_t folder = {0};
+    folder.parent = parent;
+    folder.flags = FILE_FOLDER;
+    folder.child_head = 0;
+    folder.child_next = 0;
+    folder.size = 0;
+    folder.first_block = 0;
+    strcpy(folder.name, name);
 
-        while(current->child_next) {
-            current = current->child_next;
+    if (parent_node.child_head) {
+        uint32_t current = parent_node.child_head;
+        file_node_t current_node;
+        file_node(current, &current_node);
+
+        while(current_node.child_next) {
+            current = current_node.child_next;
+            file_node(current, &current_node);
         }
-        current->child_next = folder;
+
+        current_node.child_next = node_sector;
+        file_node_write(current, &current_node);
     } else {
-        parent->child_head = folder;
+        parent_node.child_head = node_sector;
+        file_node_write(parent, &parent_node);
     }
+    file_node_write(sb.free, &folder);
 
     return 1;
 }
 
-int folder_delete(file_node_t *parent, const char *name) {
-    file_node_t *prev = NULL;
-    file_node_t *current = parent->child_head;
+int folder_delete(uint32_t parent, const char *name) {
+    file_node_t parent_node;
+    file_node(parent, &parent_node);
+
+    uint32_t prev = 0;
+    uint32_t current = parent_node.child_head;
+    file_node_t current_node;
+    file_node_t prev_node;
 
     while (current) {
-        if (!strcmp(current->name, name)) {
-            if (current->type != FILE_FOLDER)
+        file_node(current, &current_node);
+        if (!strcmp(current_node.name, name)) {
+            if (!(current_node.flags & FILE_FOLDER))
                 return 0;
 
-            if (current->child_head) {
-                file_node_t *current_file = current->child_head;
+            if (current_node.child_head) {
+                uint32_t current_file = current_node.child_head;
+                file_node_t current_file_node;
 
                 while (current_file) {
-                    file_delete(current, current_file->name);
-                    current_file = current_file->child_next;
+                    file_node(current_file, &current_file_node);
+
+                    file_delete(current, current_file_node.name);
+                    current_file = current_file_node.child_next;
                 }
             }
 
+
             if (prev) {
-                prev->child_next = current->child_next;
+                file_node(prev, &prev_node);
+                prev_node.child_next = current_node.child_next;
+                file_node_write(prev, &prev_node);
             } else {
-                parent->child_head = current->child_next;
+                parent_node.child_head = current_node.child_next;
+                file_node_write(parent, &parent_node);
             }
 
-            heap_free(current->name);
-            heap_free(current);
+            file_sector_free(current);
             return 1;
         }
 
         prev = current;
-        current = current->child_next;
+        current = current_node.child_next;
     }
 
     return 0;
+}
+
+void file_sector_free(uint32_t sector) {
+    file_superblock_t sb;
+    file_read_sb(&sb);
+
+    uint16_t buffer[256] = {0};
+    memcpy(buffer, &sb.free_list, sizeof(uint32_t));
+    ata_write_sector(sector, buffer);
+
+    sb.free_list = sector;
+    file_write_sb(&sb);
+}
+
+uint32_t file_sector_alloc() {
+    file_superblock_t sb;
+    file_read_sb(&sb);
+
+    if (sb.free_list != 0) {
+        uint16_t buffer[256];
+        ata_read_sector(sb.free_list, buffer);
+        uint32_t free;
+        memcpy(&free, buffer, sizeof(uint32_t));
+
+        sb.free_list = free;
+        file_write_sb(&sb);
+
+        return sb.free_list;
+    }
+
+    sb.free++;
+    file_write_sb(&sb);
+    return sb.free;
 }

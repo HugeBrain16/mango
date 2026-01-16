@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-qemu-system-i386 -cdrom mango.iso -serial stdio -s
+test -f disk.img || qemu-img create -f raw disk.img 4M
+qemu-system-i386 -boot d -cdrom mango.iso -drive file=disk.img,format=raw -serial stdio -s

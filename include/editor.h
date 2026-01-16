@@ -1,15 +1,14 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
-#define EDIT_MAX_LINE 128
 #define EDIT_MAX_SIZE 128
 
 #include <stdint.h>
 #include "file.h"
 
-file_node_t *edit_node;
-char edit_buffer[EDIT_MAX_LINE][EDIT_MAX_SIZE];
-char *line_buffer[EDIT_MAX_LINE];
+uint32_t edit_node;
+char **edit_buffer;
+int line_count;
 int edit_line;
 int edit_pos;
 int edit_cursor;

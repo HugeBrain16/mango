@@ -104,7 +104,7 @@ void *heap_realloc(void *ptr, size_t size) {
     void *new = heap_alloc(size);
     if (!new) return NULL;
 
-    size_t resize = block->size < size ? block->size : size;
+    size_t resize = (block->size < size) ? block->size : size;
     memcpy(new, ptr, resize);
 
     heap_free(ptr);

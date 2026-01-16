@@ -8,33 +8,58 @@
 #include "heap.h"
 #include "string.h"
 #include "terminal.h"
+#include "file.h"
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
 
-void edit_init() {
-    edit_node = NULL;
+void edit_init(uint32_t file) {
+    edit_node = file;
+    line_count = 1;
     edit_line = 0;
     edit_pos = 0;
     edit_cursor = 0;
     edit_x = 0;
     edit_y = 0;
 
-    for (int i = 0; i < EDIT_MAX_LINE; i++) {
-        edit_buffer[i][0] = '\0';
-        line_buffer[i] = edit_buffer[i];
-        memset(line_buffer[i], 0, EDIT_MAX_SIZE);
-    }
-}
+    char *data = file_read(file);
+    for (int i = 0; data[i] != '\0'; i++)
+        if (data[i] == '\n') line_count++;
 
-static void edit_buffer_clear() {
-    for (int i = 0; i < EDIT_MAX_LINE; i++)
-        memset(line_buffer[i], 0, EDIT_MAX_SIZE);
+    edit_buffer = (char**) heap_alloc(line_count * sizeof(char*));
+    for (int i = 0; i < line_count; i++) {
+        edit_buffer[i] = (char*) heap_alloc(EDIT_MAX_SIZE * sizeof(char));
+        memset(edit_buffer[i], 0, EDIT_MAX_SIZE);
+    }
+
+    int line = 0;
+    int line_cursor = 0;
+    for (size_t i = 0; i < strlen(data); i++) {
+        if (data[i] != '\n') {
+            edit_buffer[line][line_cursor++] = data[i];
+            screen_draw_char(edit_x, edit_y, data[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+            edit_x += FONT_WIDTH * screen_scale;
+        } else {
+            edit_buffer[line][line_cursor] = '\0';
+            line++;
+            line_cursor = 0;
+            edit_x = 0;
+            edit_y += FONT_HEIGHT * screen_scale;
+        }
+    }
+
+    edit_buffer[line][line_cursor] = '\0';
+
+    edit_cursor = strlen(edit_buffer[line]);
+    edit_line = line;
+    edit_pos = 0;
+
+    heap_free(data);
 }
 
 static void edit_clear_cursor() {
     if (edit_pos < edit_cursor)
-        screen_draw_char(edit_x, edit_y, line_buffer[edit_line][edit_pos], COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(edit_x, edit_y, edit_buffer[edit_line][edit_pos], COLOR_WHITE, COLOR_BLACK, screen_scale);
     else
         screen_draw_char(edit_x, edit_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
 }
@@ -86,16 +111,16 @@ static void edit_handle_backspace() {
     edit_clear_cursor();
 
     for (int i = edit_pos - 1; i < edit_cursor - 1; i++) {
-        line_buffer[edit_line][i] = line_buffer[edit_line][i + 1];
+        edit_buffer[edit_line][i] = edit_buffer[edit_line][i + 1];
     }
-    line_buffer[edit_line][--edit_cursor] = '\0';
+    edit_buffer[edit_line][--edit_cursor] = '\0';
     edit_pos--;
 
     int saved_x = edit_x - FONT_WIDTH * screen_scale;
     edit_x = saved_x;
 
     for (int i = edit_pos; i < edit_cursor; i++) {
-        screen_draw_char(edit_x, edit_y, line_buffer[edit_line][i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(edit_x, edit_y, edit_buffer[edit_line][i], COLOR_WHITE, COLOR_BLACK, screen_scale);
         edit_x += FONT_WIDTH * screen_scale;
     }
 
@@ -106,7 +131,7 @@ static void edit_handle_backspace() {
 }
 
 static void edit_handle_left() {
-    if (edit_pos == 0 || edit_x == 0 || line_buffer[edit_line][edit_pos] == '\0') return;
+    if (edit_pos == 0 || edit_x == 0 || edit_buffer[edit_line][edit_pos] == '\0') return;
 
     edit_clear_cursor();
     edit_x -= FONT_WIDTH * screen_scale;
@@ -130,46 +155,51 @@ static void edit_handle_up() {
     edit_clear_cursor();
     edit_line--;
     edit_pos = 0;
-    edit_cursor = strlen(line_buffer[edit_line]);
+    edit_cursor = strlen(edit_buffer[edit_line]);
     edit_x = 0;
     edit_y -= FONT_HEIGHT * screen_scale;
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_down() {
-    if (edit_line >= EDIT_MAX_LINE - 1) return;
+    if (edit_line + 1 >= line_count) {
+        line_count++;
+        edit_buffer = (char**) heap_realloc(edit_buffer, line_count * sizeof(char*));
+        edit_buffer[line_count - 1] = (char*) heap_alloc(EDIT_MAX_SIZE * sizeof(char));
+        memset(edit_buffer[line_count - 1], 0, EDIT_MAX_SIZE);
+    }
 
     edit_clear_cursor();
     edit_line++;
     edit_pos = 0;
-    edit_cursor = strlen(line_buffer[edit_line]);
+    edit_cursor = strlen(edit_buffer[edit_line]);
     edit_x = 0;
     edit_y += FONT_HEIGHT * screen_scale;
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_save() {
-    char *buffer = heap_alloc(FILE_MAX_SIZE);
-    memset(buffer, 0, FILE_MAX_SIZE);
-
     int max_line = -1;
-    for (int i = 0; i < EDIT_MAX_LINE; i++) {
-        if (line_buffer[i][0] != '\0') {
+    for (int i = 0; i < line_count; i++) {
+        if (edit_buffer[i][0] != '\0') {
             max_line = i;
         }
     }
 
-    if (max_line >= 0) {
-        for (int i = 0; i <= max_line; i++) {
-            strcat(buffer, line_buffer[i]);
-            strcat(buffer, "\n");
-        }
+    size_t buffer_size = 128 * (max_line + 1);
+    char *buffer = heap_alloc(buffer_size);
+    memset(buffer, 0, buffer_size);
+
+    for (int i = 0; i < max_line + 1; i++) {
+        strcat(buffer, edit_buffer[i]);
+        strcat(buffer, "\n");
     }
 
-    edit_buffer_clear();
-    memcpy(edit_node->data, buffer, FILE_MAX_SIZE);
+    file_write(edit_node, buffer, buffer_size);
     heap_free(buffer);
-    edit_node = NULL;
+    for (int i = 0; i < line_count; i++)
+        heap_free(edit_buffer[i]);
+    heap_free(edit_buffer);
     edit_line = 0;
     edit_pos = 0;
     edit_cursor = 0;
@@ -206,14 +236,14 @@ void edit_handle_type(uint8_t scancode) {
         edit_clear_cursor();
 
         for (int i = edit_cursor; i > edit_pos; i--)
-            line_buffer[edit_line][i] = line_buffer[edit_line][i - 1];
+            edit_buffer[edit_line][i] = edit_buffer[edit_line][i - 1];
 
-        line_buffer[edit_line][edit_pos] = c;
-        line_buffer[edit_line][++edit_cursor] = '\0';
+        edit_buffer[edit_line][edit_pos] = c;
+        edit_buffer[edit_line][++edit_cursor] = '\0';
 
         int saved_x = edit_x;
         for (int i = edit_pos; i < edit_cursor; i++) {
-            screen_draw_char(edit_x, edit_y, line_buffer[edit_line][i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(edit_x, edit_y, edit_buffer[edit_line][i], COLOR_WHITE, COLOR_BLACK, screen_scale);
             edit_x += FONT_WIDTH * screen_scale;
         }
 

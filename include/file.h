@@ -4,39 +4,61 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define FILE_DATA 0
-#define FILE_FOLDER 1
+#define FILE_MAGIC 0x4F474E4D
+#define FILE_SECTOR_SUPERBLOCK 2048
+#define FILE_SECTOR_ROOT 2049
 
-#define FILE_MAX_SIZE 16384
-#define FILE_MAX_NAME 512
-#define FILE_MAX_PATH 4096
+#define FILE_DATA (1 << 0)
+#define FILE_FOLDER (1 << 1)
+
+#define FILE_MAX_NAME 32
+#define FILE_MAX_PATH 1024
+
+typedef struct file_superblock {
+    uint32_t magic;
+    uint32_t sectors;
+    uint32_t free;
+    uint32_t free_list;
+} file_superblock_t;
 
 typedef struct file_node {
-    uint8_t type;
-
-    struct file_node *parent;
-    struct file_node *child_head;
-    struct file_node *child_next;
-
-    char *name;
-    void *data;
+    uint32_t parent;
+    uint32_t child_head;
+    uint32_t child_next;
+    
+    uint32_t size;
+    uint32_t first_block;
+    char name[FILE_MAX_NAME];
+    uint8_t flags;
 } file_node_t;
 
-file_node_t *file_root;
-file_node_t *file_parent;
+typedef struct file_data {
+    uint32_t next;
+    uint8_t data[508];
+} file_data_t;
+
+uint32_t file_current;
 
 void file_init();
-file_node_t *file_get(file_node_t *parent, const char *name);
-file_node_t *file_get_node(const char *path);
-file_node_t *file_get_node2(const char *parent, const char *basename);
-int file_exists(file_node_t *parent, const char *name);
-int file_create(file_node_t *parent, const char *name);
-int file_delete(file_node_t *parent, const char *name);
-file_node_t *folder_get(file_node_t *parent, const char *name);
-int folder_exists(file_node_t *parent, const char *name);
-int folder_create(file_node_t *parent, const char *name);
-int folder_delete(file_node_t *parent, const char *name);
+void file_node(uint32_t sector, file_node_t *node);
+void file_node_write(uint32_t sector, file_node_t *node);
+void file_data(uint32_t sector, file_data_t *node);
+void file_data_write(uint32_t sector, file_data_t *node);
+uint32_t file_get(uint32_t parent, const char *name);
+uint32_t file_get_node(const char *path);
+uint32_t file_get_node2(const char *parent, const char *basename);
+int file_exists(uint32_t parent, const char *name);
+int file_create(uint32_t parent, const char *name);
+int file_delete(uint32_t parent, const char *name);
+uint32_t folder_get(uint32_t parent, const char *name);
+int folder_exists(uint32_t parent, const char *name);
+int folder_create(uint32_t parent, const char *name);
+int folder_delete(uint32_t parent, const char *name);
 int file_split_path(const char *path, char *out_parent, char *out_name);
-void file_get_abspath(file_node_t *parent, char *path, size_t size);
+void file_get_abspath(uint32_t parent, char *path, size_t size);
+void file_sector_free(uint32_t sector);
+uint32_t file_sector_alloc();
+int file_write(uint32_t sector, const char *data, size_t size);
+char *file_read(uint32_t sector);
 
 #endif

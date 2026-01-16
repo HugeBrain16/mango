@@ -17,6 +17,7 @@
 #include "file.h"
 #include "keyboard.h"
 #include "editor.h"
+#include "ata.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -55,6 +56,21 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     screen_init(mbi);
     term_init();
     file_init();
+
+    ata_init();
+    uint8_t ata_status = inb(ATA_PORT_STATUS);
+    if (ata_status == 0xFF) {
+        term_write("No primary drive.", COLOR_WHITE, COLOR_BLACK);
+        abort();
+    }
+
+    uint16_t ata_id[256];
+    ata_identify(ata_id);
+
+    if (ata_id[0] & (1 << 15)) {
+        term_write("Incompatible storage device.", COLOR_WHITE, COLOR_BLACK);
+        abort();
+    }
 
     pit_set_frequency(100); // 100 hz
     pic_unmask(0); // pit
