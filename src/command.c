@@ -13,6 +13,36 @@
 #include "font.h"
 #include "ata.h"
 #include "unit.h"
+#include "io.h"
+
+static void command_help(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    term_write("Available commands:\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("help - show this message\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("scaleup - scale up screen by 1\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("scaledown - scale down screen by 1\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("clear - clear screen\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("shutdown - shut down the machine\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("fetch - show system info\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("echo - print words\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("list - list items in a folder\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("newfile - create a new file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("delfile - delete a file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("copyfile - copy a file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("movefile - move a file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("newfolder - create a new folder\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("delfolder - delete a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("copyfolder - copy a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("movefolder - move a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("edit - edit a file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("printfile - show content of a file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("goto - go into a folder\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("goup - go up a folder\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("whereami - show full path to current location\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("formatdisk - format primary disk drive\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("nodeinfo - show info of a filesystem node\n", COLOR_WHITE, COLOR_BLACK);
+}
 
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
@@ -35,11 +65,15 @@ static void command_clear(int argc, char *argv[]) {
     term_y = 0;
 }
 
-static void command_exit(int argc, char *argv[]) {
+static void command_shutdown(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    term_write("Halting...\n", COLOR_WHITE, COLOR_BLACK);
-    abort();
+    term_write("Shutting down...\n", COLOR_WHITE, COLOR_BLACK);
+
+    outw(0x604, 0x2000);
+    outw(0xB004, 0x2000);
+
+    __asm__ volatile("cli; hlt");
 }
 
 static void command_fetch(int argc, char *argv[]) {
@@ -557,7 +591,7 @@ static void command_formatdisk(int argc, char *argv[]) {
 }
 
 static void command_nodeinfo(int argc, char *argv[]) {
-    if (argc < 1) return term_write("Usage: nodeinfo <node>\n", COLOR_WHITE, COLOR_BLACK);
+    if (argc < 1) return term_write("Usage: nodeinfo <path>\n", COLOR_WHITE, COLOR_BLACK);
 
     uint32_t node_sector = file_get_node(argv[0]);
     if (!node_sector) return term_write("Not found\n", COLOR_WHITE, COLOR_BLACK);
@@ -580,6 +614,26 @@ static void command_nodeinfo(int argc, char *argv[]) {
         strcpy(buff, "TYPE = FILE\n");
     }
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
+}
+
+static void command_printfile(int argc, char *argv[]) {
+    if (argc < 1)
+        return term_write("Usage: printfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+
+    uint32_t file_sector = file_get_node(argv[0]);
+    if (!file_sector)
+        return term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+
+    file_node_t file;
+    file_node(file_sector, &file);
+
+    if (!(file.flags & FILE_DATA))
+        return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+
+    char *file_content = file_read(file_sector);
+    term_write(file_content, COLOR_WHITE, COLOR_BLACK);
+
+    heap_free(file_content);
 }
 
 void command_handle(const char *command) {
@@ -623,7 +677,7 @@ void command_handle(const char *command) {
     if (!strcmp(cmd, "scaleup")) command_scaleup(argc, argv);
     else if (!strcmp(cmd, "scaledown")) command_scaledown(argc, argv);
     else if (!strcmp(cmd, "clear")) command_clear(argc, argv);
-    else if (!strcmp(cmd, "exit")) command_exit(argc, argv);
+    else if (!strcmp(cmd, "shutdown")) command_shutdown(argc, argv);
     else if (!strcmp(cmd, "fetch")) command_fetch(argc, argv);
     else if (!strcmp(cmd, "echo")) command_echo(argc, argv);
     else if (!strcmp(cmd, "list")) command_list(argc, argv);
@@ -641,6 +695,8 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "movefolder")) command_movefolder(argc, argv);
     else if (!strcmp(cmd, "formatdisk")) command_formatdisk(argc, argv);
     else if (!strcmp(cmd, "nodeinfo")) command_nodeinfo(argc, argv);
+    else if (!strcmp(cmd, "printfile")) command_printfile(argc, argv);
+    else if (!strcmp(cmd, "help")) command_help(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 
