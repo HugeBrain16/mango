@@ -36,7 +36,7 @@ void file_format() {
     root.child_next = 0;
     root.size = 0;
     root.first_block = 0;
-    root.name[0] = '\0';
+    strcpy(root.name, "root");
     memcpy(buffer, &root, sizeof(root));
     ata_write_sector(FILE_SECTOR_ROOT, buffer);
 }
@@ -250,71 +250,60 @@ void file_get_abspath(uint32_t node, char *path, size_t size) {
 }
 
 uint32_t file_get_node(const char *path) {
-    size_t name_index = 0;
-    char name[FILE_MAX_NAME];
-    uint32_t parent = 0;
-    file_node_t parent_node;
+    if (!path) return 0;
 
-    for (size_t i = 0; i < strlen(path); i++) {
+    uint32_t current = (path[0] == '/') ? FILE_SECTOR_ROOT : file_current;
+
+    if (path[0] == '/' && path[1] == '\0')
+        return FILE_SECTOR_ROOT;
+
+    char name[FILE_MAX_NAME];
+    size_t name_length = 0;
+    size_t path_length = strlen(path);
+
+    size_t i = (path[0] == '/') ? 1 : 0;
+
+    while(i <= path_length) {
         char c = path[i];
 
-        if (c == '/' && i == 0) {
-            parent = FILE_SECTOR_ROOT;
-            file_node(parent, &parent_node);
-            continue;
-        } else if (c == '/') {
-            if (name_index < 1)
-                continue;
+        if (c == '/' || c == '\0') {
+            if (name_length > 0) {
+                name[name_length] = '\0';
 
-            name[name_index] = '\0';
-
-            uint32_t current;
-            file_node_t current_node;
-            if (!parent)
-                current = file_current;
-            else
-                current = parent_node.child_head;
-
-            while (current) {
+                file_node_t current_node;
                 file_node(current, &current_node);
-                if (!strcmp(current_node.name, name)) {
-                    parent = current;
-                    file_node(parent, &parent_node);
-                    name_index = 0;
-                    memset(name, 0, FILE_MAX_NAME);
-                    break;
+
+                uint32_t found = 0;
+                uint32_t child = current_node.child_head;
+                while (child) {
+                    file_node_t child_node;
+                    file_node(child, &child_node);
+
+                    if (!strcmp(child_node.name, name)) {
+                        found = child;
+                        break;
+                    }
+
+                    child = child_node.child_next;
                 }
-                current = current_node.child_next;
+
+                if (!found)
+                    return 0;
+
+                current = found;
+                name_length = 0;
             }
-
-            if (!current)
+        } else {
+            if (name_length >= FILE_MAX_NAME - 1)
                 return 0;
-        } else
-            name[name_index++] = c;
-    }
 
-    if (name_index > 0) {
-        name[name_index] = '\0';
-
-        uint32_t current;
-        file_node_t current_node;
-        if (!parent) {
-            file_node_t file_current_node;
-            file_node(file_current, &file_current_node);
-            current = file_current_node.child_head;
-        } else
-            current = parent_node.child_head;
-
-        while (current) {
-            file_node(current, &current_node);
-            if (!strcmp(current_node.name, name))
-                return current;
-
-            current = current_node.child_next;
+            name[name_length++] = c;
         }
+
+        i++;
     }
 
-    return parent;
+    return current;
 }
 
 uint32_t file_get_node2(const char *parent, const char *basename) {
