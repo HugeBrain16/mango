@@ -1,5 +1,3 @@
-#define SERIAL_ENABLE_ALIAS
-
 #include <stdint.h>
 #include "multiboot.h"
 #include "serial.h"
