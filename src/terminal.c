@@ -127,7 +127,7 @@ void term_handle_type(uint8_t scancode) {
     else if (scancode == KEY_ARROW_RIGHT) return term_handle_right();
 
     char c = scancode_to_char(scancode);
-    if (!c) return;
+    if (!c || c == '\t') return;
 
     if (c == '\b') return term_handle_backspace();
 

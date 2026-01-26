@@ -53,6 +53,7 @@ void edit_init(uint32_t file) {
     edit_cursor = strlen(edit_buffer[line]);
     edit_line = line;
     edit_pos = 0;
+    edit_x = 0;
 
     heap_free(data);
 }
@@ -192,7 +193,9 @@ static void edit_handle_save() {
 
     for (int i = 0; i < max_line + 1; i++) {
         strcat(buffer, edit_buffer[i]);
-        strcat(buffer, "\n");
+
+        if (i < max_line)
+            strcat(buffer, "\n");
     }
 
     file_write(edit_node, buffer, buffer_size);
