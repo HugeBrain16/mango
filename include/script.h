@@ -20,8 +20,9 @@
 #define SCRIPT_TOKEN_EXEC       11 // exec
 
 #define SCRIPT_FUNC 0
-#define SCRIPT_INT 1
-#define SCRIPT_STR 2
+#define SCRIPT_NULL 1
+#define SCRIPT_INT  2
+#define SCRIPT_STR  3
 
 typedef struct script_token {
     char *value;

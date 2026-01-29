@@ -288,6 +288,22 @@ static int parse_let_statement(script_token_t **token, script_node_t *scope) {
     }
 
     script_token_t *equal = var->next;
+    if (equal->type == SCRIPT_TOKEN_END) {
+        script_node_t *ref = find_node_in_scope(scope, var->value);
+        if (ref) {
+            ref->type = SCRIPT_NULL;
+            ref->value = NULL;
+        } else {
+            script_node_t *new_node = create_node(var->value, scope);
+            new_node->type = SCRIPT_NULL;
+            new_node->value = NULL;
+            add_node_to_scope(scope, new_node);
+        }
+
+        *token = equal->next;
+        return 1;
+    }
+
     if (!equal || equal->type != SCRIPT_TOKEN_EQUAL) {
         char msg[64];
         strfmt(msg, "Error: Expected '=' (line: %d)\n", lineno);
