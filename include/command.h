@@ -5,6 +5,6 @@
 #define COMMAND_MAX_ARGC 32
 #define COMMAND_MAX_ARGV 512
 
-void command_handle(const char *command);
+void command_handle(const char *command, int printcaret);
 
 #endif

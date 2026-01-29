@@ -9,6 +9,7 @@ features:
 - basic commands
 - custom file system
 - basic text editor
+- scripting, [see here](https://github.com/HugeBrain16/mango/wiki/Scripting)
 
 <details>
 <summary>commands</summary>
@@ -32,6 +33,9 @@ features:
 - `goto` go into a folder
 - `goup` go one step up from a folder
 - `whereami` show current path
+- `printfile` show the content of a file
+- `nodeinfo` show info of a filesystem node
+- `runscript` run a script file
 - `exit`
 </details>
 

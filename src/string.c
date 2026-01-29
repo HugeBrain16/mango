@@ -1,7 +1,6 @@
 #include <stdarg.h>
 #include "string.h"
 
-
 void *memset(void *bufptr, int value, size_t size) {
     unsigned char *buf = (unsigned char *) bufptr;
 
@@ -33,6 +32,22 @@ void *memcpy(void* restrict destptr, const void* restrict srcptr, size_t size) {
         dest[i] = src[i];
 
     return dest;
+}
+
+int isalpha(char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+int islowalpha(char c) {
+    return (c >= 'a' && c <= 'z');
+}
+
+int isupalpha(char c) {
+    return (c >= 'A' && c <= 'Z');
+}
+
+int isdigit(char c) {
+    return (c >= '0' && c <= '9');
 }
 
 size_t strlen(const char *str) {
@@ -169,7 +184,7 @@ uint32_t hexstr(const char *src) {
     while ((c = *src++)) {
         value <<= 4;
 
-        if (c >= '0' && c <= '9')
+        if (isdigit(c))
             value |= c - '0';
         else if (c >= 'A' && c <= 'F')
             value |= c - 'A' + 10;
@@ -191,7 +206,7 @@ int intstr(const char *src) {
         src++;
     }
 
-    while (*src >= '0' && *src <= '9') {
+    while (isdigit(*src)) {
         value = value * 10 + (*src - '0');
         src++;
     }
@@ -210,7 +225,7 @@ double doublestr(const char *src) {
         src++;
     }
 
-    while (*src >= '0' && *src <= '9') {
+    while (isdigit(*src)) {
         value = value * 10 + (*src - '0');
         src++;
     }
@@ -218,7 +233,7 @@ double doublestr(const char *src) {
     if (*src == '.') {
         src++;
 
-        while (*src >= '0' && *src <= '9') {
+        while (isdigit(*src)) {
             frac += (*src - '0') * base;
             base *= 0.1;
             src++;

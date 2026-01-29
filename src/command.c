@@ -14,6 +14,7 @@
 #include "ata.h"
 #include "unit.h"
 #include "io.h"
+#include "script.h"
 
 static void command_help(int argc, char *argv[]) {
     unused(argc); unused(argv);
@@ -36,12 +37,13 @@ static void command_help(int argc, char *argv[]) {
     term_write("copyfolder - copy a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
     term_write("movefolder - move a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
     term_write("edit - edit a file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("printfile - show content of a file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("printfile - show the content of a file\n", COLOR_WHITE, COLOR_BLACK);
     term_write("goto - go into a folder\n", COLOR_WHITE, COLOR_BLACK);
     term_write("goup - go up a folder\n", COLOR_WHITE, COLOR_BLACK);
     term_write("whereami - show full path to current location\n", COLOR_WHITE, COLOR_BLACK);
     term_write("formatdisk - format primary disk drive\n", COLOR_WHITE, COLOR_BLACK);
     term_write("nodeinfo - show info of a filesystem node\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("runscript - run a script file\n", COLOR_WHITE, COLOR_BLACK);
 }
 
 static void command_scaleup(int argc, char *argv[]) {
@@ -440,31 +442,18 @@ static void command_copyfile(int argc, char *argv[]) {
             file_node(dest, &dest_node);
         }
 
-        file_data_t src_data;
-        file_data_t dest_data;
-
-        if (src_node.first_block && dest_node.first_block) {
-            file_data(src_node.first_block, &src_data);
-            file_data(dest_node.first_block, &dest_data);
-
-            memcpy(dest_data.data, src_data.data, sizeof(src_data.data));
-        }
-
+        char *data = file_read(src);
+        file_write(dest, data, strlen(data));
+        heap_free(data);
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
         file_create(dest_parent_node, dest_basename);
         dest = file_get(dest_parent_node, dest_basename);
         file_node(dest, &dest_node);
 
-        file_data_t src_data;
-        file_data_t dest_data;
-
-        if (src_node.first_block && dest_node.first_block) {
-            file_data(src_node.first_block, &src_data);
-            file_data(dest_node.first_block, &dest_data);
-
-            memcpy(dest_data.data, src_data.data, sizeof(src_data.data));
-        }
+        char *data = file_read(src);
+        file_write(dest, data, strlen(data));
+        heap_free(data);
     }
 
 cleanup:
@@ -538,22 +527,12 @@ static void command_copyfolder(int argc, char *argv[]) {
 
     while (child) {
         file_node(child, &child_node);
-
         file_create(dest, child_node.name);
 
         uint32_t dest_child = file_get(dest, child_node.name);
-        file_node_t dest_child_node;
-        file_node(dest_child, &dest_child_node);
-
-        if (dest_child_node.first_block && child_node.first_block) {
-            file_data_t dest_child_data;
-            file_data_t child_node_data;
-
-            file_data(dest_child_node.first_block, &dest_child_data);
-            file_data(child_node.first_block, &child_node_data);
-
-            memcpy(dest_child_data.data, child_node_data.data, sizeof(child_node_data.data));
-        }
+        char *data = file_read(child);
+        file_write(dest_child, data, strlen(data));
+        heap_free(data);
 
         child = child_node.child_next;
     }
@@ -591,6 +570,7 @@ static void command_formatdisk(int argc, char *argv[]) {
 }
 
 static void command_nodeinfo(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
     if (argc < 1) return term_write("Usage: nodeinfo <path>\n", COLOR_WHITE, COLOR_BLACK);
 
     uint32_t node_sector = file_get_node(argv[0]);
@@ -617,6 +597,7 @@ static void command_nodeinfo(int argc, char *argv[]) {
 }
 
 static void command_printfile(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
     if (argc < 1)
         return term_write("Usage: printfile <path>\n", COLOR_WHITE, COLOR_BLACK);
 
@@ -636,7 +617,25 @@ static void command_printfile(int argc, char *argv[]) {
     heap_free(file_content);
 }
 
-void command_handle(const char *command) {
+static void command_runscript(int argc, char *argv[]) {
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+    if (argc < 1)
+        return term_write("Usage: runscript <path>\n", COLOR_WHITE, COLOR_BLACK);
+
+    uint32_t file_sector = file_get_node(argv[0]);
+    if (!file_sector)
+        return term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+
+    file_node_t file;
+    file_node(file_sector, &file);
+
+    if (!(file.flags & FILE_DATA))
+        return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+
+    script_run(argv[0]);
+}
+
+void command_handle(const char *command, int printcaret) {
     char cmd[COMMAND_MAX_NAME] = {0};
     static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
     char *argv[32];
@@ -696,14 +695,16 @@ void command_handle(const char *command) {
     else if (!strcmp(cmd, "formatdisk")) command_formatdisk(argc, argv);
     else if (!strcmp(cmd, "nodeinfo")) command_nodeinfo(argc, argv);
     else if (!strcmp(cmd, "printfile")) command_printfile(argc, argv);
+    else if (!strcmp(cmd, "runscript")) command_runscript(argc, argv);
     else if (!strcmp(cmd, "help")) command_help(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
-        if (!term_input_buffer) {
+        if (!term_input_buffer && printcaret) {
             term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
-            term_prompt = term_x;
         }
+
+        term_prompt = term_x;
     }
 }

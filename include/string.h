@@ -23,5 +23,9 @@ void strtrim(char *str);
 void strfmt(char *dest, const char *fmt, ...);
 void strdouble(char *dest, double value, int precision);
 int strcmp(const char *a, const char *b);
+int isalpha(char c);
+int isupalpha(char c);
+int islowalpha(char c);
+int isdigit(char c);
 
 #endif

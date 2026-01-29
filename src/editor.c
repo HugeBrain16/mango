@@ -132,7 +132,7 @@ static void edit_handle_backspace() {
 }
 
 static void edit_handle_left() {
-    if (edit_pos == 0 || edit_x == 0 || edit_buffer[edit_line][edit_pos] == '\0') return;
+    if (edit_pos == 0 || edit_x == 0) return;
 
     edit_clear_cursor();
     edit_x -= FONT_WIDTH * screen_scale;

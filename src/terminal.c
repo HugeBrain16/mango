@@ -159,7 +159,7 @@ void term_handle_type(uint8_t scancode) {
             strcpy(term_input_buffer, term_input);
             term_input_buffer = NULL;
         } else {
-            command_handle(term_input);
+            command_handle(term_input, 1);
         }
 
         term_input[0] = '\0';
