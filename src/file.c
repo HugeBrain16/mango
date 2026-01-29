@@ -2,6 +2,8 @@
 #include "string.h"
 #include "heap.h"
 #include "ata.h"
+#include "terminal.h"
+#include "color.h"
 
 void file_read_sb(file_superblock_t *sb) {
     uint16_t buffer[256];
@@ -25,6 +27,7 @@ void file_format() {
     sb.sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
     sb.free = FILE_SECTOR_ROOT + 1;
     sb.free_list = 0;
+    sb.used = 2; // superblock + root
 
     memcpy(buffer, &sb, sizeof(sb));
     ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
@@ -116,6 +119,7 @@ int file_write(uint32_t sector, const char *data, size_t size) {
         if (written < size) {
             if (block.next == 0) {
                 uint32_t new_block = file_sector_alloc();
+                if (new_block == 0) return 0;
 
                 block.next = new_block;
                 file_data_write(current, &block);
@@ -330,6 +334,11 @@ int file_create(uint32_t parent, const char *name) {
 
     uint32_t node_sector = file_sector_alloc();
     uint32_t data_sector = file_sector_alloc();
+    if (node_sector == 0 || data_sector == 0) {
+        if (node_sector) file_sector_free(node_sector);
+        if (data_sector) file_sector_free(data_sector);
+        return 0;
+    }
 
     file_superblock_t sb; file_read_sb(&sb);
     file_node_t file = {0};
@@ -443,6 +452,7 @@ int folder_create(uint32_t parent, const char *name) {
         return 0;
 
     uint32_t node_sector = file_sector_alloc();
+    if (node_sector == 0) return 0;
 
     file_superblock_t sb; file_read_sb(&sb);
     file_node_t folder = {0};
@@ -539,6 +549,11 @@ void file_sector_free(uint32_t sector) {
 uint32_t file_sector_alloc() {
     file_superblock_t sb;
     file_read_sb(&sb);
+
+    if (sb.used >= sb.sectors) {
+        term_write("Error: Disk full!\n", COLOR_WHITE, COLOR_BLACK);
+        return 0;
+    }
     sb.used++;
 
     if (sb.free_list != 0) {
