@@ -6,12 +6,21 @@
 #include "color.h"
 #include "keyboard.h"
 #include "pit.h"
+#include "rtc.h"
 
 static idt_entry_t idt[256];
 static idt_ptr_t idt_ptr;
 
 extern void *isr_stub_table[];
 extern void *irq_stub_table[];
+
+void sti() {
+    __asm__ volatile("sti");
+}
+
+void cli() {
+    __asm__ volatile("cli");
+}
 
 void set_idt_entry(uint8_t vector, void *isr, uint8_t flags) {
     idt_entry_t *descriptor = &idt[vector];
@@ -141,5 +150,7 @@ void irq_handler(int_frame_t *frame) {
         pit_handle();
     } else if (irq == 1) {
         keyboard_handle();
+    } else if (irq == 8) {
+        rtc_handle();
     }
 }

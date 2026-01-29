@@ -15,6 +15,7 @@
 #include "unit.h"
 #include "io.h"
 #include "script.h"
+#include "rtc.h"
 
 static void command_help(int argc, char *argv[]) {
     unused(argc); unused(argv);
@@ -635,6 +636,38 @@ static void command_runscript(int argc, char *argv[]) {
     script_run(argv[0]);
 }
 
+static void command_time(int argc, char *argv[]) {
+    rtc_datetime_t now;
+    rtc_datetime(&now);
+    if (argc == 1)
+        rtc_to_local(&now, intstr(argv[0]));
+
+    char msg[8];
+    char hrs[3];
+    char min[3];
+    intpad(hrs, now.hours, 2);
+    intpad(min, now.minutes, 2);
+
+    strfmt(msg, "%s:%s\n", hrs, min);
+    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+}
+
+static void command_date(int argc, char *argv[]) {
+    rtc_datetime_t now;
+    rtc_datetime(&now);
+    if (argc == 1)
+        rtc_to_local(&now, intstr(argv[0]));
+
+    char msg[16];
+    char day[3];
+    char month[3];
+    intpad(day, now.day, 2);
+    intpad(month, now.month, 2);
+
+    strfmt(msg, "%s-%s-%d\n", day, month, now.year);
+    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+}
+
 void command_handle(const char *command, int printcaret) {
     char cmd[COMMAND_MAX_NAME] = {0};
     static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
@@ -696,6 +729,8 @@ void command_handle(const char *command, int printcaret) {
     else if (!strcmp(cmd, "nodeinfo")) command_nodeinfo(argc, argv);
     else if (!strcmp(cmd, "printfile")) command_printfile(argc, argv);
     else if (!strcmp(cmd, "runscript")) command_runscript(argc, argv);
+    else if (!strcmp(cmd, "time")) command_time(argc, argv);
+    else if (!strcmp(cmd, "date")) command_date(argc, argv);
     else if (!strcmp(cmd, "help")) command_help(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);

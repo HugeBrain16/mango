@@ -342,3 +342,31 @@ int strcmp(const char *a, const char *b) {
 
     return (unsigned char)*a - (unsigned char)*b;
 }
+
+void intpad(char *dest, int num, size_t n) {
+    char temp[12];
+    strint(temp, num);
+    
+    int digit_count = 0;
+    int is_negative = (num < 0);
+    
+    for (size_t i = is_negative ? 1 : 0; temp[i] != '\0'; i++)
+        digit_count++;
+    
+    int padding = n - digit_count;
+    if (is_negative)
+        padding--;
+    
+    size_t idx = 0;
+    
+    if (is_negative)
+        dest[idx++] = '-';
+    
+    for (int i = 0; i < padding; i++)
+        dest[idx++] = '0';
+    
+    for (size_t i = is_negative ? 1 : 0; temp[i] != '\0'; i++)
+        dest[idx++] = temp[i];
+    
+    dest[idx] = '\0';
+}

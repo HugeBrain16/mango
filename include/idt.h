@@ -23,6 +23,8 @@ typedef struct int_frame {
     uint32_t eip, cs, eflags, esp, ss;
 } __attribute__((packed)) int_frame_t;
 
+void cli();
+void sti();
 void idt_init();
 void set_idt_entry(uint8_t vector, void *isr, uint8_t flags);
 

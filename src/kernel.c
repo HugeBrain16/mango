@@ -16,6 +16,7 @@
 #include "keyboard.h"
 #include "editor.h"
 #include "ata.h"
+#include "rtc.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -50,6 +51,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     gdt_init();
     idt_init();
+    rtc_init();
     ps2_init();
     heap_init(mbi->mem_upper);
     screen_init(mbi);
