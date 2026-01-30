@@ -645,8 +645,8 @@ static void command_time(int argc, char *argv[]) {
     char msg[8];
     char hrs[3];
     char min[3];
-    intpad(hrs, now.hours, 2);
-    intpad(min, now.minutes, 2);
+    intpad(hrs, now.hours, 2, '0');
+    intpad(min, now.minutes, 2, '0');
 
     strfmt(msg, "%s:%s\n", hrs, min);
     term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -661,8 +661,8 @@ static void command_date(int argc, char *argv[]) {
     char msg[16];
     char day[3];
     char month[3];
-    intpad(day, now.day, 2);
-    intpad(month, now.month, 2);
+    intpad(day, now.day, 2, '0');
+    intpad(month, now.month, 2, '0');
 
     strfmt(msg, "%s-%s-%d\n", day, month, now.year);
     term_write(msg, COLOR_WHITE, COLOR_BLACK);

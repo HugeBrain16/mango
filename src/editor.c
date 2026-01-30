@@ -12,56 +12,127 @@
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
+static size_t edit_column = 0;
 
-void edit_init(uint32_t file) {
-    edit_node = file;
-    line_count = 1;
-    edit_line = 0;
-    edit_pos = 0;
-    edit_cursor = 0;
-    edit_x = 0;
-    edit_y = 0;
+static size_t get_block_size() {
+    file_node_t file;
+    file_node(edit_node, &file);
 
-    char *data = file_read(file);
-    for (int i = 0; data[i] != '\0'; i++)
-        if (data[i] == '\n') line_count++;
+    file_data_t block;
+    file_data(file.first_block, &block);
 
-    edit_buffer = (char**) heap_alloc(line_count * sizeof(char*));
-    for (int i = 0; i < line_count; i++) {
-        edit_buffer[i] = (char*) heap_alloc(EDIT_MAX_SIZE * sizeof(char));
-        memset(edit_buffer[i], 0, EDIT_MAX_SIZE);
+    return sizeof(block.data);
+}
+
+static size_t find_line_start(size_t pos) {
+    size_t p = pos;
+    while (p > 0 && edit_buffer[p - 1] != '\n')
+        p--;
+    return p;
+}
+
+static size_t find_line_end(size_t pos) {
+    size_t p = pos;
+    while (p < edit_cursor && edit_buffer[p] != '\n')
+        p++;
+    return p;
+}
+
+static size_t get_line_length(size_t pos) {
+    size_t start = find_line_start(pos);
+    return pos - start;
+}
+
+static size_t get_x_from_pos(size_t pos) {
+    size_t line_len = get_line_length(pos);
+    return line_len * FONT_WIDTH * screen_scale;
+}
+
+static void clear(size_t x, size_t y) {
+    size_t draw_x = x;
+    while (draw_x < screen_width) {
+        screen_draw_char(draw_x, y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        draw_x += FONT_WIDTH * screen_scale;
+    }
+}
+
+static void redraw_from_pos(size_t start_pos, size_t x, size_t y) {
+    size_t draw_x = x;
+    size_t draw_y = y;
+    size_t i = start_pos;
+
+    while (i < edit_cursor) {
+        if (edit_buffer[i] != '\n') {
+            screen_draw_char(draw_x, draw_y, edit_buffer[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+            draw_x += FONT_WIDTH * screen_scale;
+        } else {
+            clear(draw_x, draw_y);
+            draw_x = 0;
+            draw_y += FONT_HEIGHT * screen_scale;
+        }
+        i++;
     }
 
-    int line = 0;
-    int line_cursor = 0;
-    for (size_t i = 0; i < strlen(data); i++) {
-        if (data[i] != '\n') {
-            edit_buffer[line][line_cursor++] = data[i];
-            screen_draw_char(edit_x, edit_y, data[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+    clear(draw_x, draw_y);
+
+    draw_y += FONT_HEIGHT * screen_scale;
+    clear(0, draw_y);
+}
+
+static void redraw_line(size_t start_pos, size_t x, size_t y) {
+    size_t draw_x = x;
+    size_t i = start_pos;
+
+    while (i < edit_cursor && edit_buffer[i] != '\n') {
+        screen_draw_char(draw_x, y, edit_buffer[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+        draw_x += FONT_WIDTH * screen_scale;
+        i++;
+    }
+
+    screen_draw_char(draw_x, y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+}
+
+static size_t get_pos_at_column(size_t line_start, size_t column) {
+    size_t line_end = find_line_end(line_start);
+    size_t line_len = line_end - line_start;
+
+    if (column >= line_len)
+        return line_start + line_len;
+
+    return line_start + column;
+}
+
+void edit_init(uint32_t file_sector) {
+    edit_node = file_sector;
+
+    edit_buffer = file_read(file_sector);
+    edit_pos = 0;
+
+    char *c = edit_buffer;
+    while (*c != '\0') {
+        if (*c != '\n') {
+            screen_draw_char(edit_x, edit_y, *c, COLOR_WHITE, COLOR_BLACK, screen_scale);
             edit_x += FONT_WIDTH * screen_scale;
         } else {
-            edit_buffer[line][line_cursor] = '\0';
-            line++;
-            line_cursor = 0;
             edit_x = 0;
             edit_y += FONT_HEIGHT * screen_scale;
         }
+
+        c++;
+        edit_pos++;
+        edit_cursor++;
     }
-
-    edit_buffer[line][line_cursor] = '\0';
-
-    edit_cursor = strlen(edit_buffer[line]);
-    edit_line = line;
-    edit_pos = 0;
-    edit_x = 0;
-
-    heap_free(data);
 }
 
 static void edit_clear_cursor() {
-    if (edit_pos < edit_cursor)
-        screen_draw_char(edit_x, edit_y, edit_buffer[edit_line][edit_pos], COLOR_WHITE, COLOR_BLACK, screen_scale);
-    else
+    if (edit_pos < edit_cursor) {
+        char c = edit_buffer[edit_pos];
+
+        if (c == '\n')
+            screen_draw_char(edit_x, edit_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        else
+            screen_draw_char(edit_x, edit_y, edit_buffer[edit_pos], COLOR_WHITE, COLOR_BLACK, screen_scale);
+    } else
         screen_draw_char(edit_x, edit_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
 }
 
@@ -83,127 +154,111 @@ static void edit_redraw_cursor(int hide) {
     edit_draw_cursor();
 }
 
-void edit_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
-    edit_redraw_cursor(1);
-
-    for (size_t i = 0; i < strlen(text); i++) {
-        char c = text[i];
-
-        if (c != '\n')
-            screen_draw_char(edit_x, edit_y, c, fg_color, bg_color, screen_scale); 
-        if (c != '\b')
-            edit_x += FONT_WIDTH * screen_scale;
-        if (c == '\n') {
-            edit_x = 0;
-            edit_y += FONT_HEIGHT * screen_scale;
-
-            int max_y = screen_height - (FONT_HEIGHT * screen_scale);
-            if (edit_y > max_y) {
-                screen_scroll(FONT_HEIGHT * screen_scale);
-                edit_y = max_y;
-            }
-        }
-    }
-}
-
 static void edit_handle_backspace() {
     if (edit_pos == 0) return;
 
     edit_clear_cursor();
 
-    for (int i = edit_pos - 1; i < edit_cursor - 1; i++) {
-        edit_buffer[edit_line][i] = edit_buffer[edit_line][i + 1];
-    }
-    edit_buffer[edit_line][--edit_cursor] = '\0';
+    char deleted = edit_buffer[edit_pos - 1];
+
+    for (size_t i = edit_pos - 1; i < edit_cursor; i++)
+        edit_buffer[i] = edit_buffer[i + 1];
+
+    edit_cursor--;
     edit_pos--;
 
-    int saved_x = edit_x - FONT_WIDTH * screen_scale;
-    edit_x = saved_x;
-
-    for (int i = edit_pos; i < edit_cursor; i++) {
-        screen_draw_char(edit_x, edit_y, edit_buffer[edit_line][i], COLOR_WHITE, COLOR_BLACK, screen_scale);
-        edit_x += FONT_WIDTH * screen_scale;
+    if (deleted == '\n') {
+        edit_y -= FONT_HEIGHT * screen_scale;
+        edit_x = get_x_from_pos(edit_pos);
+        redraw_from_pos(edit_pos, edit_x, edit_y);
+    } else {
+        edit_x -= FONT_WIDTH * screen_scale;
+        redraw_line(edit_pos, edit_x, edit_y);
     }
 
-    screen_draw_char(edit_x, edit_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
-    edit_x = saved_x;
-
+    edit_column = get_line_length(edit_pos);
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_left() {
-    if (edit_pos == 0 || edit_x == 0) return;
+    if (edit_pos == 0) return;
 
     edit_clear_cursor();
-    edit_x -= FONT_WIDTH * screen_scale;
     edit_pos--;
+
+    if (edit_buffer[edit_pos] == '\n') {
+        edit_y -= FONT_HEIGHT * screen_scale;
+        edit_x = get_x_from_pos(edit_pos);
+    } else {
+        edit_x -= FONT_WIDTH * screen_scale;
+    }
+
+    edit_column = get_line_length(edit_pos);
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_right() {
-    int max_x = screen_width - (FONT_WIDTH * screen_scale);
-    if (edit_pos == edit_cursor || edit_x >= max_x) return;
+    if (edit_pos == edit_cursor) return;
 
     edit_clear_cursor();
-    edit_x += FONT_WIDTH * screen_scale;
-    edit_pos++;
+
+    if (edit_buffer[edit_pos] == '\n') {
+        edit_pos++;
+        edit_y += FONT_HEIGHT * screen_scale;
+        edit_x = 0;
+    } else {
+        edit_pos++;
+        edit_x += FONT_WIDTH * screen_scale;
+    }
+
+    edit_column = get_line_length(edit_pos);
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_up() {
-    if (edit_line == 0) return;
+    if (edit_pos == 0) return;
 
     edit_clear_cursor();
-    edit_line--;
-    edit_pos = 0;
-    edit_cursor = strlen(edit_buffer[edit_line]);
-    edit_x = 0;
+
+    size_t line_start = find_line_start(edit_pos);
+    if (line_start == 0) {
+        edit_redraw_cursor(0);
+        return;
+    }
+
+    size_t prev_line_end = line_start - 1;
+    size_t prev_line_start = find_line_start(prev_line_end);
+
+    edit_pos = get_pos_at_column(prev_line_start, edit_column);
+    edit_x = get_x_from_pos(edit_pos);
     edit_y -= FONT_HEIGHT * screen_scale;
+
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_down() {
-    if (edit_line + 1 >= line_count) {
-        line_count++;
-        edit_buffer = (char**) heap_realloc(edit_buffer, line_count * sizeof(char*));
-        edit_buffer[line_count - 1] = (char*) heap_alloc(EDIT_MAX_SIZE * sizeof(char));
-        memset(edit_buffer[line_count - 1], 0, EDIT_MAX_SIZE);
-    }
+    if (edit_pos >= edit_cursor) return;
 
     edit_clear_cursor();
-    edit_line++;
-    edit_pos = 0;
-    edit_cursor = strlen(edit_buffer[edit_line]);
-    edit_x = 0;
+
+    size_t line_end = find_line_end(edit_pos);
+    if (line_end >= edit_cursor) {
+        edit_redraw_cursor(0);
+        return;
+    }
+
+    size_t next_line_start = line_end + 1;
+
+    edit_pos = get_pos_at_column(next_line_start, edit_column);
+    edit_x = get_x_from_pos(edit_pos);
     edit_y += FONT_HEIGHT * screen_scale;
+
     edit_redraw_cursor(0);
 }
 
 static void edit_handle_save() {
-    int max_line = -1;
-    for (int i = 0; i < line_count; i++) {
-        if (edit_buffer[i][0] != '\0') {
-            max_line = i;
-        }
-    }
-
-    size_t buffer_size = 128 * (max_line + 1);
-    char *buffer = heap_alloc(buffer_size);
-    memset(buffer, 0, buffer_size);
-
-    for (int i = 0; i < max_line + 1; i++) {
-        strcat(buffer, edit_buffer[i]);
-
-        if (i < max_line)
-            strcat(buffer, "\n");
-    }
-
-    file_write(edit_node, buffer, buffer_size);
-    heap_free(buffer);
-    for (int i = 0; i < line_count; i++)
-        heap_free(edit_buffer[i]);
+    file_write(edit_node, edit_buffer, edit_cursor + 1);
     heap_free(edit_buffer);
-    edit_line = 0;
     edit_pos = 0;
     edit_cursor = 0;
     edit_x = 0;
@@ -230,30 +285,37 @@ void edit_handle_type(uint8_t scancode) {
 
     if (c == '\b') return edit_handle_backspace();
 
-    int max_x = screen_width - (FONT_WIDTH * screen_scale);
-    if (edit_x >= max_x) return;
+    size_t max_x = screen_width - (FONT_WIDTH * screen_scale);
+    if (edit_x >= max_x && c != '\n') return;
 
-    if (c != '\n') {
-        if (edit_cursor >= EDIT_MAX_SIZE - 1) return;
+    edit_clear_cursor();
 
-        edit_clear_cursor();
+    if (edit_buffer[edit_cursor] != '\0') {
+        size_t old_size = edit_cursor + 1;
+        size_t new_size = old_size + get_block_size();
+        edit_buffer = heap_realloc(edit_buffer, new_size);
 
-        for (int i = edit_cursor; i > edit_pos; i--)
-            edit_buffer[edit_line][i] = edit_buffer[edit_line][i - 1];
-
-        edit_buffer[edit_line][edit_pos] = c;
-        edit_buffer[edit_line][++edit_cursor] = '\0';
-
-        int saved_x = edit_x;
-        for (int i = edit_pos; i < edit_cursor; i++) {
-            screen_draw_char(edit_x, edit_y, edit_buffer[edit_line][i], COLOR_WHITE, COLOR_BLACK, screen_scale);
-            edit_x += FONT_WIDTH * screen_scale;
-        }
-
-        edit_pos++;
-        edit_x = saved_x + FONT_WIDTH * screen_scale;
-        edit_redraw_cursor(0);
-    } else {
-        edit_handle_down();
+        for (size_t i = old_size; i < new_size; i++)
+            edit_buffer[i] = '\0';
     }
+
+    for (size_t i = edit_cursor; i > edit_pos; i--)
+        edit_buffer[i] = edit_buffer[i - 1];
+
+    edit_buffer[edit_pos] = c;
+    edit_cursor++;
+    edit_pos++;
+
+    if (c == '\n') {
+        redraw_from_pos(edit_pos - 1, edit_x, edit_y);
+        edit_x = 0;
+        edit_y += FONT_HEIGHT * screen_scale;
+    } else {
+        screen_draw_char(edit_x, edit_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+        edit_x += FONT_WIDTH * screen_scale;
+        redraw_line(edit_pos, edit_x, edit_y);
+    }
+
+    edit_column = get_line_length(edit_pos);
+    edit_redraw_cursor(0);
 }

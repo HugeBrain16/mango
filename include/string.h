@@ -27,6 +27,7 @@ int isalpha(char c);
 int isupalpha(char c);
 int islowalpha(char c);
 int isdigit(char c);
-void intpad(char *dest, int num, size_t n);
+size_t digitslen(int n);
+void intpad(char *dest, int num, size_t n, char c);
 
 #endif
