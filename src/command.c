@@ -45,6 +45,8 @@ static void command_help(int argc, char *argv[]) {
     term_write("formatdisk - format primary disk drive\n", COLOR_WHITE, COLOR_BLACK);
     term_write("nodeinfo - show info of a filesystem node\n", COLOR_WHITE, COLOR_BLACK);
     term_write("runscript - run a script file\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("time - show current time\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("date - show current date\n", COLOR_WHITE, COLOR_BLACK);
 }
 
 static void command_scaleup(int argc, char *argv[]) {

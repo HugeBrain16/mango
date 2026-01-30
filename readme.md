@@ -5,7 +5,7 @@
 features:
 - it boots
 - keyboard input
-- terminal (/w scrolling)
+- terminal
 - basic commands
 - custom file system
 - basic text editor
@@ -36,6 +36,8 @@ features:
 - `printfile` show the content of a file
 - `nodeinfo` show info of a filesystem node
 - `runscript` run a script file
+- `time` show current time
+- `date` show current date
 - `exit`
 </details>
 
