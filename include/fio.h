@@ -17,6 +17,7 @@ typedef struct {
 
 fio_t *fio_open(const char *path, uint8_t mode);
 char fio_getc(fio_t *fio);
+char fio_peek(fio_t *fio);
 void fio_putc(fio_t *fio, char c);
 void fio_read(fio_t *fio, char *dest, size_t length);
 void fio_write(fio_t *fio, const char *str, size_t length);

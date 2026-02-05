@@ -69,6 +69,15 @@ char fio_getc(fio_t *fio) {
     return c;
 }
 
+char fio_peek(fio_t *fio) {
+    char c = fio_getc(fio);
+
+    if (c)
+        fio->seek--;
+
+    return c;
+}
+
 void fio_putc(fio_t *fio, char c) {
     if (fio->mode == FIO_WRITE || fio->mode == FIO_APPEND) {
         file_node_t file;
