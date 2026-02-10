@@ -1160,7 +1160,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     }
 
     char *name = call->call.func->literal.str_value;
-    script_node_t *ret = NULL;
+    script_node_t *ret = node_null();
 
     script_node_t copy_call = *call;
     copy_call.call.argv = eval_args;
@@ -1220,7 +1220,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     }
 
     heap_free(eval_args);
-    return ret ? ret : call;
+    return ret;
 }
 
 static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
@@ -1383,7 +1383,9 @@ static void block_add_statement(script_stmt_t *block, script_stmt_t* stmt) {
 static void block_run(script_stmt_t *block) {
     script_stmt_t *current = block->child;
     while (current) {
-        eval_statement(block, current);
+        if (!eval_statement(block, current))
+            return;
+
         current = current->next;
     }
 }
@@ -1417,12 +1419,13 @@ void script_run(const char *path) {
     while (token_head) {
         script_stmt_t *stmt = parse_statement(&token_head);
         if (!stmt)
-            break;
+            goto cleanup;
 
         block_add_statement(rt->main, stmt);
     }
     block_run(rt->main);
 
+cleanup:
     while (tokens) {
         script_token_t *next = tokens->next;
         free_token(tokens);
