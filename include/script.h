@@ -49,8 +49,7 @@
 typedef struct script_var script_var_t;
 typedef struct script_env script_env_t;
 typedef struct script_node script_node_t;
-typedef struct script_stmts script_stmts_t;
-typedef struct script_blocks script_blocks_t;
+typedef struct script_stmt script_stmt_t;
 
 typedef struct script_token {
     char *value;
@@ -69,29 +68,26 @@ typedef struct script_var {
     uint8_t type;
 
     union {
-        char *str_value;
-        size_t str_size;
+        struct {
+            char *str_value;
+            size_t str_size;
+        };
         int int_value;
         double float_value;
+        script_stmt_t *func;
     };
 
     struct script_var *next;
 } script_var_t;
 
-typedef struct script_stmts {
-    script_node_t *node;
-    struct script_stmts *next;
-} script_stmts_t;
-
-typedef struct script_blocks {
-    script_node_t *node;
-    struct script_blocks *next;
-} script_blocks_t;
-
 typedef struct script_node {
     uint8_t node_type;
     uint8_t value_type;
     size_t lineno;
+
+    struct script_node *parent;
+    struct script_node *head;
+    struct script_node *next;
 
     union {
         struct {
@@ -112,41 +108,43 @@ typedef struct script_node {
             struct script_node **argv;
             size_t argc;
         } call;
-
-        struct {
-            uint8_t type;
-
-            union {
-                struct {
-                    struct script_node *node;
-                } expr;
-
-                struct {
-                    char *name;
-                    struct script_node *value;
-                } var;
-
-                struct {
-                    script_env_t *env;
-                    struct script_node *parent;
-                    script_stmts_t *stmts;
-                    script_blocks_t *child;
-                } block;
-
-                struct {
-                    struct script_node *func;
-                    struct script_node *params;
-                    size_t params_count;
-
-                    struct script_node *block;
-                } func;
-            };
-        } stmt;
     };
 } script_node_t;
 
+typedef struct script_stmt {
+    uint8_t type;
+    size_t lineno;
+
+    struct script_stmt *parent;
+    struct script_stmt *child;
+    struct script_stmt *next;
+
+    union {
+        struct {
+            script_node_t *node;
+        } expr;
+
+        struct {
+            char *name;
+            script_node_t *value;
+        } var;
+
+        struct {
+            script_env_t *env;
+        } block;
+
+        struct {
+            script_node_t *name;
+            script_node_t **params;
+            size_t params_count;
+
+            struct script_stmt *block;
+        } func;
+    };
+} script_stmt_t;
+
 typedef struct {
-    script_node_t *main;
+    script_stmt_t *main;
 } script_runtime_t;
 
 void script_run(const char *path);

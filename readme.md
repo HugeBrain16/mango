@@ -38,7 +38,7 @@ features:
 - `runscript` run a script file
 - `time` show current time
 - `date` show current date
-- `exit`
+- `shutdown`
 </details>
 
 install i686-elf toolchain (Binutils, GCC, GDB) into "toolchain" folder
