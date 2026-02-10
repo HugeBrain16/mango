@@ -868,10 +868,7 @@ static script_node_t *call_exec(script_node_t *node) {
         return NULL;
     }
 
-    script_node_t *ret = heap_alloc(sizeof(script_node_t));
-    ret->node_type = SCRIPT_AST_LITERAL;
-    ret->value_type = SCRIPT_NULL;
-    return ret;
+    return node_null();
 }
 
 static script_node_t *call_print(script_node_t *node) {
@@ -904,16 +901,185 @@ static script_node_t *call_print(script_node_t *node) {
         }
     }
 
-    script_node_t *ret = heap_alloc(sizeof(script_node_t));
-    ret->node_type = SCRIPT_AST_LITERAL;
-    ret->value_type = SCRIPT_NULL;
-    return ret;
+    return node_null();
 }
 
 static script_node_t *call_println(script_node_t *node) {
     script_node_t *ret = call_print(node);
     term_write("\n", COLOR_WHITE, COLOR_BLACK);
     return ret;
+}
+
+static script_node_t *call_as_str(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function as_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *arg = node->call.argv[0];
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_STR;
+    value->lineno = arg->lineno;
+
+    switch (arg->value_type) {
+        case SCRIPT_INT:
+            {
+                char buff[12];
+                strint(buff, arg->literal.int_value);
+
+                size_t size = strlen(buff) + 1;
+                value->literal.str_size = size;
+                value->literal.str_value = heap_alloc(size);
+                strcpy(value->literal.str_value, buff);
+                break;
+            }
+        case SCRIPT_FLOAT:
+            {
+                char buff[16];
+                strdouble(buff, arg->literal.float_value, 6);
+
+                size_t size = strlen(buff) + 1;
+                value->literal.str_size = size;
+                value->literal.str_value = heap_alloc(size);
+                strcpy(value->literal.str_value, buff);
+                break;
+            }
+        case SCRIPT_NULL:
+            {
+                char *buff = "null";
+                size_t size = strlen(buff) + 1;
+                value->literal.str_size = size;
+                value->literal.str_value = heap_alloc(size);
+                strcpy(value->literal.str_value, buff);
+                break;
+            }
+        case SCRIPT_STR:
+            {
+                free_node(value);
+                return arg;
+            }
+        default:
+            {
+                char msg[64];
+                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
+                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                free_node(value);
+                return NULL;
+            }
+    }
+
+    return value;
+}
+
+static script_node_t *call_as_int(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function as_int() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *arg = node->call.argv[0];
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_INT;
+    value->lineno = arg->lineno;
+
+    switch (arg->value_type) {
+        case SCRIPT_INT:
+            {
+                free_node(value);
+                return arg;
+            }
+        case SCRIPT_FLOAT:
+            {
+                value->literal.int_value = (int) arg->literal.float_value;
+                break;
+            }
+        case SCRIPT_NULL:
+            {
+                value->literal.int_value = 0;
+                break;
+            }
+        case SCRIPT_STR:
+            {
+                value->literal.int_value = (int) doublestr(arg->literal.str_value);
+                break;
+            }
+        default:
+            {
+                char msg[64];
+                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
+                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                free_node(value);
+                return NULL;
+            }
+    }
+
+    return value;
+}
+
+static script_node_t *call_as_float(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function as_float() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *arg = node->call.argv[0];
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_FLOAT;
+    value->lineno = arg->lineno;
+
+    switch (arg->value_type) {
+        case SCRIPT_INT:
+            {
+                value->literal.float_value = (double) arg->literal.int_value;
+                break;
+            }
+        case SCRIPT_FLOAT:
+            {
+                free_node(value);
+                return arg;
+            }
+        case SCRIPT_NULL:
+            {
+                value->literal.float_value = 0.0;
+                break;
+            }
+        case SCRIPT_STR:
+            {
+                value->literal.float_value = doublestr(arg->literal.str_value);
+                break;
+            }
+        default:
+            {
+                char msg[64];
+                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
+                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                free_node(value);
+                return NULL;
+            }
+    }
+
+    return value;
 }
 
 /* ================== */
@@ -931,6 +1097,11 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         left = eval_binop(block, left);
     if (right->node_type == SCRIPT_AST_BINOP)
         right = eval_binop(block, right);
+
+    if (left->node_type != SCRIPT_AST_LITERAL)
+        left = eval_expr(block, left);
+    if (right->node_type != SCRIPT_AST_LITERAL)
+        right = eval_expr(block, right);
 
     if (left->value_type == SCRIPT_ID) {
         char *name = left->literal.str_value;
@@ -1168,6 +1339,9 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     if (!strcmp(name, "print")) ret = call_print(&copy_call);
     else if (!strcmp(name, "println")) ret = call_println(&copy_call);
     else if (!strcmp(name, "exec")) ret = call_exec(&copy_call);
+    else if (!strcmp(name, "as_str")) ret = call_as_str(&copy_call);
+    else if (!strcmp(name, "as_int")) ret = call_as_int(&copy_call);
+    else if (!strcmp(name, "as_float")) ret = call_as_float(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
