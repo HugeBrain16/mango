@@ -1005,6 +1005,28 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
             return node;
         }
+    } else if (op == SCRIPT_TOKEN_MODULO) {
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            int l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            int r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (r == 0) {
+                char msg[64];
+                strfmt(msg, "Error: Modulo by zero (line: %d)\n", binop->lineno);
+                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                free_node(node);
+                return NULL;
+            }
+
+            node->value_type = SCRIPT_INT;
+            node->literal.int_value = l % r;
+
+            return node;
+        }
     } else if (op == SCRIPT_TOKEN_TIMES) {
         if (left->value_type == SCRIPT_INT) {
             if (right->value_type == SCRIPT_INT) {
