@@ -87,6 +87,7 @@ static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
 
     if (!strcmp(token->value, "let")) token->type = SCRIPT_TOKEN_LET;
     else if (!strcmp(token->value, "func")) token->type = SCRIPT_TOKEN_FUNC;
+    else if (!strcmp(token->value, "null")) token->type = SCRIPT_TOKEN_NULL;
 
     return token;
 }
@@ -357,6 +358,12 @@ static script_node_t *node_null() {
 }
 
 static script_node_t *node_literal(script_token_t *token) {
+    if (token->type == SCRIPT_TOKEN_NULL) {
+        script_node_t *nullnode = node_null();
+        nullnode->lineno = token->lineno;
+        return nullnode;
+    }
+
     script_node_t *node = heap_alloc(sizeof(script_node_t));
     node->node_type = SCRIPT_AST_LITERAL;
     node->lineno = token->lineno;
@@ -530,6 +537,7 @@ static script_node_t *parse_factor(script_token_t **token) {
     if ((*token)->type == SCRIPT_TOKEN_NUMBER ||
             (*token)->type == SCRIPT_TOKEN_STRING ||
             (*token)->type == SCRIPT_TOKEN_FLOAT ||
+            (*token)->type == SCRIPT_TOKEN_NULL ||
             (*token)->type == SCRIPT_TOKEN_IDENTIFIER) {
 
         script_node_t *node = node_literal(*token);
@@ -871,6 +879,11 @@ static script_node_t *call_print(script_node_t *node) {
             case SCRIPT_STR:
                 {
                     term_write(node->call.argv[i]->literal.str_value, COLOR_WHITE, COLOR_BLACK);
+                    break;
+                }
+            case SCRIPT_NULL:
+                {
+                    term_write("null", COLOR_WHITE, COLOR_BLACK);
                     break;
                 }
         }

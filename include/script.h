@@ -26,6 +26,7 @@
 #define SCRIPT_TOKEN_FUNC       20 // func
 #define SCRIPT_TOKEN_LBRAC      21 // {
 #define SCRIPT_TOKEN_RBRAC      22 // }
+#define SCRIPT_TOKEN_NULL       23 // null
 
 #define SCRIPT_AST_BINOP 0
 #define SCRIPT_AST_LITERAL 1
