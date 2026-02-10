@@ -88,6 +88,7 @@ static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
     if (!strcmp(token->value, "let")) token->type = SCRIPT_TOKEN_LET;
     else if (!strcmp(token->value, "func")) token->type = SCRIPT_TOKEN_FUNC;
     else if (!strcmp(token->value, "null")) token->type = SCRIPT_TOKEN_NULL;
+    else if (!strcmp(token->value, "return")) token->type = SCRIPT_TOKEN_RETURN;
 
     return token;
 }
@@ -474,6 +475,13 @@ static script_stmt_t *stmt_func(script_node_t *name, script_node_t **params, siz
     return stmt;
 }
 
+static script_stmt_t *stmt_return(script_node_t *expr) {
+    script_stmt_t *stmt = stmt_expr(expr);
+    stmt->type = SCRIPT_STMT_RETURN;
+
+    return stmt;
+}
+
 static void free_node(script_node_t *node) {
     if (!node) return;
 
@@ -704,6 +712,10 @@ static script_stmt_t *parse_assign(script_token_t **token) {
     return stmt_var(name, parse_expr(token), SCRIPT_STMT_ASSIGN);
 }
 
+static script_stmt_t *parse_return(script_token_t **token) {
+    return stmt_return(parse_expr(token));
+}
+
 static script_stmt_t *parse_function(script_token_t **token) {
     if (!*token) return NULL;
 
@@ -807,6 +819,9 @@ static script_stmt_t *parse_statement(script_token_t **token) {
     } else if ((*token)->type == SCRIPT_TOKEN_FUNC) {
         *token = (*token)->next;
         stmt = parse_function(token);
+    } else if ((*token)->type == SCRIPT_TOKEN_RETURN) {
+        *token = (*token)->next;
+        stmt = parse_return(token);
     } else {
         script_node_t *node = parse_expr(token);
         if (!node) return NULL;
@@ -1182,15 +1197,19 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
 
                 env_set_var(call_block, param->literal.str_value, arg);
             }
-            
+
             script_stmt_t *current = func->func.block->child;
             while (current) {
-                eval_statement(call_block, current);
+                script_node_t *node = eval_statement(call_block, current);
+                if (current->type == SCRIPT_STMT_RETURN) {
+                    ret = node;
+                    break;
+                }
+
                 current = current->next;
             }
 
             free_stmt(call_block);
-            ret = call;
         } else {
             char msg[64];
             strfmt(msg, "Error: Undefined call \"%s\" (line: %d)\n", name, call->lineno);
@@ -1325,6 +1344,7 @@ static script_node_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
 
     switch (stmt->type) {
         case SCRIPT_STMT_EXPR:
+        case SCRIPT_STMT_RETURN:
             return eval_expr(block, stmt->expr.node);
         case SCRIPT_STMT_DECLARE:
             return eval_declare(block, stmt);
