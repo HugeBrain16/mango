@@ -13,6 +13,7 @@
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
 static size_t edit_column = 0;
+static size_t edit_showfrom = 1; // by line
 
 static size_t get_block_size() {
     file_node_t file;
@@ -108,18 +109,20 @@ void edit_init(uint32_t file_sector) {
     edit_buffer = file_read(file_sector);
     edit_pos = 0;
 
+    size_t draw_x = 0;
+    size_t draw_y = 0;
+
     char *c = edit_buffer;
     while (*c != '\0') {
         if (*c != '\n') {
-            screen_draw_char(edit_x, edit_y, *c, COLOR_WHITE, COLOR_BLACK, screen_scale);
-            edit_x += FONT_WIDTH * screen_scale;
+            screen_draw_char(draw_x, draw_y, *c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+            draw_x += FONT_WIDTH * screen_scale;
         } else {
-            edit_x = 0;
-            edit_y += FONT_HEIGHT * screen_scale;
+            draw_x = 0;
+            draw_y += FONT_HEIGHT * screen_scale;
         }
 
         c++;
-        edit_pos++;
         edit_cursor++;
     }
 }
@@ -154,6 +157,57 @@ static void edit_redraw_cursor(int hide) {
     edit_draw_cursor();
 }
 
+static void edit_handle_scroll() {
+    edit_clear_cursor();
+
+    size_t top_y = FONT_HEIGHT * screen_scale;
+    size_t bottom_y = screen_height - top_y;
+    size_t old_showfrom = edit_showfrom;
+
+    if (edit_y > bottom_y)
+        edit_showfrom++;
+    else if (edit_y < top_y && edit_showfrom > 1)
+        edit_showfrom--;
+
+    if (old_showfrom != edit_showfrom) {
+        size_t line = 1;
+
+        size_t draw_x = 0;
+        size_t draw_y = 0;
+
+        screen_clear(COLOR_BLACK);
+
+        for (size_t i = 0; i < edit_cursor; i++) {
+            if (line >= edit_showfrom) {
+                if (edit_buffer[i] == '\n') {
+                    draw_y += FONT_HEIGHT * screen_scale;
+                    draw_x = 0;
+                } else {
+                    screen_draw_char(draw_x, draw_y,
+                        edit_buffer[i],
+                        COLOR_WHITE, COLOR_BLACK,
+                        screen_scale);
+
+                    draw_x += FONT_WIDTH * screen_scale;
+                }
+            }
+
+            if (edit_buffer[i] == '\n')
+                line++;
+        }
+
+        if (line >= edit_showfrom)
+            clear(draw_x, draw_y);
+
+        if (old_showfrom < edit_showfrom)
+            edit_y = bottom_y;
+        else if (old_showfrom > edit_showfrom)
+            edit_y = top_y;
+    }
+
+    edit_redraw_cursor(0);
+}
+
 static void edit_handle_backspace() {
     if (edit_pos == 0) return;
 
@@ -177,7 +231,7 @@ static void edit_handle_backspace() {
     }
 
     edit_column = get_line_length(edit_pos);
-    edit_redraw_cursor(0);
+    edit_handle_scroll();
 }
 
 static void edit_handle_left() {
@@ -194,7 +248,7 @@ static void edit_handle_left() {
     }
 
     edit_column = get_line_length(edit_pos);
-    edit_redraw_cursor(0);
+    edit_handle_scroll();
 }
 
 static void edit_handle_right() {
@@ -212,7 +266,7 @@ static void edit_handle_right() {
     }
 
     edit_column = get_line_length(edit_pos);
-    edit_redraw_cursor(0);
+    edit_handle_scroll();
 }
 
 static void edit_handle_up() {
@@ -233,7 +287,7 @@ static void edit_handle_up() {
     edit_x = get_x_from_pos(edit_pos);
     edit_y -= FONT_HEIGHT * screen_scale;
 
-    edit_redraw_cursor(0);
+    edit_handle_scroll();
 }
 
 static void edit_handle_down() {
@@ -253,7 +307,7 @@ static void edit_handle_down() {
     edit_x = get_x_from_pos(edit_pos);
     edit_y += FONT_HEIGHT * screen_scale;
 
-    edit_redraw_cursor(0);
+    edit_handle_scroll();
 }
 
 static void edit_handle_save() {
@@ -310,6 +364,8 @@ void edit_handle_type(uint8_t scancode) {
         redraw_from_pos(edit_pos - 1, edit_x, edit_y);
         edit_x = 0;
         edit_y += FONT_HEIGHT * screen_scale;
+
+        edit_handle_scroll();
     } else {
         screen_draw_char(edit_x, edit_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
         edit_x += FONT_WIDTH * screen_scale;
