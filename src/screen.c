@@ -37,7 +37,7 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
                         screen_buffer[pixel_y * screen_width + pixel_x] = bg_color;
 
                     if (c == '\b')
-                        screen_buffer[pixel_y * screen_width + pixel_x] = 0x000000;
+                        screen_buffer[pixel_y * screen_width + pixel_x] = COLOR_BLACK;
                 }
             }
         }
@@ -51,7 +51,7 @@ void screen_scroll(int lines) {
 
     for (size_t y = screen_height - lines; y < screen_height; y++) {
         for (size_t x = 0; x < screen_width; x++) {
-            screen_buffer[y * screen_width + x] = 0x000000;
+            screen_buffer[y * screen_width + x] = COLOR_BLACK;
         }
     }
 }
