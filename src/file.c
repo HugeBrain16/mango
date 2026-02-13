@@ -554,25 +554,27 @@ uint32_t file_sector_alloc() {
         term_write("Error: Disk full!\n", COLOR_WHITE, COLOR_BLACK);
         return 0;
     }
-    sb.used++;
+
+    uint16_t buffer[256];
+    uint32_t sector;
 
     if (sb.free_list != 0) {
-        uint32_t sector = sb.free_list;
-
-        uint16_t buffer[256];
+        sector = sb.free_list;
         ata_read_sector(sector, buffer);
 
         uint32_t free;
         memcpy(&free, buffer, sizeof(uint32_t));
 
         sb.free_list = free;
-        file_write_sb(&sb);
-
-        return sector;
+    } else {
+        sector = sb.free;
+        sb.free++;
     }
 
-    uint32_t sector = sb.free;
-    sb.free++;
+    sb.used++;
     file_write_sb(&sb);
+
+    memset(buffer, 0, sizeof(buffer));
+    ata_write_sector(sector, buffer);
     return sector;
 }
