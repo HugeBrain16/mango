@@ -1747,6 +1747,18 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
 
     switch (expr->node_type) {
         case SCRIPT_AST_LITERAL:
+            if (expr->value_type == SCRIPT_ID) {
+                script_node_t *var = env_nodeify_var(block, expr);
+                if (!var) {
+                    char msg[64];
+                    strfmt(msg, "Error: Undefined \"%s\" (line: %d)\n",
+                        expr->literal.str_value, expr->lineno);
+                    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                    return NULL;
+                }
+                return var;
+            }
+
             return expr;
         case SCRIPT_AST_BINOP:
             return eval_binop(block, expr);
