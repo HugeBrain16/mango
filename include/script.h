@@ -28,19 +28,33 @@
 #define SCRIPT_TOKEN_RBRAC      22 // }
 #define SCRIPT_TOKEN_NULL       23 // null
 #define SCRIPT_TOKEN_RETURN     24 // return
+#define SCRIPT_TOKEN_IF         25 // if
+#define SCRIPT_TOKEN_ELSE       26 // else
+#define SCRIPT_TOKEN_TRUE       27 // true
+#define SCRIPT_TOKEN_FALSE      28 // false
+#define SCRIPT_TOKEN_ISEQUAL    29 // ==
+#define SCRIPT_TOKEN_ISNTEQUAL  30 // !=
+#define SCRIPT_TOKEN_LESSTHAN   31 // <
+#define SCRIPT_TOKEN_MORETHAN   32 // >
+#define SCRIPT_TOKEN_LESSEQUAL  33 // <=
+#define SCRIPT_TOKEN_MOREEQUAL  34 // >=
 
-#define SCRIPT_AST_BINOP 0
-#define SCRIPT_AST_LITERAL 1
-#define SCRIPT_AST_CALL 2
-#define SCRIPT_AST_STATEMENT 3
+#define SCRIPT_AST_BINOP        0
+#define SCRIPT_AST_LITERAL      1
+#define SCRIPT_AST_CALL         2
+#define SCRIPT_AST_STATEMENT    3
 
-#define SCRIPT_STMT_EXPR 0
-#define SCRIPT_STMT_ASSIGN 1
-#define SCRIPT_STMT_DECLARE 2
-#define SCRIPT_STMT_DEFINE 3
-#define SCRIPT_STMT_FUNC 4
-#define SCRIPT_STMT_BLOCK 5
-#define SCRIPT_STMT_RETURN 6
+#define SCRIPT_STMT_EXPR        0
+#define SCRIPT_STMT_ASSIGN      1
+#define SCRIPT_STMT_DECLARE     2
+#define SCRIPT_STMT_DEFINE      3
+#define SCRIPT_STMT_FUNC        4
+#define SCRIPT_STMT_BLOCK       5
+#define SCRIPT_STMT_RETURN      6
+#define SCRIPT_STMT_IF          7
+
+#define SCRIPT_EVAL_NONE    0
+#define SCRIPT_EVAL_RETURN  1
 
 #define SCRIPT_FUNC     0
 #define SCRIPT_NULL     1
@@ -48,6 +62,7 @@
 #define SCRIPT_STR      3
 #define SCRIPT_FLOAT    4
 #define SCRIPT_ID       5
+#define SCRIPT_BOOL     6
 
 typedef struct script_var script_var_t;
 typedef struct script_env script_env_t;
@@ -128,6 +143,12 @@ typedef struct script_stmt {
         } expr;
 
         struct {
+            script_node_t *expr;
+            struct script_stmt *then_stmt;
+            struct script_stmt *else_stmt;
+        } if_stmt;
+
+        struct {
             char *name;
             script_node_t *value;
         } var;
@@ -149,6 +170,11 @@ typedef struct script_stmt {
 typedef struct {
     script_stmt_t *main;
 } script_runtime_t;
+
+typedef struct {
+    size_t type;
+    script_node_t *node;
+} script_eval_t;
 
 void script_run(const char *path);
 

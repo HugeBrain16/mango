@@ -12,6 +12,24 @@ static void free_stmt(script_stmt_t *stmt);
 static void free_var(script_var_t *var);
 static void free_env(script_env_t *env);
 
+static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
+
+static script_stmt_t *parse_statement(script_token_t **token);
+static script_node_t *parse_expr(script_token_t **token);
+static script_node_t *parse_comparison(script_token_t **token);
+static script_node_t *parse_addsub(script_token_t **token);
+static script_node_t *parse_term(script_token_t **token);
+static script_node_t *parse_call(script_token_t **token);
+static script_node_t *parse_factor(script_token_t **token);
+
+static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
+static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
+static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr);
+
+static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt);
+static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt);
+static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
+
 static script_token_t *create_token(uint8_t type, size_t lineno) {
     script_token_t *token = heap_alloc(sizeof(script_token_t));
     token->next = NULL;
@@ -89,6 +107,10 @@ static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
     else if (!strcmp(token->value, "func")) token->type = SCRIPT_TOKEN_FUNC;
     else if (!strcmp(token->value, "null")) token->type = SCRIPT_TOKEN_NULL;
     else if (!strcmp(token->value, "return")) token->type = SCRIPT_TOKEN_RETURN;
+    else if (!strcmp(token->value, "if")) token->type = SCRIPT_TOKEN_IF;
+    else if (!strcmp(token->value, "else")) token->type = SCRIPT_TOKEN_ELSE;
+    else if (!strcmp(token->value, "true")) token->type = SCRIPT_TOKEN_TRUE;
+    else if (!strcmp(token->value, "false")) token->type = SCRIPT_TOKEN_FALSE;
 
     return token;
 }
@@ -139,6 +161,8 @@ static script_token_t *lex_operator(char c, size_t *lineno) {
         case '.': token->type = SCRIPT_TOKEN_DOT; break;
         case '{': token->type = SCRIPT_TOKEN_LBRAC; break;
         case '}': token->type = SCRIPT_TOKEN_RBRAC; break;
+        case '<': token->type = SCRIPT_TOKEN_LESSTHAN; break;
+        case '>': token->type = SCRIPT_TOKEN_MORETHAN; break;
         default: {
                      char msg[32];
                      strfmt(msg, "Error: Illegal token (line: %d): \"%c\"\n", *lineno, c);
@@ -147,6 +171,32 @@ static script_token_t *lex_operator(char c, size_t *lineno) {
                      return NULL;
                  }
     }
+
+    return token;
+}
+
+static script_token_t *lex_equaloperator(fio_t *file, char *c, size_t *lineno) {
+    script_token_t *token = create_token(SCRIPT_TOKEN_ISEQUAL, *lineno);
+    token->value[0] = *c;
+    token->value[1] = '=';
+    token->value[2] = '\0';
+
+    switch (*c) {
+        case '=': token->type = SCRIPT_TOKEN_ISEQUAL; break;
+        case '!': token->type = SCRIPT_TOKEN_ISNTEQUAL; break;
+        case '>': token->type = SCRIPT_TOKEN_MOREEQUAL; break;
+        case '<': token->type = SCRIPT_TOKEN_LESSEQUAL; break;
+        default: {
+            char msg[64];
+            strfmt(msg, "Error: Unexpected '%c' for equal operator (line: %d)\n", *c, *lineno);
+            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            free_token(token);
+            return NULL;
+        }
+    }
+
+    *c = fio_getc(file);
+    *c = fio_getc(file);
 
     return token;
 }
@@ -178,6 +228,14 @@ static script_token_t *tokenize(fio_t *file) {
         } else if (c == '"') {
             token = lex_string(file, &c, &lineno);
             if (token) c = fio_getc(file);
+        } else if (c == '=' && fio_peek(file) == '=') {
+            token = lex_equaloperator(file, &c, &lineno);
+        } else if (c == '!' && fio_peek(file) == '=') {
+            token = lex_equaloperator(file, &c, &lineno);
+        } else if (c == '>' && fio_peek(file) == '=') {
+            token = lex_equaloperator(file, &c, &lineno);
+        } else if (c == '<' && fio_peek(file) == '=') {
+            token = lex_equaloperator(file, &c, &lineno);
         } else {
             token = lex_operator(c, &lineno);
             if (token) c = fio_getc(file);
@@ -358,14 +416,64 @@ static script_node_t *node_null() {
     return node;
 }
 
-static script_node_t *node_literal(script_token_t *token) {
-    if (token->type == SCRIPT_TOKEN_NULL) {
-        script_node_t *nullnode = node_null();
-        nullnode->lineno = token->lineno;
-        return nullnode;
+static script_node_t *node_true() {
+    script_node_t *node = node_null();
+    node->value_type = SCRIPT_BOOL;
+    node->literal.int_value = 1;
+
+    return node;
+}
+
+static script_node_t *node_false() {
+    script_node_t *node = node_true();
+    node->literal.int_value = 0;
+
+    return node;
+}
+
+static int node_istrue(script_node_t *node) {
+    if (!node) return 0;
+
+    switch (node->value_type) {
+        case SCRIPT_BOOL:
+            if (!node->literal.int_value)
+                return 0;
+            break;
+        case SCRIPT_NULL:
+            return 0;
+        case SCRIPT_STR:
+            if (strlen(node->literal.str_value) == 0)
+                return 0;
+            break;
+        case SCRIPT_INT:
+            if (node->literal.int_value <= 0)
+                return 0;
+            break;
+        case SCRIPT_FLOAT:
+            if (node->literal.float_value <= 0)
+                return 0;
+            break;
     }
 
-    script_node_t *node = heap_alloc(sizeof(script_node_t));
+    return 1;
+}
+
+static script_node_t *node_literal(script_token_t *token) {
+    script_node_t *node = NULL;
+
+    if (token->type == SCRIPT_TOKEN_NULL)
+        node = node_null();
+    else if (token->type == SCRIPT_TOKEN_TRUE)
+        node = node_true();
+    else if (token->type == SCRIPT_TOKEN_FALSE)
+        node = node_false();
+
+    if (node) {
+        node->lineno = token->lineno;
+        return node;
+    }
+
+    node = heap_alloc(sizeof(script_node_t));
     node->node_type = SCRIPT_AST_LITERAL;
     node->lineno = token->lineno;
 
@@ -460,7 +568,7 @@ static script_stmt_t *stmt_block(script_stmt_t *parent) {
     return stmt;
 }
 
-static script_stmt_t *stmt_func(script_node_t *name, script_node_t **params, size_t params_count) {
+static script_stmt_t *stmt_func(script_node_t *name, script_stmt_t *block, script_node_t **params, size_t params_count) {
     script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_FUNC;
     stmt->lineno = name->lineno;
@@ -470,7 +578,7 @@ static script_stmt_t *stmt_func(script_node_t *name, script_node_t **params, siz
     stmt->func.name = name;
     stmt->func.params = params;
     stmt->func.params_count = params_count;
-    stmt->func.block = stmt_block(NULL);
+    stmt->func.block = block;
 
     return stmt;
 }
@@ -478,6 +586,20 @@ static script_stmt_t *stmt_func(script_node_t *name, script_node_t **params, siz
 static script_stmt_t *stmt_return(script_node_t *expr) {
     script_stmt_t *stmt = stmt_expr(expr);
     stmt->type = SCRIPT_STMT_RETURN;
+
+    return stmt;
+}
+
+static script_stmt_t *stmt_if(script_node_t *expr, script_stmt_t *then_stmt, script_stmt_t *else_stmt) {
+    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    stmt->type = SCRIPT_STMT_IF;
+    stmt->lineno = expr->lineno;
+    stmt->parent = NULL;
+    stmt->child = NULL;
+    stmt->next = NULL;
+    stmt->if_stmt.expr = expr;
+    stmt->if_stmt.then_stmt = then_stmt;
+    stmt->if_stmt.else_stmt = else_stmt;
 
     return stmt;
 }
@@ -527,17 +649,16 @@ static void free_stmt(script_stmt_t *stmt) {
             if (stmt->func.block)
                 free_stmt(stmt->func.block);
             break;
+        case SCRIPT_STMT_RETURN:
+            free_node(stmt->expr.node);
+            break;
+        case SCRIPT_STMT_IF:
+            free_node(stmt->if_stmt.expr);
+            free_stmt(stmt->if_stmt.then_stmt);
+            if (stmt->if_stmt.else_stmt)
+                free_stmt(stmt->if_stmt.else_stmt);
     }
 }
-
-static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
-static void block_run(script_stmt_t *block);
-
-static script_stmt_t *parse_statement(script_token_t **token);
-static script_node_t *parse_expr(script_token_t **token);
-static script_node_t *parse_term(script_token_t **token);
-static script_node_t *parse_call(script_token_t **token);
-static script_node_t *parse_factor(script_token_t **token);
 
 static script_node_t *parse_factor(script_token_t **token) {
     if (!*token) return NULL;
@@ -546,6 +667,8 @@ static script_node_t *parse_factor(script_token_t **token) {
             (*token)->type == SCRIPT_TOKEN_STRING ||
             (*token)->type == SCRIPT_TOKEN_FLOAT ||
             (*token)->type == SCRIPT_TOKEN_NULL ||
+            (*token)->type == SCRIPT_TOKEN_TRUE ||
+            (*token)->type == SCRIPT_TOKEN_FALSE ||
             (*token)->type == SCRIPT_TOKEN_IDENTIFIER) {
 
         script_node_t *node = node_literal(*token);
@@ -561,7 +684,7 @@ static script_node_t *parse_factor(script_token_t **token) {
 
         if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
             char msg[64];
-            strfmt(msg, "Error: expected ')' (line: %d)\n", (*token)->lineno);
+            strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
             term_write(msg, COLOR_WHITE, COLOR_BLACK);
             free_node(node);
             return NULL;
@@ -612,9 +735,9 @@ static script_node_t *parse_call(script_token_t **token) {
         }
     }
 
-    if ((*token)->type != SCRIPT_TOKEN_RPAREN) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
-        strfmt(msg, "Error: expected ')' (line: %d)\n", (*token)->lineno);
+        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         return NULL;
     }
@@ -648,7 +771,7 @@ static script_node_t *parse_term(script_token_t **token) {
     return node;
 }
 
-static script_node_t *parse_expr(script_token_t **token) {
+static script_node_t *parse_addsub(script_token_t **token) {
     if (!*token) return NULL;
 
     script_node_t *node = parse_term(token);
@@ -669,6 +792,38 @@ static script_node_t *parse_expr(script_token_t **token) {
     return node;
 }
 
+static script_node_t *parse_comparison(script_token_t **token) {
+    if (!*token) return NULL;
+
+    script_node_t *node = parse_addsub(token);
+
+    while (*token && (
+        (*token)->type == SCRIPT_TOKEN_ISEQUAL ||
+        (*token)->type == SCRIPT_TOKEN_ISNTEQUAL ||
+        (*token)->type == SCRIPT_TOKEN_LESSTHAN ||
+        (*token)->type == SCRIPT_TOKEN_MORETHAN ||
+        (*token)->type == SCRIPT_TOKEN_LESSEQUAL ||
+        (*token)->type == SCRIPT_TOKEN_MOREEQUAL)) {
+
+        uint8_t op = (*token)->type;
+        *token = (*token)->next;
+
+        script_node_t *right = parse_addsub(token);
+        if (!right) {
+            free_node(node);
+            return NULL;
+        }
+
+        node = node_binop(op, node, right);
+    }
+
+    return node;
+}
+
+static script_node_t *parse_expr(script_token_t **token) {
+    return parse_comparison(token);
+}
+
 static script_stmt_t *parse_declare(script_token_t **token) {
     if (!*token) return NULL;
 
@@ -677,7 +832,7 @@ static script_stmt_t *parse_declare(script_token_t **token) {
 
     if (name->value_type != SCRIPT_ID) {
         char msg[64];
-        strfmt(msg, "Error: expected identifier (line: %d)\n", (*token)->lineno);
+        strfmt(msg, "Error: expected identifier (line: %d)\n", name->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(name);
         return NULL;
@@ -696,7 +851,9 @@ static script_stmt_t *parse_declare(script_token_t **token) {
         return stmt_var(name, parse_expr(token), SCRIPT_STMT_DEFINE);
     } else {
         char msg[64];
-        strfmt(msg, "Error: Unexpected \"%s\" (line: %d)\n", (*token)->value, (*token)->lineno);
+        strfmt(msg, "Error: Unexpected \"%s\" (line: %d)\n",
+            *token ? (*token)->value : "",
+            *token ? (*token)->lineno : name->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         return NULL;
     }
@@ -716,6 +873,32 @@ static script_stmt_t *parse_return(script_token_t **token) {
     return stmt_return(parse_expr(token));
 }
 
+static script_stmt_t *parse_block(script_token_t **token) {
+    if (!*token) return NULL;
+
+    script_stmt_t *block = stmt_block(NULL);
+
+    while (*token && (*token)->type != SCRIPT_TOKEN_RBRAC) {
+        script_stmt_t *stmt = parse_statement(token);
+        if (!stmt) {
+            free_stmt(block);
+            return NULL;
+        }
+        block_add_statement(block, stmt);
+    }
+
+    if (!*token || (*token)->type != SCRIPT_TOKEN_RBRAC) {
+        char msg[64];
+        strfmt(msg, "Error: expected '}' (line: %d)\n", block->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_stmt(block);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    return block;
+}
+
 static script_stmt_t *parse_function(script_token_t **token) {
     if (!*token) return NULL;
 
@@ -724,7 +907,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
 
     if (name->value_type != SCRIPT_ID) {
         char msg[64];
-        strfmt(msg, "Error: expected identifier (line: %d)\n", (*token)->lineno);
+        strfmt(msg, "Error: expected identifier (line: %d)\n", name->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(name);
         return NULL;
@@ -764,46 +947,68 @@ static script_stmt_t *parse_function(script_token_t **token) {
         }
     } else {
         char msg[64];
-        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
+        strfmt(msg, "Error: expected '(' (line: %d)\n", *token ? (*token)->lineno : 0);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(name);
         return NULL;
     }
 
-    if ((*token)->type != SCRIPT_TOKEN_RPAREN) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
-        strfmt(msg, "Error: expected ')' (line: %d)\n", (*token)->lineno);
+        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         return NULL;
     }
     *token = (*token)->next;
 
-    if ((*token)->type != SCRIPT_TOKEN_LBRAC) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_LBRAC) {
         char msg[64];
-        strfmt(msg, "Error: expected '{' (line: %d)\n", (*token)->lineno);
+        strfmt(msg, "Error: expected '{' (line: %d)\n", *token ? (*token)->lineno : 0);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         return NULL;
     }
     *token = (*token)->next;
 
-    script_stmt_t *func = stmt_func(name, params, params_count);
-    while (*token && (*token)->type != SCRIPT_TOKEN_RBRAC) {
-        script_stmt_t *stmt = parse_statement(token);
-        if (!stmt) {
-            free_stmt(func);
+    return stmt_func(name, parse_block(token), params, params_count);
+}
+
+static script_stmt_t *parse_if(script_token_t **token) {
+    if (!*token) return NULL;
+
+    if ((*token)->type != SCRIPT_TOKEN_LPAREN) {
+        char msg[64];
+        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_node_t *expr = parse_expr(token);
+    if (!expr)
+        return NULL;
+
+    if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
+        char msg[64];
+        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_stmt_t *then_stmt = parse_statement(token);
+    if (!then_stmt)
+        return NULL;
+
+    script_stmt_t *else_stmt = NULL;
+    if (*token && (*token)->type == SCRIPT_TOKEN_ELSE) {
+        *token = (*token)->next;
+
+        else_stmt = parse_statement(token);
+        if (!else_stmt)
             return NULL;
-        }
-        block_add_statement(func->func.block, stmt);
     }
 
-    if (!*token || (*token)->type != SCRIPT_TOKEN_RBRAC) {
-        char msg[64];
-        strfmt(msg, "Error: expected '}' (line: %d)\n", func->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
-        return NULL;
-    }
-
-    return func;
+    return stmt_if(expr, then_stmt, else_stmt);
 }
 
 static script_stmt_t *parse_statement(script_token_t **token) {
@@ -816,9 +1021,15 @@ static script_stmt_t *parse_statement(script_token_t **token) {
     } else if ((*token)->type == SCRIPT_TOKEN_IDENTIFIER &&
             ((*token)->next && (*token)->next->type == SCRIPT_TOKEN_EQUAL)) { 
         stmt = parse_assign(token);
+    } else if ((*token)->type == SCRIPT_TOKEN_LBRAC) {
+        *token = (*token)->next;
+        stmt = parse_block(token);
     } else if ((*token)->type == SCRIPT_TOKEN_FUNC) {
         *token = (*token)->next;
         stmt = parse_function(token);
+    } else if ((*token)->type == SCRIPT_TOKEN_IF) {
+        *token = (*token)->next;
+        stmt = parse_if(token);
     } else if ((*token)->type == SCRIPT_TOKEN_RETURN) {
         *token = (*token)->next;
         stmt = parse_return(token);
@@ -832,15 +1043,21 @@ static script_stmt_t *parse_statement(script_token_t **token) {
     if (!stmt)
         return NULL;
 
-    if (stmt->type != SCRIPT_STMT_FUNC && (!*token || (*token)->type != SCRIPT_TOKEN_END)) {
-        char msg[64];
-        strfmt(msg, "Error: expected ';' (line: %d)\n", *token ? (*token)->lineno : stmt->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
-        free_stmt(stmt);
-        return NULL;
+    if (stmt->type != SCRIPT_STMT_FUNC &&
+        stmt->type != SCRIPT_STMT_BLOCK &&
+        stmt->type != SCRIPT_STMT_IF) {
+        
+        if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
+            char msg[64];
+            strfmt(msg, "Error: expected ';' (line: %d)\n", *token ? (*token)->lineno : stmt->lineno);
+            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            free_stmt(stmt);
+            return NULL;
+        }
+
+        *token = (*token)->next;
     }
 
-    *token = (*token)->next;
     return stmt;
 }
 
@@ -896,6 +1113,14 @@ static script_node_t *call_print(script_node_t *node) {
             case SCRIPT_NULL:
                 {
                     term_write("null", COLOR_WHITE, COLOR_BLACK);
+                    break;
+                }
+            case SCRIPT_BOOL:
+                {
+                    if (node->call.argv[i]->literal.int_value)
+                        term_write("true", COLOR_WHITE, COLOR_BLACK);
+                    else
+                        term_write("false", COLOR_WHITE, COLOR_BLACK);
                     break;
                 }
         }
@@ -960,6 +1185,20 @@ static script_node_t *call_as_str(script_node_t *node) {
                 strcpy(value->literal.str_value, buff);
                 break;
             }
+        case SCRIPT_BOOL:
+            {
+                char *buff;
+                if (arg->literal.int_value)
+                    buff = "true";
+                else
+                    buff = "false";
+
+                size_t size = strlen(buff) + 1;
+                value->literal.str_size = size;
+                value->literal.str_value = heap_alloc(size);
+                strcpy(value->literal.str_value, buff);
+                break;
+            }
         case SCRIPT_STR:
             {
                 free_node(value);
@@ -1001,6 +1240,11 @@ static script_node_t *call_as_int(script_node_t *node) {
             {
                 free_node(value);
                 return arg;
+            }
+        case SCRIPT_BOOL:
+            {
+                value->literal.int_value = arg->literal.int_value;
+                break;
             }
         case SCRIPT_FLOAT:
             {
@@ -1054,6 +1298,11 @@ static script_node_t *call_as_float(script_node_t *node) {
                 value->literal.float_value = (double) arg->literal.int_value;
                 break;
             }
+        case SCRIPT_BOOL:
+            {
+                value->literal.float_value = (double) arg->literal.int_value;
+                break;
+            }
         case SCRIPT_FLOAT:
             {
                 free_node(value);
@@ -1083,11 +1332,6 @@ static script_node_t *call_as_float(script_node_t *node) {
 }
 
 /* ================== */
-
-static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
-static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
-static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr);
-static script_node_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     script_node_t *left = binop->binop.left;
@@ -1126,10 +1370,116 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         }
     }
 
+    uint8_t op = binop->binop.op;
+    if (op == SCRIPT_TOKEN_ISEQUAL) {
+        if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
+            if (left->value_type == right->value_type)
+                return node_true();
+        }
+
+        if (left->value_type == SCRIPT_STR && right->value_type == SCRIPT_STR) {
+            if (!strcmp(left->literal.str_value, right->literal.str_value))
+                return node_true();
+        }
+
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            double l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (l == r)
+                return node_true();
+        }
+
+        return node_false();
+    } else if (op == SCRIPT_TOKEN_ISNTEQUAL) {
+        if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
+            if (left->value_type != right->value_type)
+                return node_true();
+        }
+
+        if (left->value_type == SCRIPT_STR && right->value_type == SCRIPT_STR) {
+            if (strcmp(left->literal.str_value, right->literal.str_value))
+                return node_true();
+        }
+
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            double l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (l != r)
+                return node_true();
+        }
+
+        return node_false();
+    } else if (op == SCRIPT_TOKEN_LESSTHAN) {
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            double l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (l < r)
+                return node_true();
+        
+            return node_false();
+        }
+    } else if (op == SCRIPT_TOKEN_MORETHAN) {
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            double l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (l > r)
+                return node_true();
+        
+            return node_false();
+        }
+    } else if (op == SCRIPT_TOKEN_LESSEQUAL) {
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            double l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (l <= r)
+                return node_true();
+        
+            return node_false();
+        }
+    } else if (op == SCRIPT_TOKEN_MOREEQUAL) {
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+
+            double l = (left->value_type == SCRIPT_FLOAT) ?
+                left->literal.float_value : left->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            if (l >= r)
+                return node_true();
+        
+            return node_false();
+        }
+    }
+
     script_node_t *node = heap_alloc(sizeof(script_node_t));
     node->node_type = SCRIPT_AST_LITERAL;
 
-    uint8_t op = binop->binop.op;
     if (op == SCRIPT_TOKEN_PLUS) {
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
                 (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
@@ -1324,6 +1674,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
         }
 
         if (!eval_args[i]) {
+            for (size_t j = 0; j < i; j++)
+                free_node(eval_args[j]);
             heap_free(eval_args);
             free_node(call);
             return NULL;
@@ -1372,16 +1724,9 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
                 env_set_var(call_block, param->literal.str_value, arg);
             }
 
-            script_stmt_t *current = func->func.block->child;
-            while (current) {
-                script_node_t *node = eval_statement(call_block, current);
-                if (current->type == SCRIPT_STMT_RETURN) {
-                    ret = node;
-                    break;
-                }
-
-                current = current->next;
-            }
+            script_eval_t *eval = eval_block(call_block, func->func.block);
+            if (eval->type == SCRIPT_EVAL_RETURN)
+                ret = eval->node;
 
             free_stmt(call_block);
         } else {
@@ -1513,24 +1858,81 @@ static script_node_t *eval_func(script_stmt_t *block, script_stmt_t *stmt) {
     return node_null();
 }
 
-static script_node_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) {
+static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
+    script_eval_t *eval = NULL;
+
+    script_stmt_t *current = stmt->child;
+    while (current) {
+        eval = eval_statement(block, current);
+        if (eval->type == SCRIPT_EVAL_RETURN)
+            return eval;
+
+        heap_free(eval);
+        current = current->next;
+    }
+
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = node_null();
+    }
+
+    return eval;
+}
+
+static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
+    script_eval_t *eval = NULL;
+    script_node_t *expr = eval_expr(block, stmt->if_stmt.expr);
+
+    if (node_istrue(expr))
+        eval = eval_statement(block, stmt->if_stmt.then_stmt);
+    else if (stmt->if_stmt.else_stmt) {
+        eval = eval_statement(block, stmt->if_stmt.else_stmt);
+    }
+
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = node_null();
+    }
+
+    free_node(expr);
+    return eval;
+}
+
+static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) {
     if (!stmt) return NULL;
+
+    script_eval_t *eval = heap_alloc(sizeof(script_eval_t));
+    eval->type = SCRIPT_EVAL_NONE;
 
     switch (stmt->type) {
         case SCRIPT_STMT_EXPR:
+            eval->node = eval_expr(block, stmt->expr.node);
+            break;
         case SCRIPT_STMT_RETURN:
-            return eval_expr(block, stmt->expr.node);
+            eval->type = SCRIPT_EVAL_RETURN;
+            eval->node = eval_expr(block, stmt->expr.node);
+            break;
         case SCRIPT_STMT_DECLARE:
-            return eval_declare(block, stmt);
+            eval->node = eval_declare(block, stmt);
+            break;
         case SCRIPT_STMT_DEFINE:
-            return eval_define(block, stmt);
+            eval->node = eval_define(block, stmt);
+            break;
         case SCRIPT_STMT_ASSIGN:
-            return eval_assign(block, stmt);
+            eval->node = eval_assign(block, stmt);
+            break;
         case SCRIPT_STMT_FUNC:
-            return eval_func(block, stmt);
+            eval->node = eval_func(block, stmt);
+            break;
+        case SCRIPT_STMT_BLOCK:
+            return eval_block(block, stmt);
+        case SCRIPT_STMT_IF:
+            return eval_if(block, stmt);
     }
 
-    return NULL;
+    return eval;
 }
 
 static void block_add_statement(script_stmt_t *block, script_stmt_t* stmt) {
@@ -1551,16 +1953,6 @@ static void block_add_statement(script_stmt_t *block, script_stmt_t* stmt) {
 
             current = current->next;
         }
-    }
-}
-
-static void block_run(script_stmt_t *block) {
-    script_stmt_t *current = block->child;
-    while (current) {
-        if (!eval_statement(block, current))
-            return;
-
-        current = current->next;
     }
 }
 
@@ -1597,7 +1989,7 @@ void script_run(const char *path) {
 
         block_add_statement(rt->main, stmt);
     }
-    block_run(rt->main);
+    eval_block(rt->main, rt->main);
 
 cleanup:
     while (tokens) {
