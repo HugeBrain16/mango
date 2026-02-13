@@ -6,24 +6,24 @@
 #include "color.h"
 
 void file_read_sb(file_superblock_t *sb) {
-    uint16_t buffer[256];
+    uint8_t buffer[512];
     ata_read_sector(FILE_SECTOR_SUPERBLOCK, buffer);
     memcpy(sb, buffer, sizeof(*sb));
 }
 
 void file_write_sb(file_superblock_t *sb) {
-    uint16_t buffer[256] = {0};
+    uint8_t buffer[512] = {0};
     memcpy(buffer, sb, sizeof(*sb));
     ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
 }
 
 void file_format() {
-    uint16_t buffer[256] = {0};
+    uint8_t buffer[512] = {0};
 
     file_superblock_t sb;
     sb.magic = FILE_MAGIC;
 
-    uint16_t ata_id[256]; ata_identify(ata_id);
+    uint8_t ata_id[512]; ata_identify(ata_id);
     sb.sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
     sb.free = FILE_SECTOR_ROOT + 1;
     sb.free_list = 0;
@@ -74,25 +74,25 @@ uint32_t file_get(uint32_t parent, const char *name) {
 }
 
 void file_node(uint32_t sector, file_node_t *node) {
-    uint16_t buffer[256];
+    uint8_t buffer[512];
     ata_read_sector(sector, buffer);
     memcpy(node, buffer, sizeof(file_node_t));
 }
 
 void file_node_write(uint32_t sector, file_node_t *node) {
-    uint16_t buffer[256];
+    uint8_t buffer[512];
     memcpy(buffer, node, sizeof(file_node_t));
     ata_write_sector(sector, buffer);
 }
 
 void file_data(uint32_t sector, file_data_t *data) {
-    uint16_t buffer[256];
+    uint8_t buffer[512];
     ata_read_sector(sector, buffer);
     memcpy(data, buffer, sizeof(file_data_t));
 }
 
 void file_data_write(uint32_t sector, file_data_t *data) {
-    uint16_t buffer[256];
+    uint8_t buffer[512];
     memcpy(buffer, data, sizeof(file_data_t));
     ata_write_sector(sector, buffer);
 }
@@ -537,7 +537,7 @@ void file_sector_free(uint32_t sector) {
     file_superblock_t sb;
     file_read_sb(&sb);
 
-    uint16_t buffer[256] = {0};
+    uint8_t buffer[512] = {0};
     memcpy(buffer, &sb.free_list, sizeof(uint32_t));
     ata_write_sector(sector, buffer);
 
@@ -555,7 +555,7 @@ uint32_t file_sector_alloc() {
         return 0;
     }
 
-    uint16_t buffer[256];
+    uint8_t buffer[512];
     uint32_t sector;
 
     if (sb.free_list != 0) {

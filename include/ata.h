@@ -46,8 +46,8 @@
 #define ATA_IDENTIFY 0xEC
 
 void ata_init();
-int ata_read_sector(uint32_t lba, uint16_t *buffer);
-int ata_write_sector(uint32_t lba, uint16_t *buffer);
-int ata_identify(uint16_t *buffer);
+int ata_read_sector(uint32_t lba, void *buffer);
+int ata_write_sector(uint32_t lba, void *buffer);
+int ata_identify(void *buffer);
 
 #endif

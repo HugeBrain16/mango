@@ -65,7 +65,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         abort();
     }
 
-    uint16_t ata_id[256];
+    uint8_t ata_id[512];
     ata_identify(ata_id);
 
     if (ata_id[0] & (1 << 15)) {

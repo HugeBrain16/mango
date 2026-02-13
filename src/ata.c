@@ -39,38 +39,44 @@ static void ata_prepare(uint32_t lba, uint8_t command) {
     ata_wait_data();
 }
 
-int ata_identify(uint16_t *buffer) {
+int ata_identify(void *buffer) {
     ata_prepare(0, ATA_IDENTIFY);
 
     uint8_t status = inb(ATA_PORT_STATUS);
     if (status == 0xFF || status & ATA_STATUS_ERR) return 0;
 
+    uint16_t *word = (uint16_t*) buffer;
+
     for (int i = 0; i < 256; i++)
-        buffer[i] = inw(ATA_PORT_DATA);
+        word[i] = inw(ATA_PORT_DATA);
 
     return 1;
 }
 
-int ata_read_sector(uint32_t lba, uint16_t *buffer) {
+int ata_read_sector(uint32_t lba, void *buffer) {
     ata_prepare(lba, ATA_READ);
 
     uint8_t status = inb(ATA_PORT_STATUS);
     if (status & ATA_STATUS_ERR) return 0;
 
+    uint16_t *word = (uint16_t*) buffer;
+
     for (int i = 0; i < 256; i++)
-        buffer[i] = inw(ATA_PORT_DATA);
+        word[i] = inw(ATA_PORT_DATA);
 
     return 1;
 }
 
-int ata_write_sector(uint32_t lba, uint16_t *buffer) {
+int ata_write_sector(uint32_t lba, void *buffer) {
     ata_prepare(lba, ATA_WRITE);
 
     uint8_t status = inb(ATA_PORT_STATUS);
     if (status & ATA_STATUS_ERR) return 0;
 
+    uint16_t *word = (uint16_t*) buffer;
+
     for (int i = 0; i < 256; i++)
-        outw(ATA_PORT_DATA, buffer[i]);
+        outw(ATA_PORT_DATA, word[i]);
 
     outb(ATA_PORT_COMMAND, ATA_FLUSH);
     ata_wait_ready();

@@ -144,7 +144,7 @@ static void command_fetch(int argc, char *argv[]) {
     strfmt(buff, "Memory: %s (Free: %s)\n", mem_total, mem_free);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
 
-    uint16_t ata_id[256]; ata_identify(ata_id);
+    uint8_t ata_id[512]; ata_identify(ata_id);
     uint32_t sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
     char disk_total[16];
     unit_get_size(sectors * 512, disk_total);
