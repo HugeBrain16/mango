@@ -183,45 +183,42 @@ if __name__ == "__main__":
 		sys.exit("usage: mangofs <disk>")
 
 	disk = Disk(file)
-	disk.print()
 
 	if len(args) > 1:
 		if args[1] == "tree":
-			print("\n[tree]")
 			disk.print_tree()
 		elif args[1] == "help":
-			print("\n[commands]")
 			print("... tree\n\tprint the whole filesystem tree")
 			print("... info <path>\n\tprint the full node info")
 			print("... read <path>\n\tread a whole file")
 		elif args[1] == "info":
 			if len(args) < 3:
-				sys.exit("\nusage: mangofs <disk> info <path>")
+				sys.exit("usage: mangofs <disk> info <path>")
 
 			if args[2][0] != '/':
-				sys.exit("\nerror: invalid path!")
+				sys.exit("error: invalid path!")
 
 			node = disk.get_node(args[2])
 			if not node:
-				sys.exit("\nerror: not found!")
+				sys.exit("error: not found!")
 
-			print("\n[info]")
 			node.print()
 		elif args[1] == "read":
 			if len(args) < 3:
-				sys.exit("\nusage: mangofs <disk> read <path>")
+				sys.exit("usage: mangofs <disk> read <path>")
 
 			if args[2][0] != '/':
-				sys.exit("\nerror: invalid path!")
+				sys.exit("error: invalid path!")
 
 			node = disk.get_node(args[2])
 			if not node:
-				sys.exit("\nerror: not found!")
+				sys.exit("error: not found!")
 			elif node.get_type() != "FILE":
-				sys.exit("\nerror: not readable!")
+				sys.exit("error: not readable!")
 
-			print("\n[content]")
 			data = disk.read_data(node)
 			print(data.getvalue())
 		else:
-			print(f"\nerror: unknown = {args[1]}")
+			print(f"error: unknown = {args[1]}")
+	else:
+		disk.print()
