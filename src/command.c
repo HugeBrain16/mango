@@ -587,6 +587,35 @@ static void command_nodeinfo(int argc, char *argv[]) {
     char buff[128];
     strfmt(buff, "NAME = %s\n", node.name);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
+
+    rtc_datetime_t dt;
+    char seconds[3];
+    char minutes[3];
+    char hours[3];
+    char day[3];
+    char month[3];
+
+    datetime_unpack(&dt, node.time_created);
+    intpad(seconds, dt.seconds, 2, '0');
+    intpad(minutes, dt.minutes, 2, '0');
+    intpad(hours,   dt.hours,   2, '0');
+    intpad(day,     dt.day,     2, '0');
+    intpad(month,   dt.month,   2, '0');
+    strfmt(buff, "CREATED = %s:%s:%s %s-%s-%d\n",
+        hours, minutes, seconds,
+        day, month, dt.year);
+    term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    datetime_unpack(&dt, node.time_changed);
+    intpad(seconds, dt.seconds, 2, '0');
+    intpad(minutes, dt.minutes, 2, '0');
+    intpad(hours,   dt.hours,   2, '0');
+    intpad(day,     dt.day,     2, '0');
+    intpad(month,   dt.month,   2, '0');
+    strfmt(buff, "CHANGED = %s:%s:%s %s-%s-%d\n",
+        hours, minutes, seconds,
+        day, month, dt.year);
+    term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    
     strfmt(buff, "SECTOR = %d\n", node_sector);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
     if (node.flags & FILE_FOLDER)

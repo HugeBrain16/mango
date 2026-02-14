@@ -4,6 +4,7 @@
 #include "ata.h"
 #include "terminal.h"
 #include "color.h"
+#include "rtc.h"
 
 void file_read_sb(file_superblock_t *sb) {
     uint8_t buffer[512];
@@ -33,6 +34,8 @@ void file_format() {
     ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
 
     file_node_t root = {0};
+    root.time_created = datetime_packed();
+    root.time_changed = datetime_packed();
     root.parent = 0;
     root.flags = FILE_FOLDER;
     root.child_head = 0;
@@ -137,6 +140,9 @@ int file_write(uint32_t sector, const char *data, size_t size) {
             }
         }
     }
+
+    file.time_changed = datetime_packed();
+    file_node_write(sector, &file);
 
     return 1;
 }
@@ -342,6 +348,8 @@ int file_create(uint32_t parent, const char *name) {
 
     file_superblock_t sb; file_read_sb(&sb);
     file_node_t file = {0};
+    file.time_created = datetime_packed();
+    file.time_changed = datetime_packed();
     file.parent = parent;
     file.flags = FILE_DATA;
     file.child_head = 0;
@@ -456,6 +464,8 @@ int folder_create(uint32_t parent, const char *name) {
 
     file_superblock_t sb; file_read_sb(&sb);
     file_node_t folder = {0};
+    folder.time_created = datetime_packed();
+    folder.time_changed = datetime_packed();
     folder.parent = parent;
     folder.flags = FILE_FOLDER;
     folder.child_head = 0;

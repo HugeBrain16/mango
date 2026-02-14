@@ -23,6 +23,9 @@ typedef struct file_superblock {
 } file_superblock_t;
 
 typedef struct file_node {
+    uint64_t time_created;
+    uint64_t time_changed;
+
     uint32_t parent;
     uint32_t child_head;
     uint32_t child_next;

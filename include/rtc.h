@@ -19,4 +19,8 @@ void rtc_handle();
 void rtc_datetime(rtc_datetime_t *dt);
 void rtc_to_local(rtc_datetime_t *dt, int tz_offset);
 
+uint64_t datetime_pack(rtc_datetime_t *dt);
+uint64_t datetime_packed();
+void datetime_unpack(rtc_datetime_t *dt, uint64_t time);
+
 #endif
