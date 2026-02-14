@@ -23,6 +23,7 @@ void file_format() {
 
     file_superblock_t sb;
     sb.magic = FILE_MAGIC;
+    sb.version = FILE_VERSION;
 
     uint8_t ata_id[512]; ata_identify(ata_id);
     sb.sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);

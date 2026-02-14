@@ -65,6 +65,7 @@ class Disk:
 		if self.sb_magic != "MNGO":
 			sys.exit("Disk has invalid magic number!")
 
+		self.sb_version = struct.unpack("<I", self.disk.read(4))[0]
 		self.sb_sectors = struct.unpack("<I", self.disk.read(4))[0]
 		self.sb_used = struct.unpack("<I", self.disk.read(4))[0]
 		self.sb_free = struct.unpack("<I", self.disk.read(4))[0]
@@ -73,6 +74,7 @@ class Disk:
 
 	def print(self):
 		print("MAGIC:", self.sb_magic)
+		print("VERSION:", self.sb_version)
 		print("SECTORS:", self.sb_sectors)
 		print("USED:", self.sb_used)
 		print("FREE:", self.sb_free)

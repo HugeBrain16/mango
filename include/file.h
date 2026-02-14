@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #define FILE_MAGIC 0x4F474E4D
+#define FILE_VERSION 1
 #define FILE_SECTOR_SUPERBLOCK 2048
 #define FILE_SECTOR_ROOT 2049
 
@@ -16,6 +17,7 @@
 
 typedef struct file_superblock {
     uint32_t magic;
+    uint32_t version;
     uint32_t sectors;
     uint32_t used;
     uint32_t free;
