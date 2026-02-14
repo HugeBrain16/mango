@@ -122,10 +122,14 @@ class Disk:
 
 		return data
 
-	def print_tree(self):
-		current = self.root
+	def print_tree(self, head, list_only):
+		current = head
 		depth = 1
-		print("- root/")
+
+		if list_only:
+			depth = 0
+		else:
+			print("- " + current.name + ("/" if current.get_type() == "FOLDER" else ""))
 
 		def tree_from(parent, depth):
 			child = parent
@@ -133,12 +137,12 @@ class Disk:
 				node = self.read_node(child)
 				print(" " * depth, "-", node.name + ("/" if node.get_type() == "FOLDER" else ""))
 
-				if node.get_type() == "FOLDER":
+				if node.get_type() == "FOLDER" and not list_only:
 					tree_from(node.child_head, depth + 1)
 
 				child = node.child_next
 
-		tree_from(self.root.child_head, depth)
+		tree_from(current.child_head, depth)
 
 	def get_node(self, path):
 		path = path.strip()
@@ -186,9 +190,32 @@ if __name__ == "__main__":
 
 	if len(args) > 1:
 		if args[1] == "tree":
-			disk.print_tree()
+			if len(args) >= 3:
+				if args[2][0] != '/':
+					sys.exit("error: invalid path!")
+
+				node = disk.get_node(args[2])
+				if not node:
+					sys.exit("error: not found!")
+
+				disk.print_tree(node, False)
+			else:
+				disk.print_tree(disk.root, False)
+		elif args[1] == "list":
+			if len(args) >= 3:
+				if args[2][0] != '/':
+					sys.exit("error: invalid path!")
+
+				node = disk.get_node(args[2])
+				if not node:
+					sys.exit("error: not found!")
+
+				disk.print_tree(node, True)
+			else:
+				disk.print_tree(disk.root, True)
 		elif args[1] == "help":
-			print("... tree\n\tprint the whole filesystem tree")
+			print("... tree [path]\n\tprint the whole filesystem tree")
+			print("... list [path]\n\tlist items in a folder")
 			print("... info <path>\n\tprint the full node info")
 			print("... read <path>\n\tread a whole file")
 		elif args[1] == "info":
