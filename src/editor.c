@@ -39,6 +39,17 @@ static size_t find_line_end(size_t pos) {
     return p;
 }
 
+static size_t get_line_count(size_t end) {
+    size_t line = 1;
+
+    for (size_t i = 0; i < end; i++) {
+        if (edit_buffer[i] == '\n')
+            line++;
+    }
+
+    return line;
+}
+
 static size_t get_line_length(size_t pos) {
     size_t start = find_line_start(pos);
     return pos - start;
@@ -49,10 +60,10 @@ static size_t get_x_from_pos(size_t pos) {
     return line_len * FONT_WIDTH * screen_scale;
 }
 
-static void clear(size_t x, size_t y) {
+static void clear(size_t x, size_t y, uint32_t color) {
     size_t draw_x = x;
     while (draw_x < screen_width) {
-        screen_draw_char(draw_x, y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(draw_x, y, ' ', color, color, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
     }
 }
@@ -64,20 +75,20 @@ static void redraw_from_pos(size_t start_pos, size_t x, size_t y) {
 
     while (i < edit_cursor) {
         if (edit_buffer[i] != '\n') {
-            screen_draw_char(draw_x, draw_y, edit_buffer[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(draw_x, draw_y, edit_buffer[i], EDITOR_FG, EDITOR_BG, screen_scale);
             draw_x += FONT_WIDTH * screen_scale;
         } else {
-            clear(draw_x, draw_y);
+            clear(draw_x, draw_y, EDITOR_BG);
             draw_x = 0;
             draw_y += FONT_HEIGHT * screen_scale;
         }
         i++;
     }
 
-    clear(draw_x, draw_y);
+    clear(draw_x, draw_y, EDITOR_BG);
 
     draw_y += FONT_HEIGHT * screen_scale;
-    clear(0, draw_y);
+    clear(0, draw_y, EDITOR_BG);
 }
 
 static void redraw_line(size_t start_pos, size_t x, size_t y) {
@@ -85,12 +96,12 @@ static void redraw_line(size_t start_pos, size_t x, size_t y) {
     size_t i = start_pos;
 
     while (i < edit_cursor && edit_buffer[i] != '\n') {
-        screen_draw_char(draw_x, y, edit_buffer[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(draw_x, y, edit_buffer[i], EDITOR_FG, EDITOR_BG, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
         i++;
     }
 
-    screen_draw_char(draw_x, y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+    screen_draw_char(draw_x, y, ' ', EDITOR_FG, EDITOR_BG, screen_scale);
 }
 
 static size_t get_pos_at_column(size_t line_start, size_t column) {
@@ -103,6 +114,8 @@ static size_t get_pos_at_column(size_t line_start, size_t column) {
     return line_start + column;
 }
 
+static void edit_statusbar_draw();
+
 void edit_init(uint32_t file_sector) {
     edit_node = file_sector;
 
@@ -112,10 +125,12 @@ void edit_init(uint32_t file_sector) {
     size_t draw_x = 0;
     size_t draw_y = 0;
 
+    screen_clear(EDITOR_BG);
+
     char *c = edit_buffer;
     while (*c != '\0') {
         if (*c != '\n') {
-            screen_draw_char(draw_x, draw_y, *c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(draw_x, draw_y, *c, EDITOR_FG, EDITOR_BG, screen_scale);
             draw_x += FONT_WIDTH * screen_scale;
         } else {
             draw_x = 0;
@@ -125,6 +140,8 @@ void edit_init(uint32_t file_sector) {
         c++;
         edit_cursor++;
     }
+
+    edit_statusbar_draw();
 }
 
 static void edit_clear_cursor() {
@@ -132,11 +149,11 @@ static void edit_clear_cursor() {
         char c = edit_buffer[edit_pos];
 
         if (c == '\n')
-            screen_draw_char(edit_x, edit_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(edit_x, edit_y, ' ', EDITOR_FG, EDITOR_BG, screen_scale);
         else
-            screen_draw_char(edit_x, edit_y, edit_buffer[edit_pos], COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(edit_x, edit_y, edit_buffer[edit_pos], EDITOR_FG, EDITOR_BG, screen_scale);
     } else
-        screen_draw_char(edit_x, edit_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(edit_x, edit_y, ' ', EDITOR_FG, EDITOR_BG, screen_scale);
 }
 
 void edit_draw_cursor() {
@@ -147,7 +164,7 @@ void edit_draw_cursor() {
         edit_clear_cursor();
 
         if (cursor_visible)
-            screen_draw_char(edit_x, edit_y, '_', COLOR_WHITE, COLOR_TRANSPARENT, screen_scale);
+            screen_draw_char(edit_x, edit_y, '_', EDITOR_FG, COLOR_TRANSPARENT, screen_scale);
     }
 }
 
@@ -157,11 +174,37 @@ static void edit_redraw_cursor(int hide) {
     edit_draw_cursor();
 }
 
+static void edit_statusbar_draw() {
+    file_node_t file;
+    file_node(edit_node, &file);
+
+    size_t draw_x = 0;
+    size_t draw_y = screen_height - ((FONT_WIDTH * screen_scale) * 2);
+
+    clear(draw_x, draw_y, EDITOR_STATUS_BG);
+
+    char status[128];
+    strfmt(status, "%s | Line %d-%d | Chars %d | Pos %d",
+        file.name,
+        get_line_count(edit_pos),
+        get_line_count(edit_cursor),
+        edit_cursor,
+        edit_pos);
+
+    draw_x = 0;
+    for (size_t i = 0; i < strlen(status); i++) {
+        screen_draw_char(draw_x, draw_y,
+            status[i],
+            EDITOR_STATUS_FG, COLOR_TRANSPARENT, screen_scale);
+        draw_x += FONT_WIDTH * screen_scale;
+    }
+}
+
 static void edit_handle_scroll() {
     edit_clear_cursor();
 
     size_t top_y = FONT_HEIGHT * screen_scale;
-    size_t bottom_y = screen_height - top_y;
+    size_t bottom_y = screen_height - (top_y * 2);
     size_t old_showfrom = edit_showfrom;
 
     if (edit_y > bottom_y)
@@ -175,7 +218,7 @@ static void edit_handle_scroll() {
         size_t draw_x = 0;
         size_t draw_y = 0;
 
-        screen_clear(COLOR_BLACK);
+        screen_clear(EDITOR_BG);
 
         for (size_t i = 0; i < edit_cursor; i++) {
             if (line >= edit_showfrom) {
@@ -185,7 +228,7 @@ static void edit_handle_scroll() {
                 } else {
                     screen_draw_char(draw_x, draw_y,
                         edit_buffer[i],
-                        COLOR_WHITE, COLOR_BLACK,
+                        EDITOR_FG, EDITOR_BG,
                         screen_scale);
 
                     draw_x += FONT_WIDTH * screen_scale;
@@ -197,7 +240,7 @@ static void edit_handle_scroll() {
         }
 
         if (line >= edit_showfrom)
-            clear(draw_x, draw_y);
+            clear(draw_x, draw_y, EDITOR_BG);
 
         if (old_showfrom < edit_showfrom)
             edit_y = bottom_y;
@@ -206,6 +249,7 @@ static void edit_handle_scroll() {
     }
 
     edit_redraw_cursor(0);
+    edit_statusbar_draw();
 }
 
 static void edit_handle_backspace() {
@@ -232,6 +276,7 @@ static void edit_handle_backspace() {
 
     edit_column = get_line_length(edit_pos);
     edit_handle_scroll();
+    edit_statusbar_draw();
 }
 
 static void edit_handle_left() {
@@ -249,6 +294,7 @@ static void edit_handle_left() {
 
     edit_column = get_line_length(edit_pos);
     edit_handle_scroll();
+    edit_statusbar_draw();
 }
 
 static void edit_handle_right() {
@@ -267,6 +313,7 @@ static void edit_handle_right() {
 
     edit_column = get_line_length(edit_pos);
     edit_handle_scroll();
+    edit_statusbar_draw();
 }
 
 static void edit_handle_up() {
@@ -288,6 +335,7 @@ static void edit_handle_up() {
     edit_y -= FONT_HEIGHT * screen_scale;
 
     edit_handle_scroll();
+    edit_statusbar_draw();
 }
 
 static void edit_handle_down() {
@@ -308,6 +356,7 @@ static void edit_handle_down() {
     edit_y += FONT_HEIGHT * screen_scale;
 
     edit_handle_scroll();
+    edit_statusbar_draw();
 }
 
 static void edit_handle_save() {
@@ -367,11 +416,12 @@ void edit_handle_type(uint8_t scancode) {
 
         edit_handle_scroll();
     } else {
-        screen_draw_char(edit_x, edit_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(edit_x, edit_y, c, EDITOR_FG, EDITOR_BG, screen_scale);
         edit_x += FONT_WIDTH * screen_scale;
         redraw_line(edit_pos, edit_x, edit_y);
     }
 
     edit_column = get_line_length(edit_pos);
     edit_redraw_cursor(0);
+    edit_statusbar_draw();
 }
