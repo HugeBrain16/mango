@@ -60,7 +60,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     ata_init();
     uint8_t ata_status = inb(ATA_PORT_STATUS);
-    if (ata_status == 0xFF) {
+    if (ata_status == 0x00 || ata_status == 0xFF) {
         term_write("No primary drive.", COLOR_WHITE, COLOR_BLACK);
         abort();
     }
