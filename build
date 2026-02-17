@@ -10,8 +10,8 @@ CFLAGS="-std=gnu99 -ffreestanding -O2 -g -Wall -Wextra -fstack-protector"
 DIR="$(mktemp -t mango.XXXX -d)"
 CRTI="$DIR/crti.o"
 CRTN="$DIR/crtn.o"
-CRTBEGIN="toolchain/lib/gcc/i686-elf/7.1.0/crtbegin.o"
-CRTEND="toolchain/lib/gcc/i686-elf/7.1.0/crtend.o"
+CRTBEGIN="toolchain/lib/gcc/i686-elf/$(i686-elf-gcc -dumpversion)/crtbegin.o"
+CRTEND="toolchain/lib/gcc/i686-elf/$(i686-elf-gcc -dumpversion)/crtend.o"
 
 compile() {
     # kernel souce compile
