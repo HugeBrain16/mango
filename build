@@ -61,12 +61,19 @@ menuentry "Mango" {
     boot
 }
 EOF
-grub-mkrescue -o mango.iso $DIR/iso > /dev/null 2>&1
-fi
-
-if [[ $1 == "dist" ]]; then
-    echo "[dist] Compressing iso..."
-    XZ_OPT=-e9 tar caf mango.tar.xz mango.iso
+grub-mkimage -O i386-pc \
+    -o $DIR/iso/boot/grub/_core.img \
+    -p /boot/grub \
+    multiboot biosdisk iso9660
+cat /usr/lib/grub/i386-pc/cdboot.img $DIR/iso/boot/grub/_core.img > $DIR/iso/boot/grub/core.img
+rm $DIR/iso/boot/grub/_core.img
+xorriso -as mkisofs \
+    -b boot/grub/core.img \
+    -no-emul-boot \
+    -boot-load-size 4 \
+    -boot-info-table \
+    -o mango.iso \
+    -R $DIR/iso > /dev/null 2>&1
 fi
 
 echo "Done! cleanup..."
