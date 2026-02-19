@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "fio.h"
 
 #define SCRIPT_SIZE_TOKEN 4
 
@@ -63,6 +64,7 @@
 #define SCRIPT_FLOAT    4
 #define SCRIPT_ID       5
 #define SCRIPT_BOOL     6
+#define SCRIPT_FILE     7
 
 typedef struct script_var script_var_t;
 typedef struct script_env script_env_t;
@@ -93,6 +95,7 @@ typedef struct script_var {
         int int_value;
         double float_value;
         script_stmt_t *func;
+        fio_t *file;
     };
 
     struct script_var *next;
@@ -119,6 +122,7 @@ typedef struct script_node {
             size_t str_size;
             int int_value;
             double float_value;
+            fio_t *file;
         } literal;
 
         struct {

@@ -5,6 +5,7 @@
 #include "terminal.h"
 #include "color.h"
 #include "command.h"
+#include "file.h"
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -272,6 +273,9 @@ static void free_var(script_var_t *var) {
         case SCRIPT_FUNC:
             free_stmt(var->func);
             break;
+        case SCRIPT_FILE:
+            fio_close(var->file);
+            break;
     }
 
     heap_free(var);
@@ -335,6 +339,9 @@ static script_node_t *env_nodeify_var(script_stmt_t *block, script_node_t *node)
             nodeified->literal.str_size = var->str_size;
             memcpy(nodeified->literal.str_value, var->str_value, var->str_size);
             break;
+        case SCRIPT_FILE:
+            nodeified->literal.file = var->file;
+            break;
     };
     return nodeified;
 }
@@ -386,6 +393,13 @@ static void env_set_var(script_stmt_t *block, const char *name, script_node_t *v
             var->str_size = value->literal.str_size;
             memcpy(var->str_value, value->literal.str_value, value->literal.str_size);
             break;
+        case SCRIPT_FILE: {
+            char msg[64];
+            strfmt(msg, "FILE=%d\n", value->literal.file->file);
+
+            var->file = value->literal.file;
+            break;
+        }
     }
 }
 
@@ -456,6 +470,40 @@ static int node_istrue(script_node_t *node) {
     }
 
     return 1;
+}
+
+static script_node_t *node_type_name(script_node_t *node) {
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_STR;
+    value->lineno = node->lineno;
+
+    switch (node->value_type) {
+        case SCRIPT_STR:
+            value->literal.str_value = "str";
+            break;
+        case SCRIPT_INT:
+            value->literal.str_value = "int";
+            break;
+        case SCRIPT_FLOAT:
+            value->literal.str_value = "float";
+            break;
+        case SCRIPT_BOOL:
+            value->literal.str_value = "bool";
+            break;
+        case SCRIPT_NULL:
+            value->literal.str_value = "null";
+            break;
+        case SCRIPT_FUNC:
+            value->literal.str_value = "function";
+            break;
+        case SCRIPT_FILE:
+            value->literal.str_value = "file";
+            break;
+    }
+
+    value->literal.str_size = strlen(value->literal.str_value);
+    return value;
 }
 
 static script_node_t *node_literal(script_token_t *token) {
@@ -1079,7 +1127,8 @@ static script_node_t *call_exec(script_node_t *node) {
         command_handle(argv[0]->literal.str_value, 0);
     else {
         char msg[64];
-        strfmt(msg, "Error: Function exec() expects string argument (line: %d)\n", node->lineno);
+        strfmt(msg, "Error: Function exec() expects string argument, got %s (line: %d)\n",
+            node_type_name(argv[0])->literal.str_value, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -1123,6 +1172,20 @@ static script_node_t *call_print(script_node_t *node) {
                         term_write("false", COLOR_WHITE, COLOR_BLACK);
                     break;
                 }
+            case SCRIPT_FILE:
+                {
+                    fio_t *fio_file = node->call.argv[i]->literal.file;
+
+                    if (fio_file) {
+                        file_node_t file;
+                        file_node(fio_file->file, &file);
+
+                        char msg[128];
+                        strfmt(msg, "FILE=%d NAME=%s MODE=%d SEEK=%d",
+                            fio_file->file, file.name, fio_file->mode, fio_file->seek);
+                        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                    }
+                }
         }
     }
 
@@ -1151,7 +1214,7 @@ static script_node_t *call_as_str(script_node_t *node) {
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_STR;
-    value->lineno = arg->lineno;
+    value->lineno = node->lineno;
 
     switch (arg->value_type) {
         case SCRIPT_INT:
@@ -1233,7 +1296,7 @@ static script_node_t *call_as_int(script_node_t *node) {
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
-    value->lineno = arg->lineno;
+    value->lineno = node->lineno;
 
     switch (arg->value_type) {
         case SCRIPT_INT:
@@ -1290,7 +1353,7 @@ static script_node_t *call_as_float(script_node_t *node) {
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_FLOAT;
-    value->lineno = arg->lineno;
+    value->lineno = node->lineno;
 
     switch (arg->value_type) {
         case SCRIPT_INT:
@@ -1342,39 +1405,246 @@ static script_node_t *call_type_name(script_node_t *node) {
         return NULL;
     }
 
-    script_node_t *arg = node->call.argv[0];
+    return node_type_name(node->call.argv[0]);
+}
 
-    script_node_t *value = node_null();
-    value->node_type = SCRIPT_AST_LITERAL;
-    value->value_type = SCRIPT_STR;
-    value->lineno = arg->lineno;
+static script_node_t *call_file_open(script_node_t *node) {
+    size_t argc = node->call.argc;
 
-    switch (arg->value_type) {
-        case SCRIPT_STR:
-            value->literal.str_value = "str";
-            break;
-        case SCRIPT_INT:
-            value->literal.str_value = "int";
-            break;
-        case SCRIPT_FLOAT:
-            value->literal.str_value = "float";
-            break;
-        case SCRIPT_BOOL:
-            value->literal.str_value = "bool";
-            break;
-        case SCRIPT_NULL:
-            value->literal.str_value = "null";
-            break;
-        case SCRIPT_FUNC:
-            value->literal.str_value = "function";
-            break;
-        case SCRIPT_FILE:
-            value->literal.str_value = "file";
-            break;
+    if (argc > 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_open() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
     }
 
-    value->literal.str_size = strlen(value->literal.str_value);
+    script_node_t *filename = node->call.argv[0];
+    script_node_t *mode = node->call.argv[1];
+
+    if (filename->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_open() arg 1 expects string argument, got %s (line: %d)\n",
+            node_type_name(filename)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (mode->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_open() arg 2 expects string argument, got %s (line: %d)\n",
+            node_type_name(mode)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *value = node_null();
+    value->lineno = node->lineno;
+
+    fio_t *file = fio_open(filename->literal.str_value, mode->literal.str_value[0]);
+    if (!file)
+        return value;
+
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_FILE;
+    value->literal.file = file;
+
     return value;
+}
+
+static script_node_t *call_file_close(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_close() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *file = node->call.argv[0];
+
+    if (file->value_type != SCRIPT_FILE) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_open() expects file, got %s (line: %d)\n",
+            node_type_name(file)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file->literal.file)
+        fio_close(file->literal.file);
+
+    return node_null();
+}
+
+static script_node_t *call_file_getc(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_getc() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *file = node->call.argv[0];
+
+    if (file->value_type != SCRIPT_FILE) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_getc() expects file, got %s (line: %d)\n",
+            node_type_name(file)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file->literal.file) {
+        char c = fio_getc(file->literal.file);
+
+        script_node_t *value = node_null();
+        value->node_type = SCRIPT_AST_LITERAL;
+        value->value_type = SCRIPT_STR;
+        value->lineno = file->lineno;
+        value->literal.str_value = heap_alloc(2);
+        value->literal.str_value[0] = c;
+        value->literal.str_value[1] = '\0';
+        value->literal.str_size = 2;
+
+        return value;
+    }
+
+    return node_null();
+}
+
+static script_node_t *call_file_peek(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_peek() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *file = node->call.argv[0];
+
+    if (file->value_type != SCRIPT_FILE) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_peek() expects file, got %s (line: %d)\n",
+            node_type_name(file)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file->literal.file) {
+        char c = fio_peek(file->literal.file);
+
+        script_node_t *value = node_null();
+        value->node_type = SCRIPT_AST_LITERAL;
+        value->value_type = SCRIPT_STR;
+        value->lineno = file->lineno;
+        value->literal.str_value = heap_alloc(2);
+        value->literal.str_value[0] = c;
+        value->literal.str_value[1] = '\0';
+        value->literal.str_size = 2;
+
+        return value;
+    }
+
+    return node_null();
+}
+
+static script_node_t *call_file_read(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_read() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *file = node->call.argv[0];
+    script_node_t *length = node->call.argv[1];
+
+    if (file->value_type != SCRIPT_FILE) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_read() arg 1 expects file, got %s (line: %d)\n",
+            node_type_name(file)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (length->value_type != SCRIPT_INT) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_read() arg 2 expects int, got %s (line: %d)\n",
+            node_type_name(length)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file->literal.file) {
+        script_node_t *value = node_null();
+        value->node_type = SCRIPT_AST_LITERAL;
+        value->value_type = SCRIPT_STR;
+        value->lineno = file->lineno;
+        value->literal.str_value = heap_alloc(length->literal.int_value);
+        value->literal.str_size = length->literal.int_value;
+        fio_read(file->literal.file, value->literal.str_value, length->literal.int_value);
+
+        return value;
+    }
+
+    return node_null();
+}
+
+static script_node_t *call_file_write(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_write() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *file = node->call.argv[0];
+    script_node_t *string = node->call.argv[1];
+
+    if (file->value_type != SCRIPT_FILE) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_write() arg 1 expects file, got %s (line: %d)\n",
+            node_type_name(file)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (string->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function file_write() arg 2 expects str, got %s (line: %d)\n",
+            node_type_name(string)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file->literal.file)
+        fio_write(file->literal.file, string->literal.str_value, string->literal.str_size);
+
+    return node_null();
 }
 
 /* ================== */
@@ -1741,6 +2011,12 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "as_int")) ret = call_as_int(&copy_call);
     else if (!strcmp(name, "as_float")) ret = call_as_float(&copy_call);
     else if (!strcmp(name, "type_name")) ret = call_type_name(&copy_call);
+    else if (!strcmp(name, "file_open")) ret = call_file_open(&copy_call);
+    else if (!strcmp(name, "file_close")) ret = call_file_close(&copy_call);
+    else if (!strcmp(name, "file_getc")) ret = call_file_getc(&copy_call);
+    else if (!strcmp(name, "file_peek")) ret = call_file_peek(&copy_call);
+    else if (!strcmp(name, "file_read")) ret = call_file_read(&copy_call);
+    else if (!strcmp(name, "file_write")) ret = call_file_write(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
