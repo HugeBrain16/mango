@@ -1331,6 +1331,52 @@ static script_node_t *call_as_float(script_node_t *node) {
     return value;
 }
 
+static script_node_t *call_type_name(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function type_name() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *arg = node->call.argv[0];
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_STR;
+    value->lineno = arg->lineno;
+
+    switch (arg->value_type) {
+        case SCRIPT_STR:
+            value->literal.str_value = "str";
+            break;
+        case SCRIPT_INT:
+            value->literal.str_value = "int";
+            break;
+        case SCRIPT_FLOAT:
+            value->literal.str_value = "float";
+            break;
+        case SCRIPT_BOOL:
+            value->literal.str_value = "bool";
+            break;
+        case SCRIPT_NULL:
+            value->literal.str_value = "null";
+            break;
+        case SCRIPT_FUNC:
+            value->literal.str_value = "function";
+            break;
+        case SCRIPT_FILE:
+            value->literal.str_value = "file";
+            break;
+    }
+
+    value->literal.str_size = strlen(value->literal.str_value);
+    return value;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -1694,6 +1740,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "as_str")) ret = call_as_str(&copy_call);
     else if (!strcmp(name, "as_int")) ret = call_as_int(&copy_call);
     else if (!strcmp(name, "as_float")) ret = call_as_float(&copy_call);
+    else if (!strcmp(name, "type_name")) ret = call_type_name(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
