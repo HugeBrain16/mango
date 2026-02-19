@@ -26,7 +26,8 @@ void file_format() {
     sb.version = FILE_VERSION;
 
     uint8_t ata_id[512]; ata_identify(ata_id);
-    sb.sectors = (uint32_t)ata_id[60] | ((uint32_t)ata_id[61] << 16);
+    uint16_t *w = (uint16_t*) ata_id;
+    sb.sectors = (uint32_t) w[60] | ((uint32_t) w[61] << 16);
     sb.free = FILE_SECTOR_ROOT + 1;
     sb.free_list = 0;
     sb.used = 2; // superblock + root
