@@ -118,6 +118,8 @@ int file_write(uint32_t sector, const char *data, size_t size) {
             to_write = size - written;
 
         memcpy(block.data, data + written, to_write);
+        if (to_write < sizeof(block.data))
+            memset(block.data + to_write, 0, sizeof(block.data) - to_write);
         file_data_write(current, &block);
         written += to_write;
 
