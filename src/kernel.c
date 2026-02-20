@@ -67,8 +67,9 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     uint8_t ata_id[512];
     ata_identify(ata_id);
+    uint16_t *w = (uint16_t*) ata_id;
 
-    if (ata_id[0] & (1 << 15)) {
+    if (w[0] & (1 << 15)) {
         term_write("Incompatible storage device.", COLOR_WHITE, COLOR_BLACK);
         abort();
     }
