@@ -1679,7 +1679,7 @@ static script_node_t *call_char_at(script_node_t *node) {
         return NULL;
     }
 
-    if (index->literal.int_value >= 0 && index->literal.int_value < (int) string->literal.str_size) {
+    if (index->literal.int_value >= 0 && index->literal.int_value < (int) string->literal.str_size - 1) {
         script_node_t *value = node_null();
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_STR;
@@ -1731,7 +1731,7 @@ static script_node_t *call_sizeof(script_node_t *node) {
             }
         case SCRIPT_STR:
             {
-                value->literal.int_value = strlen(arg->literal.str_value);
+                value->literal.int_value = arg->literal.str_size - 1;
                 break;
             }
         case SCRIPT_FILE:
