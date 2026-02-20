@@ -1647,6 +1647,111 @@ static script_node_t *call_file_write(script_node_t *node) {
     return node_null();
 }
 
+static script_node_t *call_char_at(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function char_at() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *string = node->call.argv[0];
+    script_node_t *index = node->call.argv[1];
+
+    if (string->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function char_at() arg 1 expects str, got %s (line: %d)\n",
+            node_type_name(string)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (index->value_type != SCRIPT_INT) {
+        char msg[128];
+        strfmt(msg, "Error: Function char_at() arg 2 expects int, got %s (line: %d)\n",
+            node_type_name(string)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (index->literal.int_value >= 0 && index->literal.int_value < (int) string->literal.str_size) {
+        script_node_t *value = node_null();
+        value->node_type = SCRIPT_AST_LITERAL;
+        value->value_type = SCRIPT_STR;
+        value->lineno = node->lineno;
+        value->literal.str_value = heap_alloc(2);
+        value->literal.str_size = 2;
+        value->literal.str_value[0] = string->literal.str_value[index->literal.int_value];
+        value->literal.str_value[1] = '\0';
+
+        return value;
+    }
+
+    return node_null();
+}
+
+static script_node_t *call_sizeof(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function sizeof() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *arg = node->call.argv[0];
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_INT;
+    value->lineno = node->lineno;
+
+    switch (arg->value_type) {
+        case SCRIPT_INT:
+            {
+                value->literal.int_value = 1;
+                break;
+            }
+        case SCRIPT_BOOL:
+            {
+                value->literal.int_value = 1;
+                break;
+            }
+        case SCRIPT_FLOAT:
+            {
+                value->literal.int_value = 1;
+                break;
+            }
+        case SCRIPT_STR:
+            {
+                value->literal.int_value = strlen(arg->literal.str_value);
+                break;
+            }
+        case SCRIPT_FILE:
+            {
+                file_node_t file;
+                file_node(arg->literal.file->file, &file);
+
+                value->literal.int_value = (int) FIO_FS_BLOCKSIZE * file.size;
+                break;
+            }
+        default:
+            {
+                value->literal.int_value = 0;
+                break;
+            }
+    }
+
+    return value;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -2017,6 +2122,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "file_peek")) ret = call_file_peek(&copy_call);
     else if (!strcmp(name, "file_read")) ret = call_file_read(&copy_call);
     else if (!strcmp(name, "file_write")) ret = call_file_write(&copy_call);
+    else if (!strcmp(name, "char_at")) ret = call_char_at(&copy_call);
+    else if (!strcmp(name, "sizeof")) ret = call_sizeof(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
