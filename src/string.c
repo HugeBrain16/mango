@@ -243,9 +243,8 @@ double doublestr(const char *src) {
     return sign * (value + frac);
 }
 
-void strtrim(char *str) {
+void strltrim(char *str) {
     size_t start = 0;
-    size_t end;
     size_t i = 0;
 
     if (!str) return;
@@ -253,17 +252,32 @@ void strtrim(char *str) {
     while (str[start] == ' ' || str[start] == '\t' || str[start] == '\n' || str[start] == '\r')
         start++;
 
-    end = start;
-    while (str[end])
-        end++;
-
-    while (end > start && (str[end - 1] == ' ' || str[end - 1] == '\t' || str[end - 1] == '\n' || str[end - 1] == '\r'))
-        end--;
-
-    while (start < end)
+    while (str[start])
         str[i++] = str[start++];
 
     str[i] = '\0';
+}
+
+void strrtrim(char *str) {
+    size_t end;
+
+    if (!str) return;
+
+    end = 0;
+    while (str[end])
+        end++;
+
+    while (end > 0 && (str[end - 1] == ' ' || str[end - 1] == '\t' || str[end - 1] == '\n' || str[end - 1] == '\r'))
+        end--;
+
+    str[end] = '\0';
+}
+
+void strtrim(char *str) {
+    if (!str) return;
+
+    strrtrim(str);
+    strltrim(str);
 }
 
 void strfmt(char *dest, const char *fmt, ...) {

@@ -17,6 +17,21 @@
 #include "script.h"
 #include "rtc.h"
 
+static void ata_print_string(uint16_t *w, int start, int end) {
+    char str[64];
+    int j = 0;
+
+    for (int i = start; i < end; i++) {
+        str[j++] = (char)((w[i] >> 8) & 0xFF);
+        str[j++] = (char)(w[i] & 0xFF);
+    }
+
+    str[j] = '\0';
+
+    strrtrim(str);
+    term_write(str, COLOR_WHITE, COLOR_BLACK);
+}
+
 static void command_help(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
@@ -150,7 +165,11 @@ static void command_fetch(int argc, char *argv[]) {
     uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
     char disk_total[16];
     unit_get_size(sectors * 512, disk_total);
-    strfmt(buff, "Disk: %s ", disk_total);
+
+    term_write("Disk: ", COLOR_WHITE, COLOR_BLACK);
+    ata_print_string(w, 27, 46);
+    term_write(" ", COLOR_WHITE, COLOR_BLACK);
+    strfmt(buff, "- %s ", disk_total);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
     if (file_is_formatted()) {
         file_superblock_t sb;
@@ -701,6 +720,48 @@ static void command_date(int argc, char *argv[]) {
     term_write(msg, COLOR_WHITE, COLOR_BLACK);
 }
 
+static void command_diskinfo(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    char buffer[64];
+
+    uint8_t ata_id[512];
+    ata_identify(file_port, ata_id);
+    uint16_t *w = (uint16_t*) ata_id;
+
+    term_write("PORT = ", COLOR_WHITE, COLOR_BLACK);
+    if (file_port == ATA_PRIMARY)
+        term_write("PRIMARY", COLOR_WHITE, COLOR_BLACK);
+    else if (file_port == ATA_SECONDARY)
+        term_write("SECONDARY", COLOR_WHITE, COLOR_BLACK);
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+
+    term_write("DRIVE = ", COLOR_WHITE, COLOR_BLACK);
+    if (file_drive == ATA_MASTER)
+        term_write("MASTER", COLOR_WHITE, COLOR_BLACK);
+    else if (file_drive == ATA_SLAVE)
+        term_write("SLAVE", COLOR_WHITE, COLOR_BLACK);
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+
+    term_write("SERIAL NUMBER = ", COLOR_WHITE, COLOR_BLACK);
+    ata_print_string(w, 10, 19);
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+
+    term_write("FIRMWARE REV = ", COLOR_WHITE, COLOR_BLACK);
+    ata_print_string(w, 23, 26);
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+
+    term_write("MODEL NUMBER = ", COLOR_WHITE, COLOR_BLACK);
+    ata_print_string(w, 27, 46);
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+
+    uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
+    char disk_total[16];
+    unit_get_size(sectors * 512, disk_total);
+    strfmt(buffer, "SECTORS = %d (%s)\n", sectors, disk_total);
+    term_write(buffer, COLOR_WHITE, COLOR_BLACK);
+}
+
 void command_handle(const char *command, int printcaret) {
     char cmd[COMMAND_MAX_NAME] = {0};
     static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
@@ -764,6 +825,7 @@ void command_handle(const char *command, int printcaret) {
     else if (!strcmp(cmd, "runscript")) command_runscript(argc, argv);
     else if (!strcmp(cmd, "time")) command_time(argc, argv);
     else if (!strcmp(cmd, "date")) command_date(argc, argv);
+    else if (!strcmp(cmd, "diskinfo")) command_diskinfo(argc, argv);
     else if (!strcmp(cmd, "help")) command_help(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);

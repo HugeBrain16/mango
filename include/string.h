@@ -19,6 +19,8 @@ void strint(char *dest, int value);
 uint32_t hexstr(const char *src);
 int intstr(const char *src);
 double doublestr(const char *src);
+void strltrim(char *str);
+void strrtrim(char *str);
 void strtrim(char *str);
 void strfmt(char *dest, const char *fmt, ...);
 void strdouble(char *dest, double value, int precision);
