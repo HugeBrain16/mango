@@ -43,9 +43,11 @@ typedef struct file_data {
     uint8_t data[508];
 } file_data_t;
 
+uint16_t file_port;
+uint8_t file_drive;
 uint32_t file_current;
 
-void file_init();
+void file_init(uint16_t base, uint8_t drive);
 void file_format();
 int file_is_formatted();
 void file_read_sb(file_superblock_t *sb);

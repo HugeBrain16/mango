@@ -56,19 +56,18 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     heap_init(mbi->mem_upper);
     screen_init(mbi);
     term_init();
-    file_init();
+    file_init(ATA_PRIMARY, ATA_MASTER);
 
-    ata_init();
-    uint8_t ata_status = inb(ATA_PORT_STATUS);
-    if (ata_status == 0x00 || ata_status == 0xFF) {
+    uint8_t status = ata_status(file_port);
+    if (status == 0x00 || status == 0xFF) {
         term_write("No primary drive.", COLOR_WHITE, COLOR_BLACK);
         abort();
     }
 
     uint8_t ata_id[512];
-    ata_identify(ata_id);
+    ata_identify(file_port, ata_id);
+    
     uint16_t *w = (uint16_t*) ata_id;
-
     if (w[0] & (1 << 15)) {
         term_write("Incompatible storage device.", COLOR_WHITE, COLOR_BLACK);
         abort();

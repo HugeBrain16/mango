@@ -8,14 +8,14 @@
 
 void file_read_sb(file_superblock_t *sb) {
     uint8_t buffer[512];
-    ata_read_sector(FILE_SECTOR_SUPERBLOCK, buffer);
+    ata_read_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer);
     memcpy(sb, buffer, sizeof(*sb));
 }
 
 void file_write_sb(file_superblock_t *sb) {
     uint8_t buffer[512] = {0};
     memcpy(buffer, sb, sizeof(*sb));
-    ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
+    ata_write_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer);
 }
 
 void file_format() {
@@ -25,7 +25,8 @@ void file_format() {
     sb.magic = FILE_MAGIC;
     sb.version = FILE_VERSION;
 
-    uint8_t ata_id[512]; ata_identify(ata_id);
+    uint8_t ata_id[512];
+    ata_identify(file_port, ata_id);
     uint16_t *w = (uint16_t*) ata_id;
     sb.sectors = (uint32_t) w[60] | ((uint32_t) w[61] << 16);
     sb.free = FILE_SECTOR_ROOT + 1;
@@ -33,7 +34,7 @@ void file_format() {
     sb.used = 2; // superblock + root
 
     memcpy(buffer, &sb, sizeof(sb));
-    ata_write_sector(FILE_SECTOR_SUPERBLOCK, buffer);
+    ata_write_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer);
 
     file_node_t root = {0};
     root.time_created = datetime_packed();
@@ -46,7 +47,7 @@ void file_format() {
     root.first_block = 0;
     strcpy(root.name, "root");
     memcpy(buffer, &root, sizeof(root));
-    ata_write_sector(FILE_SECTOR_ROOT, buffer);
+    ata_write_sector(file_port, FILE_SECTOR_ROOT, buffer);
 }
 
 int file_is_formatted() {
@@ -56,7 +57,11 @@ int file_is_formatted() {
     return sb.magic == FILE_MAGIC;
 }
 
-void file_init() {
+void file_init(uint16_t base, uint8_t drive) {
+    ata_select(base, drive);
+    file_port = base;
+    file_drive = drive;
+
     file_current = FILE_SECTOR_ROOT;
 }
 
@@ -80,26 +85,26 @@ uint32_t file_get(uint32_t parent, const char *name) {
 
 void file_node(uint32_t sector, file_node_t *node) {
     uint8_t buffer[512];
-    ata_read_sector(sector, buffer);
+    ata_read_sector(file_port, sector, buffer);
     memcpy(node, buffer, sizeof(file_node_t));
 }
 
 void file_node_write(uint32_t sector, file_node_t *node) {
     uint8_t buffer[512];
     memcpy(buffer, node, sizeof(file_node_t));
-    ata_write_sector(sector, buffer);
+    ata_write_sector(file_port, sector, buffer);
 }
 
 void file_data(uint32_t sector, file_data_t *data) {
     uint8_t buffer[512];
-    ata_read_sector(sector, buffer);
+    ata_read_sector(file_port, sector, buffer);
     memcpy(data, buffer, sizeof(file_data_t));
 }
 
 void file_data_write(uint32_t sector, file_data_t *data) {
     uint8_t buffer[512];
     memcpy(buffer, data, sizeof(file_data_t));
-    ata_write_sector(sector, buffer);
+    ata_write_sector(file_port, sector, buffer);
 }
 
 int file_write(uint32_t sector, const char *data, size_t size) {
@@ -553,7 +558,7 @@ void file_sector_free(uint32_t sector) {
 
     uint8_t buffer[512] = {0};
     memcpy(buffer, &sb.free_list, sizeof(uint32_t));
-    ata_write_sector(sector, buffer);
+    ata_write_sector(file_port, sector, buffer);
 
     sb.free_list = sector;
     sb.used--;
@@ -574,7 +579,7 @@ uint32_t file_sector_alloc() {
 
     if (sb.free_list != 0) {
         sector = sb.free_list;
-        ata_read_sector(sector, buffer);
+        ata_read_sector(file_port, sector, buffer);
 
         uint32_t free;
         memcpy(&free, buffer, sizeof(uint32_t));
@@ -589,6 +594,6 @@ uint32_t file_sector_alloc() {
     file_write_sb(&sb);
 
     memset(buffer, 0, sizeof(buffer));
-    ata_write_sector(sector, buffer);
+    ata_write_sector(file_port, sector, buffer);
     return sector;
 }

@@ -144,7 +144,8 @@ static void command_fetch(int argc, char *argv[]) {
     strfmt(buff, "Memory: %s (Free: %s)\n", mem_total, mem_free);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
 
-    uint8_t ata_id[512]; ata_identify(ata_id);
+    uint8_t ata_id[512];
+    ata_identify(file_port, ata_id);
     uint16_t *w = (uint16_t*) ata_id;
     uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
     char disk_total[16];
