@@ -1752,6 +1752,40 @@ static script_node_t *call_sizeof(script_node_t *node) {
     return value;
 }
 
+static script_node_t *call_input(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    char input[TERM_INPUT_SIZE];
+    char *prompt = NULL;
+    if (argc > 0) {
+        script_node_t *arg = node->call.argv[0];
+
+        if (arg->value_type != SCRIPT_STR) {
+            char msg[128];
+            strfmt(msg, "Error: Function input() expects str, got %s (line: %d)\n",
+                node_type_name(arg)->literal.str_value, node->lineno);
+            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            free_node(node);
+            return NULL;
+        }
+
+        prompt = heap_alloc(arg->literal.str_size);
+        memcpy(prompt, arg->literal.str_value, arg->literal.str_size);
+    }
+
+    term_get_input(prompt == NULL ? "" : prompt, input, sizeof(input), COLOR_WHITE, COLOR_BLACK);
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_STR;
+    value->lineno = node->lineno;
+    value->literal.str_size = strlen(input) + 1;
+    value->literal.str_value = heap_alloc(value->literal.str_size);
+    memcpy(value->literal.str_value, input, value->literal.str_size);
+
+    return value;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -2124,6 +2158,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "file_write")) ret = call_file_write(&copy_call);
     else if (!strcmp(name, "char_at")) ret = call_char_at(&copy_call);
     else if (!strcmp(name, "sizeof")) ret = call_sizeof(&copy_call);
+    else if (!strcmp(name, "input")) ret = call_input(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
