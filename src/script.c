@@ -1757,7 +1757,7 @@ static script_node_t *call_input(script_node_t *node) {
 
     char input[TERM_INPUT_SIZE];
     char *prompt = NULL;
-    if (argc > 0) {
+    if (argc == 1) {
         script_node_t *arg = node->call.argv[0];
 
         if (arg->value_type != SCRIPT_STR) {
@@ -1771,6 +1771,12 @@ static script_node_t *call_input(script_node_t *node) {
 
         prompt = heap_alloc(arg->literal.str_size);
         memcpy(prompt, arg->literal.str_value, arg->literal.str_size);
+    } else if (argc > 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function input() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
     }
 
     term_get_input(prompt == NULL ? "" : prompt, input, sizeof(input), COLOR_WHITE, COLOR_BLACK);
