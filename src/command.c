@@ -97,15 +97,25 @@ static void command_shutdown(int argc, char *argv[]) {
 }
 
 static void command_fetch(int argc, char *argv[]) {
-    unused(argc); unused(argv);
+    int show_diskname = 0;
+    int show_ribbon = 1;
+
+    for (int i = 0; i < argc; i++) {
+        if (!strcmp(argv[i], "diskname"))
+            show_diskname = 1;
+        else if (!strcmp(argv[i], "noribbon"))
+            show_ribbon = 0;
+    }
 
     char buff[128];
 
-    term_write("\n", COLOR_BLACK, COLOR_BLACK);
-    for (int i = 0; i < 6; i++) {
-        term_write("=", COLOR_YELLOW, COLOR_BLACK);
-        term_write("=", COLOR_WHITE, COLOR_BLACK);
-        term_write("=", COLOR_YELLOW, COLOR_BLACK);
+    if (show_ribbon) {
+        term_write("\n", COLOR_BLACK, COLOR_BLACK);
+        for (int i = 0; i < 6; i++) {
+            term_write("=", COLOR_YELLOW, COLOR_BLACK);
+            term_write("=", COLOR_WHITE, COLOR_BLACK);
+            term_write("=", COLOR_YELLOW, COLOR_BLACK);
+        }
     }
     term_write("\n", COLOR_BLACK, COLOR_BLACK);
     term_write("Kernel: Mango\n", COLOR_WHITE, COLOR_BLACK);
@@ -167,9 +177,13 @@ static void command_fetch(int argc, char *argv[]) {
     unit_get_size(sectors * 512, disk_total);
 
     term_write("Disk: ", COLOR_WHITE, COLOR_BLACK);
-    ata_print_string(w, 27, 46);
-    term_write(" ", COLOR_WHITE, COLOR_BLACK);
-    strfmt(buff, "- %s ", disk_total);
+    
+    if (show_diskname) {
+        ata_print_string(w, 27, 46);
+        term_write(" - ", COLOR_WHITE, COLOR_BLACK);
+    }
+
+    strfmt(buff, "%s ", disk_total);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
     if (file_is_formatted()) {
         file_superblock_t sb;
