@@ -17,6 +17,7 @@
 #include "editor.h"
 #include "ata.h"
 #include "rtc.h"
+#include "config.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -77,7 +78,8 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     pic_unmask(0); // pit
     pic_unmask(1); // keyboard
 
-    term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
+    if (!config_has("/config/kernel.cfg", "disable_welcome_message"))
+        term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
     keyboard_mode = KEYBOARD_MODE_TERM;
     term_prompt = term_x;
