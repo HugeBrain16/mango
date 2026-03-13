@@ -6,6 +6,7 @@
 #include "color.h"
 #include "command.h"
 #include "file.h"
+#include "config.h"
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -329,6 +330,7 @@ static script_node_t *env_nodeify_var(script_stmt_t *block, script_node_t *node)
 
     switch (var->type) {
         case SCRIPT_INT:
+        case SCRIPT_BOOL:
             nodeified->literal.int_value = var->int_value;
             break;
         case SCRIPT_FLOAT:
@@ -383,6 +385,7 @@ static void env_set_var(script_stmt_t *block, const char *name, script_node_t *v
     var->type = value->value_type;
     switch (value->value_type) {
         case SCRIPT_INT:
+        case SCRIPT_BOOL:
             var->int_value = value->literal.int_value;
             break;
         case SCRIPT_FLOAT:
@@ -1792,6 +1795,91 @@ static script_node_t *call_input(script_node_t *node) {
     return value;
 }
 
+static script_node_t *call_config_has(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function config_has() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *path = node->call.argv[0];
+    script_node_t *name = node->call.argv[1];
+
+    if (path->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n",
+            node_type_name(path)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (name->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n",
+            node_type_name(name)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (config_has(path->literal.str_value, name->literal.str_value))
+        return node_true();
+
+    return node_false();
+}
+
+static script_node_t *call_config_get(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function config_has() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *path = node->call.argv[0];
+    script_node_t *name = node->call.argv[1];
+
+    if (path->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n",
+            node_type_name(path)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (name->value_type != SCRIPT_STR) {
+        char msg[128];
+        strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n",
+            node_type_name(name)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    char *value = config_get(path->literal.str_value, name->literal.str_value);
+
+    script_node_t *ret = node_null();
+    ret->node_type = SCRIPT_AST_LITERAL;
+    ret->value_type = SCRIPT_STR;
+    ret->lineno = node->lineno;
+
+    int length = strlen(value) + 1;
+    ret->literal.str_size = length;
+    ret->literal.str_value = heap_alloc(length);
+    memcpy(ret->literal.str_value, value, length);
+
+    return ret;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -2165,6 +2253,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "char_at")) ret = call_char_at(&copy_call);
     else if (!strcmp(name, "sizeof")) ret = call_sizeof(&copy_call);
     else if (!strcmp(name, "input")) ret = call_input(&copy_call);
+    else if (!strcmp(name, "config_has")) ret = call_config_has(&copy_call);
+    else if (!strcmp(name, "config_get")) ret = call_config_get(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {

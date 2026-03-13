@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include "string.h"
+#include "heap.h"
 
 void *memset(void *bufptr, int value, size_t size) {
     unsigned char *buf = (unsigned char *) bufptr;
@@ -401,4 +402,106 @@ void intpad(char *dest, int num, size_t n, char c) {
         dest[idx++] = temp[i];
 
     dest[idx] = '\0';
+}
+
+string_t *string_init() {
+    string_t *string = heap_alloc(sizeof(string_t));
+    if (!string) return NULL;
+
+    string->size = 1;
+    string->value = heap_alloc(1);
+    if (!string->value) {
+        heap_free(string);
+        return NULL;
+    }
+    string->value[0] = '\0';
+
+    return string;
+}
+
+string_t *string_from(const char *src) {
+    string_t *string = string_init();
+    string_puts(string, src);
+
+    return string;
+}
+
+int string_putc(string_t *string, char c) {
+    if (!string) return 0;
+
+    char *new = heap_realloc(string->value, string->size + 1);
+    if (!new) return 0;
+    string->value = new;
+
+    string->value[string->size - 1] = c;
+    string->value[string->size] = '\0';
+    string->size += 1;
+
+    return 1;
+}
+
+int string_puts(string_t *string, const char *str) {
+    while (*str != '\0') {
+        if (!string_putc(string, *str)) return 0;
+        str++;
+    }
+
+    return 1;
+}
+
+int string_length(string_t *string) {
+    return string->size - 1;
+}
+
+int string_empty(string_t *string) {
+    return string_length(string) > 0;
+}
+
+void string_free(string_t *string) {
+    if (!string) return;
+    if (string->value) heap_free(string->value);
+    heap_free(string);
+}
+
+void string_ltrim(string_t *string) {
+    strltrim(string->value);
+    string->size = strlen(string->value) + 1;
+
+    char *new = heap_realloc(string->value, string->size);
+    if (!new) return;
+    string->value = new;
+}
+
+void string_rtrim(string_t *string) {
+    strrtrim(string->value);
+    string->size = strlen(string->value) + 1;
+
+    char *new = heap_realloc(string->value, string->size);
+    if (!new) return;
+    string->value = new;
+}
+
+void string_trim(string_t *string) {
+    string_ltrim(string);
+    string_rtrim(string);
+}
+
+list_t *readlines(const char *buffer) {
+    list_t *lines = heap_alloc(sizeof(list_t));
+    list_init(lines);
+
+    string_t *line = string_init();
+    while (*buffer != '\0') {
+        if (*buffer == '\n') {
+            list_push(lines, (string_t*)line);
+            line = string_init();
+        } else
+            string_putc(line, *buffer);
+        buffer++;
+    }
+
+    if (string_length(line))
+        list_push(lines, (string_t*)line);
+
+    return lines;
 }

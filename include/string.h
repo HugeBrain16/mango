@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "list.h"
+
 void *memset(void *bufptr, int value, size_t size);
 int memcmp(const void *aptr, const void *bptr, size_t size);
 void *memcpy(void* restrict destptr, const void* restrict srcptr, size_t size);
@@ -31,5 +33,23 @@ int islowalpha(char c);
 int isdigit(char c);
 size_t digitslen(int n);
 void intpad(char *dest, int num, size_t n, char c);
+
+typedef struct {
+	size_t size;
+	char *value;
+} string_t;
+
+string_t *string_init();
+string_t *string_from(const char *src);
+int string_putc(string_t *string, char c);
+int string_puts(string_t *string, const char *str);
+int string_length(string_t *string);
+int string_empty(string_t *string);
+void string_ltrim(string_t *string);
+void string_rtrim(string_t *string);
+void string_trim(string_t *string);
+void string_free(string_t *string);
+
+list_t *readlines(const char *buffer);
 
 #endif

@@ -72,5 +72,7 @@ void file_sector_free(uint32_t sector);
 uint32_t file_sector_alloc();
 int file_write(uint32_t sector, const char *data, size_t size);
 char *file_read(uint32_t sector);
+int file_path_isfile(const char *path);
+int file_path_isfolder(const char *path);
 
 #endif

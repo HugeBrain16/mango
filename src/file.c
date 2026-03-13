@@ -336,6 +336,18 @@ uint32_t file_get_node2(const char *parent, const char *basename) {
     return node;
 }
 
+int file_path_isfile(const char *path) {
+    file_node_t node;
+    uint32_t sector = file_get_node(path);
+    file_node(sector, &node);
+
+    if (sector && node.flags & FILE_DATA)
+        return 1;
+
+    return 0;
+
+}
+
 int file_exists(uint32_t parent, const char *name) {
     return file_get(parent, name) != 0;
 }
@@ -455,6 +467,18 @@ uint32_t folder_get(uint32_t parent, const char *name) {
     }
 
     return 0;
+}
+
+int file_path_isfolder(const char *path) {
+    file_node_t node;
+    uint32_t sector = file_get_node(path);
+    file_node(sector, &node);
+
+    if (sector && node.flags & FILE_FOLDER)
+        return 1;
+
+    return 0;
+
 }
 
 int folder_exists(uint32_t parent, const char *name) {
