@@ -454,7 +454,7 @@ int string_length(string_t *string) {
 }
 
 int string_empty(string_t *string) {
-    return string_length(string) > 0;
+    return string_length(string) == 0;
 }
 
 void string_free(string_t *string) {
