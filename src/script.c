@@ -13,6 +13,7 @@ static void free_node(script_node_t *node);
 static void free_stmt(script_stmt_t *stmt);
 static void free_var(script_var_t *var);
 static void free_env(script_env_t *env);
+static void free_eval(script_eval_t *eval);
 
 static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
 
@@ -31,6 +32,13 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr);
 static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
+
+static void free_eval(script_eval_t *eval) {
+    if (!eval) return;
+
+    if (eval->node) free_node(eval->node);
+    heap_free(eval);
+}
 
 static script_token_t *create_token(uint8_t type, size_t lineno) {
     script_token_t *token = heap_alloc(sizeof(script_token_t));
@@ -682,6 +690,7 @@ static void free_stmt(script_stmt_t *stmt) {
     switch (stmt->type) {
         case SCRIPT_STMT_DEFINE:
         case SCRIPT_STMT_DECLARE:
+        case SCRIPT_STMT_ASSIGN:
             heap_free(stmt->var.name);
             free_node(stmt->var.value);
             break;
@@ -709,6 +718,8 @@ static void free_stmt(script_stmt_t *stmt) {
             if (stmt->if_stmt.else_stmt)
                 free_stmt(stmt->if_stmt.else_stmt);
     }
+
+    heap_free(stmt);
 }
 
 static script_node_t *parse_factor(script_token_t **token) {
@@ -2290,6 +2301,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
                 ret = eval->node;
 
             free_stmt(call_block);
+            heap_free(eval);
         } else {
             char msg[64];
             strfmt(msg, "Error: Undefined call \"%s\" (line: %d)\n", name, call->lineno);
@@ -2440,7 +2452,7 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
         if (eval->type == SCRIPT_EVAL_RETURN)
             return eval;
 
-        heap_free(eval);
+        free_eval(eval);
         current = current->next;
     }
 
