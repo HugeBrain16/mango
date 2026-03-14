@@ -184,7 +184,7 @@ static void edit_statusbar_draw() {
     clear(draw_x, draw_y, EDITOR_STATUS_BG);
 
     char status[128];
-    strfmt(status, "%s | Line %d-%d | Chars %d | Pos %d",
+    strfmt(status, "%s | Line %d-%d | Chars %d | Pos %d | Save: Ctrl+s, Quit: Esc",
         file.name,
         get_line_count(edit_pos),
         get_line_count(edit_cursor),
