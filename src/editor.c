@@ -359,8 +359,7 @@ static void edit_handle_down() {
     edit_statusbar_draw();
 }
 
-static void edit_handle_save() {
-    file_write(edit_node, edit_buffer, edit_cursor + 1);
+static void edit_handle_quit() {
     heap_free(edit_buffer);
     edit_pos = 0;
     edit_cursor = 0;
@@ -375,8 +374,20 @@ static void edit_handle_save() {
     term_prompt = term_x;
 }
 
+static void edit_handle_save() {
+    file_write(edit_node, edit_buffer, edit_cursor + 1);
+}
+
 void edit_handle_type(uint8_t scancode) {
-    if (scancode == KEY_ESC) return edit_handle_save();
+    if (scancode == KEY_ESC) return edit_handle_quit();
+
+    if (keyboard_ctrl) {
+        char c = scancode_to_char(scancode);
+
+        if (!keyboard_shift) {
+            if (c == 's') return edit_handle_save();
+        }
+    }
 
     if (scancode == KEY_ARROW_LEFT) return edit_handle_left();
     else if (scancode == KEY_ARROW_RIGHT) return edit_handle_right();

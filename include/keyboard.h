@@ -21,6 +21,7 @@
 #define KEYBOARD_MODE_EDIT 2
 
 int keyboard_shift;
+int keyboard_ctrl;
 int keyboard_mode;
 
 char scancode_to_char(uint8_t scancode);

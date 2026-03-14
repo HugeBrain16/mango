@@ -5,6 +5,7 @@
 #include "editor.h"
 
 int keyboard_shift = 0;
+int keyboard_ctrl = 0;
 int keyboard_mode = KEYBOARD_MODE_NONE;
 
 static const char ascii[] = {
@@ -44,10 +45,14 @@ void keyboard_handle() {
 
         if (key == KEY_LSHIFT || key == KEY_RSHIFT)
             keyboard_shift = 0;
+        if (key == KEY_CTRL)
+            keyboard_ctrl = 0;
     }
 
     if (scancode == KEY_LSHIFT || scancode == KEY_RSHIFT)
         keyboard_shift = 1;
+    if (scancode == KEY_CTRL)
+        keyboard_ctrl = 1;
 
     if (keyboard_mode == KEYBOARD_MODE_TERM)
         term_handle_type(scancode);
