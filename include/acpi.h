@@ -69,6 +69,11 @@ typedef struct {
     uint8_t  century;
 } __attribute__((packed)) fadt_t;
 
+typedef struct {
+    sdt_t header;
+    char aml[];
+} dsdt_t;
+
 rsdp_t *acpi_find_rsdp();
 sdt_t *acpi_find_table(uint32_t rsdt_addr, const char *signature);
 

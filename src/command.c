@@ -17,6 +17,7 @@
 #include "script.h"
 #include "rtc.h"
 #include "config.h"
+#include "acpi.h"
 
 static void ata_print_string(uint16_t *w, int start, int end) {
     char str[64];
@@ -95,6 +96,41 @@ static void command_shutdown(int argc, char *argv[]) {
     outw(0xB004, 0x2000);
     outw(0x4004, 0x3400);
     outw(0x600, 0x34);
+
+    rsdp_t *rsdp = acpi_find_rsdp();
+    fadt_t *fadt = (fadt_t*)acpi_find_table(rsdp->rsdt_addr, "FACP");
+
+    dsdt_t *dsdt = (dsdt_t*)fadt->dsdt;
+    int aml_length = dsdt->header.length - sizeof(dsdt->header);
+    char *aml = dsdt->aml;
+
+    for (int i = 0; i < aml_length - 5; i++) {
+        if (aml[i] == 0x08 && !memcmp(&aml[i+1], "_S5_", 4)) {
+            char *p = &aml[i + 5];
+
+            if (*p != 0x12)
+                continue;
+            p += 3;
+
+            if (*p == 0x0A) p++;
+
+            uint8_t slp_typ_a = *p;
+            p++;
+
+            if (*p == 0x0A) p++;
+
+            uint8_t slp_typ_b = *p;
+
+            uint16_t SLP_TYPa = slp_typ_a << 10;
+            uint16_t SLP_TYPb = slp_typ_b << 10;
+
+            uint16_t SLP_EN = 1 << 13;
+
+            outw(fadt->pm1a_control_block, SLP_TYPa | SLP_EN);
+            if (fadt->pm1b_control_block)
+                outw(fadt->pm1b_control_block, SLP_TYPb | SLP_EN);
+        }
+    }
 
     __asm__ volatile("cli; hlt");
 }

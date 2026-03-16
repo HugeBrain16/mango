@@ -31,6 +31,7 @@ int isalpha(char c);
 int isupalpha(char c);
 int islowalpha(char c);
 int isdigit(char c);
+int isprintable(char c);
 size_t digitslen(int n);
 void intpad(char *dest, int num, size_t n, char c);
 

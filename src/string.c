@@ -51,6 +51,10 @@ int isdigit(char c) {
     return (c >= '0' && c <= '9');
 }
 
+int isprintable(char c) {
+    return (c >= 32 && c <= 126);
+}
+
 size_t strlen(const char *str) {
     size_t len = 0;
     while (str[len] != '\0')
