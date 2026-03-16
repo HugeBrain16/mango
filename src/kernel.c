@@ -83,7 +83,12 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     fadt_t *fadt = (fadt_t*)acpi_find_table(rsdp->rsdt_addr, "FACP");
     if (fadt->smi_command_port != 0) {
         outb(fadt->smi_command_port, fadt->acpi_enable);
-        while (!(inw(fadt->pm1a_control_block) & 1));
+
+        uint32_t start = pit_ticks;
+        while (!(inw(fadt->pm1a_control_block) & 1)) {
+            if (pit_ticks - start > 3000)
+                break;
+        }
     }
 
     if (!config_has("/config/kernel.cfg", "disable_welcome_message"))
