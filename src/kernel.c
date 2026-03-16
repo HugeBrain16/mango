@@ -18,6 +18,7 @@
 #include "ata.h"
 #include "rtc.h"
 #include "config.h"
+#include "acpi.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -77,6 +78,13 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     pit_set_frequency(100); // 100 hz
     pic_unmask(0); // pit
     pic_unmask(1); // keyboard
+
+    rsdp_t *rsdp = acpi_find_rsdp();
+    fadt_t *fadt = (fadt_t*)acpi_find_table(rsdp->rsdt_addr, "FACP");
+    if (fadt->smi_command_port != 0) {
+        outb(fadt->smi_command_port, fadt->acpi_enable);
+        while (!(inw(fadt->pm1a_control_block) & 1));
+    }
 
     if (!config_has("/config/kernel.cfg", "disable_welcome_message"))
         term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
