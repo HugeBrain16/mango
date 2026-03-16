@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "kernel.h"
 #include "serial.h"
 #include "io.h"
 #include "string.h"
@@ -11,6 +12,8 @@ void serial_init() {
     outb(SERIAL_PORT + 3, 0x03);
     outb(SERIAL_PORT + 2, 0xC7);
     outb(SERIAL_PORT + 4, 0x0B);
+
+    log("[ INFO ] Serial: COM1\n");
 }
 
 void serial_putc(char c) {

@@ -1,3 +1,4 @@
+#include "kernel.h"
 #include "idt.h"
 #include "pic.h"
 #include "io.h"
@@ -93,7 +94,6 @@ void idt_init() {
     :: "m"(idt_ptr));
 }
 
-__attribute__((noreturn))
 void exception_handler(int_frame_t *frame) {
     const char *exceptions[] = {
         "Divide Error", "Debug", "NMI", "Breakpoint",
@@ -104,42 +104,32 @@ void exception_handler(int_frame_t *frame) {
         "Virtualization Exception", "Control Protection Exception"
     };
     
-    term_write("\n!!! EXCEPTION !!!\n", COLOR_RED, COLOR_BLACK);
-    
     char buff[128];
     if (frame->vector < 22) {
-        strfmt(buff, "Exception: %s\n", exceptions[frame->vector]);
+        strfmt(buff, "[ INFO ] Exception: %s\n", exceptions[frame->vector]);
     } else {
-        strfmt(buff, "Exception: Unknown (%d)\n", frame->vector);
+        strfmt(buff, "[ INFO ] Exception: Unknown (%d)\n", frame->vector);
     }
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    log(buff);
     
-    strfmt(buff, "Vector: %d\n", frame->vector);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "Error Code: 0x%x\n", frame->error_code);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "EIP: 0x%x\n", frame->eip);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "CS: 0x%x  EFLAGS: 0x%x\n", frame->cs, frame->eflags);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "EAX: 0x%x  EBX: 0x%x\n", frame->eax, frame->ebx);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "ECX: 0x%x  EDX: 0x%x\n", frame->ecx, frame->edx);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "ESI: 0x%x  EDI: 0x%x\n", frame->esi, frame->edi);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    strfmt(buff, "EBP: 0x%x  ESP: 0x%x\n", frame->ebp, frame->esp);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    
-    __asm__ volatile("cli; hlt");
-    __builtin_unreachable();
+    strfmt(buff, "[ INFO ] Vector: %d\n", frame->vector);
+    log(buff);
+    strfmt(buff, "[ INFO ] Error Code: 0x%x\n", frame->error_code);
+    log(buff);
+    strfmt(buff, "[ INFO ] EIP: 0x%x\n", frame->eip);
+    log(buff);
+    strfmt(buff, "[ INFO ] CS: 0x%x, EFLAGS: 0x%x\n", frame->cs, frame->eflags);
+    log(buff); 
+    strfmt(buff, "[ INFO ] EAX: 0x%x, EBX: 0x%x\n", frame->eax, frame->ebx);
+    log(buff);
+    strfmt(buff, "[ INFO ] ECX: 0x%x, EDX: 0x%x\n", frame->ecx, frame->edx);
+    log(buff);
+    strfmt(buff, "[ INFO ] ESI: 0x%x, EDI: 0x%x\n", frame->esi, frame->edi);
+    log(buff);
+    strfmt(buff, "[ INFO ] EBP: 0x%x, ESP: 0x%x\n", frame->ebp, frame->esp);
+    log(buff);
+
+    panic("[ PANIC ] Exception!");
 }
 
 void irq_handler(int_frame_t *frame) {

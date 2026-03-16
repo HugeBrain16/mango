@@ -74,7 +74,15 @@ typedef struct {
     char aml[];
 } dsdt_t;
 
+rsdp_t *acpi_rsdp;
+rsdt_t *acpi_rsdt;
+fadt_t *acpi_fadt;
+dsdt_t *acpi_dsdt;
+
+void acpi_init();
 rsdp_t *acpi_find_rsdp();
-sdt_t *acpi_find_table(uint32_t rsdt_addr, const char *signature);
+sdt_t *acpi_find_table(const char *signature);
+int acpi_mode_enabled();
+void acpi_shutdown();
 
 #endif

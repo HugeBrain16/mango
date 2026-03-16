@@ -1,4 +1,3 @@
-#include <cpuid.h>
 #include "command.h"
 #include "kernel.h"
 #include "string.h"
@@ -18,6 +17,7 @@
 #include "rtc.h"
 #include "config.h"
 #include "acpi.h"
+#include "cpu.h"
 
 static void ata_print_string(uint16_t *w, int start, int end) {
     char str[64];
@@ -97,44 +97,10 @@ static void command_shutdown(int argc, char *argv[]) {
     outw(0x4004, 0x3400);
     outw(0x600, 0x34);
 
-    rsdp_t *rsdp = acpi_find_rsdp();
-    fadt_t *fadt = (fadt_t*)acpi_find_table(rsdp->rsdt_addr, "FACP");
+    if (acpi_mode_enabled())
+        acpi_shutdown();
 
-    if (inw(fadt->pm1a_control_block) & 1) {
-        dsdt_t *dsdt = (dsdt_t*)fadt->dsdt;
-        int aml_length = dsdt->header.length - sizeof(dsdt->header);
-        char *aml = dsdt->aml;
-
-        for (int i = 0; i < aml_length - 5; i++) {
-            if (aml[i] == 0x08 && !memcmp(&aml[i+1], "_S5_", 4)) {
-                char *p = &aml[i + 5];
-
-                if (*p != 0x12)
-                    continue;
-                p += 3;
-
-                if (*p == 0x0A) p++;
-
-                uint8_t slp_typ_a = *p;
-                p++;
-
-                if (*p == 0x0A) p++;
-
-                uint8_t slp_typ_b = *p;
-
-                uint16_t SLP_TYPa = slp_typ_a << 10;
-                uint16_t SLP_TYPb = slp_typ_b << 10;
-
-                uint16_t SLP_EN = 1 << 13;
-
-                outw(fadt->pm1a_control_block, SLP_TYPa | SLP_EN);
-                if (fadt->pm1b_control_block)
-                    outw(fadt->pm1b_control_block, SLP_TYPb | SLP_EN);
-            }
-        }
-    }
-
-    __asm__ volatile("cli; hlt");
+    abort();
 }
 
 static void command_fetch(int argc, char *argv[]) {
@@ -161,45 +127,6 @@ static void command_fetch(int argc, char *argv[]) {
     term_write("\n", COLOR_BLACK, COLOR_BLACK);
     term_write("Kernel: Mango\n", COLOR_WHITE, COLOR_BLACK);
 
-    uint32_t eax, ebx, ecx, edx;
-    char cpu_name[64] = {0};
-    uint32_t *p = (uint32_t *) cpu_name;
-
-    __cpuid(0x80000000, eax, ebx, ecx, edx);
-
-    if (eax >= 0x80000004) {
-        for (int i = 0; i < 3; i++) {
-            __cpuid(0x80000002 + i, eax, ebx, ecx, edx);
-            *p++ = eax;
-            *p++ = ebx;
-            *p++ = ecx;
-            *p++ = edx;
-        }
-    } else {
-        __cpuid(0, eax, ebx, ecx, edx);
-        p[0] = ebx;
-        p[1] = edx;
-        p[2] = ecx;
-
-        p[12] = '\0';
-
-        __cpuid(1, eax, ebx, ecx, edx);
-
-        uint32_t base_model = (eax >> 4) & 0xF;
-        uint32_t base_family = (eax >> 8) & 0xF;
-        uint32_t ext_model = (eax >> 16) & 0xF;
-        uint32_t ext_family = (eax >> 20) & 0xFF;
-
-        uint32_t family = base_family;
-        if (family == 0xF)
-            family += ext_family;
-
-        uint32_t model = base_model;
-        if (base_family == 0x6 || base_family == 0xF)
-            model |= (ext_model << 4);
-
-        strfmt(cpu_name, "%s (Family %d Model %d)", cpu_name, family, model);
-    }
     strfmt(buff, "CPU: %s\n", cpu_name);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
 

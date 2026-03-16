@@ -9,6 +9,8 @@ void screen_init(multiboot_info_t *mbi) {
     screen_height = mbi->framebuffer_height;
     screen_pitch = mbi->framebuffer_pitch;
     screen_scale = 1;
+
+    screen_clear(COLOR_BLACK);
 }
 
 void screen_clear(uint32_t color) {
