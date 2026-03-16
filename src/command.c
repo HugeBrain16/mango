@@ -16,6 +16,7 @@
 #include "io.h"
 #include "script.h"
 #include "rtc.h"
+#include "config.h"
 
 static void ata_print_string(uint16_t *w, int start, int end) {
     char str[64];
@@ -92,6 +93,8 @@ static void command_shutdown(int argc, char *argv[]) {
 
     outw(0x604, 0x2000);
     outw(0xB004, 0x2000);
+    outw(0x4004, 0x3400);
+    outw(0x600, 0x34);
 
     __asm__ volatile("cli; hlt");
 }
@@ -705,8 +708,18 @@ static void command_runscript(int argc, char *argv[]) {
 static void command_time(int argc, char *argv[]) {
     rtc_datetime_t now;
     rtc_datetime(&now);
+
+    int time_offset = 0;
+
+    char *time_config = config_get("/config/time.cfg", "offset");
+    if (time_config)
+        time_offset = intstr(time_config);
+
     if (argc == 1)
-        rtc_to_local(&now, intstr(argv[0]));
+        time_offset = intstr(argv[0]);
+
+    if (time_offset != 0)
+        rtc_to_local(&now, time_offset);
 
     char msg[8];
     char hrs[3];
@@ -721,8 +734,18 @@ static void command_time(int argc, char *argv[]) {
 static void command_date(int argc, char *argv[]) {
     rtc_datetime_t now;
     rtc_datetime(&now);
+
+    int time_offset = 0;
+
+    char *time_config = config_get("/config/time.cfg", "offset");
+    if (time_config)
+        time_offset = intstr(time_config);
+
     if (argc == 1)
-        rtc_to_local(&now, intstr(argv[0]));
+        time_offset = intstr(argv[0]);
+
+    if (time_offset != 0)
+        rtc_to_local(&now, time_offset);
 
     char msg[16];
     char day[3];
@@ -731,6 +754,36 @@ static void command_date(int argc, char *argv[]) {
     intpad(month, now.month, 2, '0');
 
     strfmt(msg, "%s-%s-%d\n", day, month, now.year);
+    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+}
+
+static void command_datetime(int argc, char *argv[]) {
+    rtc_datetime_t now;
+    rtc_datetime(&now);
+
+    int time_offset = 0;
+
+    char *time_config = config_get("/config/time.cfg", "offset");
+    if (time_config)
+        time_offset = intstr(time_config);
+
+    if (argc == 1)
+        time_offset = intstr(argv[0]);
+
+    if (time_offset != 0)
+        rtc_to_local(&now, time_offset);
+
+    char msg[18];
+    char hrs[3];
+    char min[3];
+    char day[3];
+    char month[3];
+    intpad(hrs, now.hours, 2, '0');
+    intpad(min, now.minutes, 2, '0');
+    intpad(day, now.day, 2, '0');
+    intpad(month, now.month, 2, '0');
+
+    strfmt(msg, "%s:%s %s-%s-%d\n", hrs, min, day, month, now.year);
     term_write(msg, COLOR_WHITE, COLOR_BLACK);
 }
 
@@ -839,6 +892,7 @@ void command_handle(const char *command, int printcaret) {
     else if (!strcmp(cmd, "runscript")) command_runscript(argc, argv);
     else if (!strcmp(cmd, "time")) command_time(argc, argv);
     else if (!strcmp(cmd, "date")) command_date(argc, argv);
+    else if (!strcmp(cmd, "datetime")) command_datetime(argc, argv);
     else if (!strcmp(cmd, "diskinfo")) command_diskinfo(argc, argv);
     else if (!strcmp(cmd, "help")) command_help(argc, argv);
     else
