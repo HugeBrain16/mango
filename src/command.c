@@ -82,14 +82,14 @@ static void command_scale(int argc, char *argv[]) {
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    screen_scale += .25f;
+    screen_scale += 1.0f;
 }
 
 static void command_scaledown(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (screen_scale > .25f)
-        screen_scale -= .25f;
+    if (screen_scale > 1.0f)
+        screen_scale -= 1.0f;
 }
 
 static void command_clear(int argc, char *argv[]) {
