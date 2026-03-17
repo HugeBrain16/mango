@@ -66,17 +66,30 @@ static void command_help(int argc, char *argv[]) {
     term_write("date - show current date\n", COLOR_WHITE, COLOR_BLACK);
 }
 
+static void command_scale(int argc, char *argv[]) {
+    if (argc > 0) {
+        float scale = (float)doublestr(argv[0]);
+
+        if (scale > 0)
+            screen_scale = (float)doublestr(argv[0]);
+    } else {
+        char buf[10];
+        strfmt(buf, "%f2", screen_scale);
+        term_write(buf, COLOR_WHITE, COLOR_BLACK);
+    }
+}
+
 static void command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    screen_scale++;
+    screen_scale += .25f;
 }
 
 static void command_scaledown(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (screen_scale > 1)
-        screen_scale--;
+    if (screen_scale > .25f)
+        screen_scale -= .25f;
 }
 
 static void command_clear(int argc, char *argv[]) {
@@ -832,7 +845,8 @@ void command_handle(const char *command, int printcaret) {
         argv[i] = args[i];
     }
 
-    if (!strcmp(cmd, "scaleup")) command_scaleup(argc, argv);
+    if (!strcmp(cmd, "scale")) command_scale(argc, argv);
+    else if (!strcmp(cmd, "scaleup")) command_scaleup(argc, argv);
     else if (!strcmp(cmd, "scaledown")) command_scaledown(argc, argv);
     else if (!strcmp(cmd, "clear")) command_clear(argc, argv);
     else if (!strcmp(cmd, "shutdown")) command_shutdown(argc, argv);
