@@ -73,9 +73,16 @@ void acpi_init() {
 	log("[ INFO ] ACPI Initializing...\n");
 
 	acpi_rsdp = acpi_find_rsdp();
-	if (acpi_rsdp)
+	if (acpi_rsdp) {
+		const char *version = "1.0";
+		if (acpi_rsdp->revision == 2)
+			version = "2.0";
+
+		strfmt(buffer, "[ INFO ] ACPI v%s\n", version);
+		log(buffer);
+
 		strfmt(buffer, "[ INFO ] ACPI RSDP: 0x%x\n", acpi_rsdp);
-	else
+	} else
 		strfmt(buffer, "[ WARNING ] Could not find RSDP!\n");
 	log(buffer);
 
