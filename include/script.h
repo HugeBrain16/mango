@@ -39,6 +39,8 @@
 #define SCRIPT_TOKEN_MORETHAN   32 // >
 #define SCRIPT_TOKEN_LESSEQUAL  33 // <=
 #define SCRIPT_TOKEN_MOREEQUAL  34 // >=
+#define SCRIPT_TOKEN_AND        35 // &&
+#define SCRIPT_TOKEN_OR         36 // ||
 
 #define SCRIPT_AST_BINOP        0
 #define SCRIPT_AST_LITERAL      1

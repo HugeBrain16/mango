@@ -19,6 +19,7 @@ static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
 
 static script_stmt_t *parse_statement(script_token_t **token);
 static script_node_t *parse_expr(script_token_t **token);
+static script_node_t *parse_logic(script_token_t **token);
 static script_node_t *parse_comparison(script_token_t **token);
 static script_node_t *parse_addsub(script_token_t **token);
 static script_node_t *parse_term(script_token_t **token);
@@ -211,6 +212,30 @@ static script_token_t *lex_equaloperator(fio_t *file, char *c, size_t *lineno) {
     return token;
 }
 
+static script_token_t *lex_logicoperator(fio_t *file, char *c, size_t *lineno) {
+    script_token_t *token = create_token(SCRIPT_TOKEN_AND, *lineno);
+    token->value[0] = *c;
+    token->value[1] = *c;
+    token->value[2] = '\0';
+
+    switch (*c) {
+        case '&': token->type = SCRIPT_TOKEN_AND; break;
+        case '|': token->type = SCRIPT_TOKEN_OR; break;
+        default: {
+            char msg[64];
+            strfmt(msg, "Error: Unexpected '%c' for logic operator (line: %d)\n", *c, *lineno);
+            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            free_token(token);
+            return NULL;
+        }
+    }
+
+    *c = fio_getc(file);
+    *c = fio_getc(file);
+
+    return token;
+}
+
 static script_token_t *tokenize(fio_t *file) {
     char c = fio_getc(file);
     size_t lineno = 1;
@@ -246,6 +271,10 @@ static script_token_t *tokenize(fio_t *file) {
             token = lex_equaloperator(file, &c, &lineno);
         } else if (c == '<' && fio_peek(file) == '=') {
             token = lex_equaloperator(file, &c, &lineno);
+        } else if (c == '&' && fio_peek(file) == '&') {
+            token = lex_logicoperator(file, &c, &lineno);
+        } else if (c == '|' && fio_peek(file) == '|') {
+            token = lex_logicoperator(file, &c, &lineno);
         } else {
             token = lex_operator(c, &lineno);
             if (token) c = fio_getc(file);
@@ -882,8 +911,32 @@ static script_node_t *parse_comparison(script_token_t **token) {
     return node;
 }
 
+static script_node_t *parse_logic(script_token_t **token) {
+    if (!*token) return NULL;
+
+    script_node_t *node = parse_comparison(token);
+
+    while (*token && (
+        (*token)->type == SCRIPT_TOKEN_AND ||
+        (*token)->type == SCRIPT_TOKEN_OR)) {
+
+        uint8_t op = (*token)->type;
+        *token = (*token)->next;
+
+        script_node_t *right = parse_comparison(token);
+        if (!right) {
+            free_node(node);
+            return NULL;
+        }
+
+        node = node_binop(op, node, right);
+    }
+
+    return node;
+}
+
 static script_node_t *parse_expr(script_token_t **token) {
-    return parse_comparison(token);
+    return parse_logic(token);
 }
 
 static script_stmt_t *parse_declare(script_token_t **token) {
@@ -1931,7 +1984,17 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     }
 
     uint8_t op = binop->binop.op;
-    if (op == SCRIPT_TOKEN_ISEQUAL) {
+    if (op == SCRIPT_TOKEN_AND) {
+        if (node_istrue(left) && node_istrue(right))
+            return node_true();
+
+        return node_false();
+    } else if (op == SCRIPT_TOKEN_OR) {
+        if (node_istrue(left) || node_istrue(right))
+            return node_true();
+
+        return node_false();
+    } else if (op == SCRIPT_TOKEN_ISEQUAL) {
         if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
             if (left->value_type == right->value_type)
                 return node_true();
