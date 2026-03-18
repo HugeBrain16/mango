@@ -18,6 +18,7 @@ static void free_eval(script_eval_t *eval);
 static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
 
 static script_stmt_t *parse_statement(script_token_t **token);
+static script_stmt_t *parse_statement_inner(script_token_t **token);
 static script_node_t *parse_expr(script_token_t **token);
 static script_node_t *parse_logic(script_token_t **token);
 static script_node_t *parse_comparison(script_token_t **token);
@@ -32,6 +33,8 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr);
 
 static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt);
+static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt);
+static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
 
 static void free_eval(script_eval_t *eval) {
@@ -86,7 +89,7 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
 
     if (isalpha(*c) || is_float == 2) {
         char msg[64];
-        strfmt(msg, "Error: Unexpected char \"%c\" (line: %d)\n", *lineno, *c);
+        strfmt(msg, "Error: Unexpected char \"%c\" (line: %d)\n", *c, *lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_token(token);
         return NULL;
@@ -122,6 +125,10 @@ static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
     else if (!strcmp(token->value, "else")) token->type = SCRIPT_TOKEN_ELSE;
     else if (!strcmp(token->value, "true")) token->type = SCRIPT_TOKEN_TRUE;
     else if (!strcmp(token->value, "false")) token->type = SCRIPT_TOKEN_FALSE;
+    else if (!strcmp(token->value, "while")) token->type = SCRIPT_TOKEN_WHILE;
+    else if (!strcmp(token->value, "for")) token->type = SCRIPT_TOKEN_FOR;
+    else if (!strcmp(token->value, "break")) token->type = SCRIPT_TOKEN_BREAK;
+    else if (!strcmp(token->value, "continue")) token->type = SCRIPT_TOKEN_CONTINUE;
 
     return token;
 }
@@ -356,6 +363,19 @@ static script_var_t *env_unscoped_find_var(script_stmt_t *block, const char *nam
     return NULL;
 }
 
+static script_stmt_t *env_find_block(script_stmt_t *block, const char *name) {
+    script_stmt_t *parent = block;
+
+    while (parent) {
+        script_var_t *var = env_find_var(parent, name);
+        if (var)
+            return parent;
+        parent = parent->parent;
+    }
+
+    return NULL;
+}
+
 static script_node_t *env_nodeify_var(script_stmt_t *block, script_node_t *node) {
     script_var_t *var = env_unscoped_find_var(block, node->literal.str_value);
     if (!var) return NULL;
@@ -518,31 +538,35 @@ static script_node_t *node_type_name(script_node_t *node) {
     value->value_type = SCRIPT_STR;
     value->lineno = node->lineno;
 
+    char *str_value = NULL;
     switch (node->value_type) {
         case SCRIPT_STR:
-            value->literal.str_value = "str";
+            str_value = "str";
             break;
         case SCRIPT_INT:
-            value->literal.str_value = "int";
+            str_value = "int";
             break;
         case SCRIPT_FLOAT:
-            value->literal.str_value = "float";
+            str_value = "float";
             break;
         case SCRIPT_BOOL:
-            value->literal.str_value = "bool";
+            str_value = "bool";
             break;
         case SCRIPT_NULL:
-            value->literal.str_value = "null";
+            str_value = "null";
             break;
         case SCRIPT_FUNC:
-            value->literal.str_value = "function";
+            str_value = "function";
             break;
         case SCRIPT_FILE:
-            value->literal.str_value = "file";
+            str_value = "file";
             break;
     }
 
-    value->literal.str_size = strlen(value->literal.str_value);
+    size_t str_length = strlen(str_value);
+    value->literal.str_value = heap_alloc(str_length + 1);
+    strcpy(value->literal.str_value, str_value);
+    value->literal.str_size = str_length;
     return value;
 }
 
@@ -678,6 +702,20 @@ static script_stmt_t *stmt_return(script_node_t *expr) {
     return stmt;
 }
 
+static script_stmt_t *stmt_break(script_node_t *expr) {
+    script_stmt_t *stmt = stmt_expr(expr);
+    stmt->type = SCRIPT_STMT_BREAK;
+
+    return stmt;
+}
+
+static script_stmt_t *stmt_continue(script_node_t *expr) {
+    script_stmt_t *stmt = stmt_expr(expr);
+    stmt->type = SCRIPT_STMT_CONTINUE;
+
+    return stmt;
+}
+
 static script_stmt_t *stmt_if(script_node_t *expr, script_stmt_t *then_stmt, script_stmt_t *else_stmt) {
     script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_IF;
@@ -688,6 +726,34 @@ static script_stmt_t *stmt_if(script_node_t *expr, script_stmt_t *then_stmt, scr
     stmt->if_stmt.expr = expr;
     stmt->if_stmt.then_stmt = then_stmt;
     stmt->if_stmt.else_stmt = else_stmt;
+
+    return stmt;
+}
+
+static script_stmt_t *stmt_while(script_node_t *expr, script_stmt_t *body) {
+    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    stmt->type = SCRIPT_STMT_WHILE;
+    stmt->lineno = expr->lineno;
+    stmt->parent = NULL;
+    stmt->child = NULL;
+    stmt->next = NULL;
+    stmt->while_stmt.expr = expr;
+    stmt->while_stmt.body = body;
+
+    return stmt;
+}
+
+static script_stmt_t *stmt_for(script_stmt_t *init, script_node_t *expr, script_stmt_t *update, script_stmt_t *body) {
+    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    stmt->type = SCRIPT_STMT_FOR;
+    stmt->lineno = expr->lineno;
+    stmt->parent = NULL;
+    stmt->child = NULL;
+    stmt->next = NULL;
+    stmt->for_stmt.init = init;
+    stmt->for_stmt.expr = expr;
+    stmt->for_stmt.update = update;
+    stmt->for_stmt.body = body;
 
     return stmt;
 }
@@ -746,6 +812,17 @@ static void free_stmt(script_stmt_t *stmt) {
             free_stmt(stmt->if_stmt.then_stmt);
             if (stmt->if_stmt.else_stmt)
                 free_stmt(stmt->if_stmt.else_stmt);
+            break;
+        case SCRIPT_STMT_WHILE:
+            free_node(stmt->while_stmt.expr);
+            free_stmt(stmt->while_stmt.body);
+            break;
+        case SCRIPT_STMT_FOR:
+            free_stmt(stmt->for_stmt.init);
+            free_node(stmt->for_stmt.expr);
+            free_stmt(stmt->for_stmt.update);
+            free_stmt(stmt->for_stmt.body);
+            break;
     }
 
     heap_free(stmt);
@@ -985,7 +1062,18 @@ static script_stmt_t *parse_assign(script_token_t **token) {
 }
 
 static script_stmt_t *parse_return(script_token_t **token) {
+    if (!*token || (*token)->type == SCRIPT_TOKEN_END)
+        return stmt_return(node_null());
+
     return stmt_return(parse_expr(token));
+}
+
+static script_stmt_t *parse_break() {
+    return stmt_break(node_null());
+}
+
+static script_stmt_t *parse_continue() {
+    return stmt_continue(node_null());
 }
 
 static script_stmt_t *parse_block(script_token_t **token) {
@@ -1088,9 +1176,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
 }
 
 static script_stmt_t *parse_if(script_token_t **token) {
-    if (!*token) return NULL;
-
-    if ((*token)->type != SCRIPT_TOKEN_LPAREN) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1126,7 +1212,96 @@ static script_stmt_t *parse_if(script_token_t **token) {
     return stmt_if(expr, then_stmt, else_stmt);
 }
 
-static script_stmt_t *parse_statement(script_token_t **token) {
+static script_stmt_t *parse_while(script_token_t **token) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
+        char msg[64];
+        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_node_t *expr = parse_expr(token);
+    if (!expr) return NULL;
+
+    if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
+        char msg[64];
+        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_stmt_t *body = parse_statement(token);
+    if (!body) {
+        free_node(expr);
+        return NULL;
+    }
+
+    return stmt_while(expr, body);
+}
+
+static script_stmt_t *parse_for(script_token_t **token) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
+        char msg[64];
+        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_stmt_t *init = parse_statement(token);
+    if (!init)
+        return NULL;
+
+    script_node_t *expr = parse_expr(token);
+    if (!expr) {
+        free_stmt(init);
+        return NULL;
+    }
+
+    if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
+        char msg[64];
+        strfmt(msg, "Error: expected ';' (line: %d)\n", (*token)->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+
+        free_stmt(init);
+        free_node(expr);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_stmt_t *update = parse_statement_inner(token);
+    if (!update) {
+        free_stmt(init);
+        free_node(expr);
+        return NULL;
+    }
+
+    if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
+        char msg[64];
+        strfmt(msg, "Error: expected ')' (line: %d)\n", (*token)->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+
+        free_stmt(init);
+        free_node(expr);
+        free_stmt(update);
+        return NULL;
+    }
+    *token = (*token)->next;
+
+    script_stmt_t *body = parse_statement(token);
+    if (!body) {
+        free_stmt(init);
+        free_node(expr);
+        free_stmt(update);
+        return NULL;
+    }
+
+    return stmt_for(init, expr, update, body);
+}
+
+static script_stmt_t *parse_statement_inner(script_token_t **token) {
     if (!*token) return NULL;
 
     script_stmt_t *stmt = NULL;
@@ -1148,6 +1323,18 @@ static script_stmt_t *parse_statement(script_token_t **token) {
     } else if ((*token)->type == SCRIPT_TOKEN_RETURN) {
         *token = (*token)->next;
         stmt = parse_return(token);
+    } else if ((*token)->type == SCRIPT_TOKEN_BREAK) {
+        *token = (*token)->next;
+        stmt = parse_break();
+    } else if ((*token)->type == SCRIPT_TOKEN_CONTINUE) {
+        *token = (*token)->next;
+        stmt = parse_continue();
+    } else if ((*token)->type == SCRIPT_TOKEN_WHILE) {
+        *token = (*token)->next;
+        stmt = parse_while(token);
+    } else if ((*token)->type == SCRIPT_TOKEN_FOR) {
+        *token = (*token)->next;
+        stmt = parse_for(token);
     } else {
         script_node_t *node = parse_expr(token);
         if (!node) return NULL;
@@ -1155,12 +1342,18 @@ static script_stmt_t *parse_statement(script_token_t **token) {
         stmt = stmt_expr(node);
     }
 
-    if (!stmt)
-        return NULL;
+    return stmt;
+}
+
+static script_stmt_t *parse_statement(script_token_t **token) {
+    script_stmt_t *stmt = parse_statement_inner(token);
+    if (!stmt) return NULL;
 
     if (stmt->type != SCRIPT_STMT_FUNC &&
         stmt->type != SCRIPT_STMT_BLOCK &&
-        stmt->type != SCRIPT_STMT_IF) {
+        stmt->type != SCRIPT_STMT_IF &&
+        stmt->type != SCRIPT_STMT_WHILE &&
+        stmt->type != SCRIPT_STMT_FOR) {
         
         if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
             char msg[64];
@@ -2477,7 +2670,8 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
     if (!value)
         return NULL;
 
-    env_set_var(block, stmt->var.name, value);
+    script_stmt_t *scope = env_find_block(block, stmt->var.name);
+    env_set_var(scope, stmt->var.name, value);
 
     return node_null();
 }
@@ -2512,7 +2706,9 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
     script_stmt_t *current = stmt->child;
     while (current) {
         eval = eval_statement(block, current);
-        if (eval->type == SCRIPT_EVAL_RETURN)
+        if (eval->type == SCRIPT_EVAL_RETURN ||
+            eval->type == SCRIPT_EVAL_BREAK ||
+            eval->type == SCRIPT_EVAL_CONTINUE)
             return eval;
 
         free_eval(eval);
@@ -2548,6 +2744,97 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
     return eval;
 }
 
+static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
+    script_eval_t *eval = NULL;
+
+    while (1) {
+        script_node_t *expr = eval_expr(block, stmt->while_stmt.expr);
+        int is_true = node_istrue(expr);
+
+        if (expr != stmt->while_stmt.expr)
+            free_node(expr);
+
+        if (!is_true)
+            break;
+
+        eval = eval_statement(block, stmt->while_stmt.body);
+        if (eval) {
+            if (eval->type == SCRIPT_EVAL_RETURN) {
+                return eval;
+            } else if (eval->type == SCRIPT_EVAL_BREAK) {
+                free_eval(eval);
+                eval = NULL;
+                break;
+            } else if (eval->type == SCRIPT_EVAL_CONTINUE) {
+                free_eval(eval);
+                eval = NULL;
+                continue;
+            }
+        }
+
+        free_eval(eval);
+        eval = NULL;
+    }
+
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = node_null();
+    }
+
+    return eval;
+}
+
+static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
+    script_eval_t *eval = NULL;
+    script_stmt_t *scope = stmt_block(block);
+
+    script_eval_t *env = eval_statement(scope, stmt->for_stmt.init);
+    free_eval(env);
+
+    while (1) {
+        script_node_t *expr = eval_expr(scope, stmt->for_stmt.expr);
+        int is_true = node_istrue(expr);
+
+        if (expr != stmt->for_stmt.expr)
+            free_node(expr);
+
+        if (!is_true)
+            break;
+
+        eval = eval_statement(scope, stmt->for_stmt.body);
+        if (eval) {
+            if (eval->type == SCRIPT_EVAL_RETURN) {
+                free_stmt(scope);
+                return eval;
+            } else if (eval->type == SCRIPT_EVAL_BREAK) {
+                free_eval(eval);
+                eval = NULL;
+                break;
+            } else if (eval->type == SCRIPT_EVAL_CONTINUE) {
+                free_eval(eval);
+                eval = NULL;
+            }
+        }
+
+        free_eval(eval);
+        eval = NULL;
+
+        env = eval_statement(scope, stmt->for_stmt.update);
+        free_eval(env);
+    }
+
+    free_stmt(scope);
+
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = node_null();
+    }
+
+    return eval;
+}
+
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) {
     if (!stmt) return NULL;
 
@@ -2561,6 +2848,12 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
         case SCRIPT_STMT_RETURN:
             eval->type = SCRIPT_EVAL_RETURN;
             eval->node = eval_expr(block, stmt->expr.node);
+            break;
+        case SCRIPT_STMT_BREAK:
+            eval->type = SCRIPT_EVAL_BREAK;
+            break;
+        case SCRIPT_STMT_CONTINUE:
+            eval->type = SCRIPT_EVAL_CONTINUE;
             break;
         case SCRIPT_STMT_DECLARE:
             eval->node = eval_declare(block, stmt);
@@ -2578,6 +2871,10 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
             return eval_block(block, stmt);
         case SCRIPT_STMT_IF:
             return eval_if(block, stmt);
+        case SCRIPT_STMT_WHILE:
+            return eval_while(block, stmt);
+        case SCRIPT_STMT_FOR:
+            return eval_for(block, stmt);
     }
 
     return eval;

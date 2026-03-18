@@ -41,6 +41,10 @@
 #define SCRIPT_TOKEN_MOREEQUAL  34 // >=
 #define SCRIPT_TOKEN_AND        35 // &&
 #define SCRIPT_TOKEN_OR         36 // ||
+#define SCRIPT_TOKEN_WHILE      37 // while
+#define SCRIPT_TOKEN_FOR        38 // for
+#define SCRIPT_TOKEN_BREAK      39 // break
+#define SCRIPT_TOKEN_CONTINUE   40 // continue
 
 #define SCRIPT_AST_BINOP        0
 #define SCRIPT_AST_LITERAL      1
@@ -55,9 +59,15 @@
 #define SCRIPT_STMT_BLOCK       5
 #define SCRIPT_STMT_RETURN      6
 #define SCRIPT_STMT_IF          7
+#define SCRIPT_STMT_WHILE       8
+#define SCRIPT_STMT_FOR         9
+#define SCRIPT_STMT_BREAK       10
+#define SCRIPT_STMT_CONTINUE    11
 
-#define SCRIPT_EVAL_NONE    0
-#define SCRIPT_EVAL_RETURN  1
+#define SCRIPT_EVAL_NONE     0
+#define SCRIPT_EVAL_RETURN   1
+#define SCRIPT_EVAL_BREAK    2
+#define SCRIPT_EVAL_CONTINUE 3
 
 #define SCRIPT_FUNC     0
 #define SCRIPT_NULL     1
@@ -147,6 +157,18 @@ typedef struct script_stmt {
         struct {
             script_node_t *node;
         } expr;
+
+        struct {
+            script_node_t *expr;
+            script_stmt_t *body;
+        } while_stmt;
+
+        struct {
+            script_stmt_t *init;
+            script_node_t *expr;
+            script_stmt_t *update;
+            script_stmt_t *body;
+        } for_stmt;
 
         struct {
             script_node_t *expr;
