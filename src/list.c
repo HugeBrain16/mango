@@ -69,5 +69,6 @@ void list_clear(list_t *list) {
 }
 
 void list_free(list_t *list) {
+    if (!list) return;
     heap_free(list);
 }

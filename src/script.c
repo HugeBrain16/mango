@@ -321,6 +321,10 @@ static void free_var(script_var_t *var) {
         case SCRIPT_FILE:
             fio_close(var->file);
             break;
+        case SCRIPT_LIST:
+            list_clear(var->list);
+            list_free(var->list);
+            break;
     }
 
     heap_free(var);
@@ -401,6 +405,9 @@ static script_node_t *env_nodeify_var(script_stmt_t *block, script_node_t *node)
         case SCRIPT_FILE:
             nodeified->literal.file = var->file;
             break;
+        case SCRIPT_LIST:
+            nodeified->literal.list = var->list;
+            break;
     };
     return nodeified;
 }
@@ -453,13 +460,12 @@ static void env_set_var(script_stmt_t *block, const char *name, script_node_t *v
             var->str_size = value->literal.str_size;
             memcpy(var->str_value, value->literal.str_value, value->literal.str_size);
             break;
-        case SCRIPT_FILE: {
-            char msg[64];
-            strfmt(msg, "FILE=%d\n", value->literal.file->file);
-
+        case SCRIPT_FILE:
             var->file = value->literal.file;
             break;
-        }
+        case SCRIPT_LIST:
+            var->list = value->literal.list;
+            break;
     }
 }
 
@@ -560,6 +566,9 @@ static script_node_t *node_type_name(script_node_t *node) {
             break;
         case SCRIPT_FILE:
             str_value = "file";
+            break;
+        case SCRIPT_LIST:
+            str_value = "list";
             break;
     }
 
@@ -1441,11 +1450,23 @@ static script_node_t *call_print(script_node_t *node) {
                         file_node(fio_file->file, &file);
 
                         char msg[128];
-                        strfmt(msg, "FILE=%d NAME=%s MODE=%d SEEK=%d",
+                        strfmt(msg, "[ FILE=%d NAME=%s MODE=%d SEEK=%d ]",
                             fio_file->file, file.name, fio_file->mode, fio_file->seek);
                         term_write(msg, COLOR_WHITE, COLOR_BLACK);
                     }
                 }
+                break;
+            case SCRIPT_LIST:
+                {
+                    list_t *list = node->call.argv[i]->literal.list;
+
+                    if (list) {
+                        char msg[32];
+                        strfmt(msg, "[ LIST=0x%x SIZE=%d ]", list, list->size);
+                        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                    }
+                }
+                break;
         }
     }
 
@@ -2002,6 +2023,11 @@ static script_node_t *call_sizeof(script_node_t *node) {
                 value->literal.int_value = (int) FIO_FS_BLOCKSIZE * file.size;
                 break;
             }
+        case SCRIPT_LIST:
+            {
+                value->literal.int_value = (int) arg->literal.list->size;
+                break;
+            }
         default:
             {
                 value->literal.int_value = 0;
@@ -2057,7 +2083,7 @@ static script_node_t *call_config_has(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function config_has() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function config_has() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2095,7 +2121,7 @@ static script_node_t *call_config_get(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function config_has() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function config_has() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2135,6 +2161,186 @@ static script_node_t *call_config_get(script_node_t *node) {
     memcpy(ret->literal.str_value, value, length);
 
     return ret;
+}
+
+static script_node_t *call_list_init(script_node_t *node) {
+    list_t *list = heap_alloc(sizeof(list_t));
+    list_init(list);
+
+    script_node_t *ret = node_null();
+    ret->node_type = SCRIPT_AST_LITERAL;
+    ret->value_type = SCRIPT_LIST;
+    ret->lineno = node->lineno;
+    ret->literal.list = list;
+
+    return ret;
+}
+
+static script_node_t *call_list_clear(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_clear() expects list, got %s (line: %d)\n",
+            node_type_name(list)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list)
+        list_clear(list->literal.list);
+
+    return node_null();
+}
+
+static script_node_t *call_list_pop(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_pop() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_pop() expects list, got %s (line: %d)\n",
+            node_type_name(list)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list) {
+        script_node_t *value = (script_node_t*)list_pop(list->literal.list);
+        if (value)
+            return value;
+    }
+
+    return node_null();
+}
+
+static script_node_t *call_list_push(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_push() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+    script_node_t *value = node->call.argv[1];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_push() arg 1 expects list, got %s (line: %d)\n",
+            node_type_name(list)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list)
+        list_push(list->literal.list, (void*)value);
+
+    return node_null();
+}
+
+static script_node_t *call_list_get(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_get() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+    script_node_t *index = node->call.argv[1];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_get() arg 1 expects list, got %s (line: %d)\n",
+            node_type_name(list)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (index->value_type != SCRIPT_INT) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_get() arg 2 expects int, got %s (line: %d)\n",
+            node_type_name(index)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list && index->literal.int_value >= 0) {
+        script_node_t *value = (script_node_t*)list_get(list->literal.list, (size_t)index->literal.int_value);
+        if (value)
+            return value;
+    }
+
+    return node_null();
+}
+
+static script_node_t *call_list_remove(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_remove() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+    script_node_t *index = node->call.argv[1];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_remove() arg 1 expects list, got %s (line: %d)\n",
+            node_type_name(list)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (index->value_type != SCRIPT_INT) {
+        char msg[128];
+        strfmt(msg, "Error: Function list_remove() arg 2 expects int, got %s (line: %d)\n",
+            node_type_name(index)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list && index->literal.int_value >= 0)
+        list_remove(list->literal.list, (size_t)index->literal.int_value);
+
+    return node_null();
 }
 
 /* ================== */
@@ -2522,6 +2728,12 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "input")) ret = call_input(&copy_call);
     else if (!strcmp(name, "config_has")) ret = call_config_has(&copy_call);
     else if (!strcmp(name, "config_get")) ret = call_config_get(&copy_call);
+    else if (!strcmp(name, "list_init")) ret = call_list_init(&copy_call);
+    else if (!strcmp(name, "list_clear")) ret = call_list_clear(&copy_call);
+    else if (!strcmp(name, "list_push")) ret = call_list_push(&copy_call);
+    else if (!strcmp(name, "list_get")) ret = call_list_get(&copy_call);
+    else if (!strcmp(name, "list_pop")) ret = call_list_pop(&copy_call);
+    else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
@@ -2934,7 +3146,7 @@ void script_run(const char *path) {
 
         block_add_statement(rt->main, stmt);
     }
-    eval_block(rt->main, rt->main);
+    free_eval(eval_block(rt->main, rt->main));
 
 cleanup:
     while (tokens) {
