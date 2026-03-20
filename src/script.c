@@ -7,6 +7,9 @@
 #include "command.h"
 #include "file.h"
 #include "config.h"
+#include "pit.h"
+
+const char *script_queue = NULL;
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -1694,7 +1697,7 @@ static script_node_t *call_file_open(script_node_t *node) {
 
     if (argc > 2) {
         char msg[64];
-        strfmt(msg, "Error: Function file_open() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function file_open() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -1848,7 +1851,7 @@ static script_node_t *call_file_read(script_node_t *node) {
 
     if (argc > 2) {
         char msg[64];
-        strfmt(msg, "Error: Function file_read() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function file_read() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -1895,7 +1898,7 @@ static script_node_t *call_file_write(script_node_t *node) {
 
     if (argc > 2) {
         char msg[64];
-        strfmt(msg, "Error: Function file_write() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function file_write() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -1933,7 +1936,7 @@ static script_node_t *call_char_at(script_node_t *node) {
 
     if (argc > 2) {
         char msg[64];
-        strfmt(msg, "Error: Function char_at() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function char_at() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2083,7 +2086,7 @@ static script_node_t *call_config_has(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function config_has() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2121,7 +2124,7 @@ static script_node_t *call_config_get(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function config_has() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2240,7 +2243,7 @@ static script_node_t *call_list_push(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function list_push() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function list_push() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2269,7 +2272,7 @@ static script_node_t *call_list_get(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function list_get() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function list_get() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2310,7 +2313,7 @@ static script_node_t *call_list_remove(script_node_t *node) {
 
     if (argc < 2) {
         char msg[64];
-        strfmt(msg, "Error: Function list_remove() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function list_remove() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2339,6 +2342,35 @@ static script_node_t *call_list_remove(script_node_t *node) {
 
     if (list->literal.list && index->literal.int_value >= 0)
         list_remove(list->literal.list, (size_t)index->literal.int_value);
+
+    return node_null();
+}
+
+static script_node_t *call_sleep(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function sleep() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *interval = node->call.argv[0];
+
+    if (interval->value_type != SCRIPT_INT) {
+        char msg[128];
+        strfmt(msg, "Error: Function sleep() expects int, got %s (line: %d)\n",
+            node_type_name(interval)->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    uint32_t start = pit_ticks;
+    while (pit_ticks - start < (uint32_t)interval->literal.int_value / 10)
+        __asm__ volatile("hlt");
 
     return node_null();
 }
@@ -2734,6 +2766,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "list_get")) ret = call_list_get(&copy_call);
     else if (!strcmp(name, "list_pop")) ret = call_list_pop(&copy_call);
     else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
+    else if (!strcmp(name, "sleep")) ret = call_sleep(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {

@@ -5,7 +5,7 @@
 #include "terminal.h"
 #include "editor.h"
 
-uint32_t pit_ticks = 0;
+volatile uint32_t pit_ticks = 0;
 static uint32_t last_second = 0;
 
 void pit_handle() {

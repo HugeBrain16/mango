@@ -29,7 +29,7 @@
 #define PIT_CMD_BINARY 0x00
 #define PIT_CMD_BCD 0x01
 
-uint32_t pit_ticks;
+extern volatile uint32_t pit_ticks;
 void pit_handle();
 void pit_set_frequency(uint32_t hz);
 

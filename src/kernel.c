@@ -21,6 +21,7 @@
 #include "acpi.h"
 #include "unit.h"
 #include "cpu.h"
+#include "script.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -139,6 +140,14 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     keyboard_mode = KEYBOARD_MODE_TERM;
     term_prompt = term_x;
 
-    for (;;)
+    for (;;) {
         __asm__ volatile("hlt");
+        if (script_queue) {
+            script_run(script_queue);
+            script_queue = NULL;
+            keyboard_mode = KEYBOARD_MODE_TERM;
+            term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
+            term_prompt = term_x;
+        }
+    }
 }
