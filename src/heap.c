@@ -11,13 +11,7 @@ typedef struct block {
 } block_t;
 
 static block_t *block_current;
-
-static void block_append(block_t *block) {
-    block_t *tail = block_current;
-    while (tail->next)
-        tail = tail->next;
-    tail->next = block;
-}
+static block_t *block_tail;
 
 void heap_init(uint32_t mem_upper) {
     extern uint8_t _kernel_end;
@@ -66,10 +60,13 @@ void *heap_alloc(size_t size) {
     block->next = NULL;
     heap_current += sizeof(block_t) + size;
 
-    if (!block_current)
+    if (!block_current) {
         block_current = block;
-    else
-        block_append(block);
+        block_tail = block;
+    } else {
+        block_tail->next = block;
+        block_tail = block;
+    }
 
     return (uint8_t *) block + sizeof(block_t);
 }
@@ -80,15 +77,9 @@ void heap_free(void *ptr) {
     block_t *block = heap_header(ptr);
     block->is_free = 1;
 
-    block_t *current = block_current;
-    while (current && current->next) {
-        block_t *adjacent = current->next;
-        if (current->is_free && adjacent->is_free) {
-            current->size += sizeof(block_t) + adjacent->size;
-            current->next = adjacent->next;
-        } else {
-            current = current->next;
-        }
+    if (block->next && block->next->is_free) {
+        block->size += sizeof(block_t) + block->next->size;
+        block->next = block->next->next;
     }
 }
 
