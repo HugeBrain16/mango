@@ -3013,7 +3013,10 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
         if (!is_true)
             break;
 
-        eval = eval_statement(block, stmt->while_stmt.body);
+        script_stmt_t *scope = stmt_block(block);
+        eval = eval_statement(scope, stmt->while_stmt.body);
+        free_stmt(scope);
+
         if (eval) {
             if (eval->type == SCRIPT_EVAL_RETURN) {
                 return eval;
@@ -3058,7 +3061,10 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
         if (!is_true)
             break;
 
-        eval = eval_statement(scope, stmt->for_stmt.body);
+        script_stmt_t *scopescope = stmt_block(scope);
+        eval = eval_statement(scopescope, stmt->for_stmt.body);
+        free_stmt(scopescope);
+
         if (eval) {
             if (eval->type == SCRIPT_EVAL_RETURN) {
                 free_stmt(scope);
