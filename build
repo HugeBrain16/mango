@@ -17,6 +17,7 @@ compile() {
     # kernel souce compile
     echo "Compiling $1..."
     out=$(echo "$1" | sed 's|^src/||; s|\.c$|.o|')
+    mkdir -p $(dirname "$DIR/$out")
     i686-elf-gcc -c $1 -Iinclude -o $DIR/$out $CFLAGS
     OBJECTS="$OBJECTS $DIR/$out"
 }
