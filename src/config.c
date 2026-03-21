@@ -23,7 +23,7 @@ static void config_parse(string_t *line, string_t *name, string_t *value) {
 }
 
 int config_has(const char *path, const char *name) {
-	if (!file_path_isfile(path)) return 0;
+	if (file_drive_status != FILE_DRIVE_OK || !file_path_isfile(path)) return 0;
 
 	char *buffer = file_read(file_get_node(path));
 	list_t *lines = readlines(buffer);
@@ -49,7 +49,7 @@ int config_has(const char *path, const char *name) {
 }
 
 char *config_get(const char *path, const char *name) {
-	if (!file_path_isfile(path)) return NULL;
+	if (file_drive_status != FILE_DRIVE_OK || !file_path_isfile(path)) return NULL;
 
 	char *buffer = file_read(file_get_node(path));
 	list_t *lines = readlines(buffer);

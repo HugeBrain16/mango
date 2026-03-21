@@ -63,6 +63,7 @@ void file_init(uint16_t base, uint8_t drive) {
     file_drive = drive;
 
     file_current = FILE_SECTOR_ROOT;
+    file_drive_status = FILE_DRIVE_OK;
 }
 
 uint32_t file_get(uint32_t parent, const char *name) {

@@ -102,19 +102,24 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     uint8_t status = ata_status(file_port);
     if (status == 0x00 || status == 0xFF) {
-        strfmt(buffer, "[ PANIC ] No primary drive. (status: %x)\n", status);
+        file_drive_status = FILE_DRIVE_ABSENT;
+        strfmt(buffer, "[ WARNING ] No primary drive. (status: %x)\n", status);
         log(buffer);
     }
 
-    uint8_t ata_id[512];
-    ata_identify(file_port, ata_id);
-    
-    uint16_t *w = (uint16_t*) ata_id;
-    if (w[0] & (1 << 15)) {
-        panic("[ PANIC ] Incompatible drive.\n");
+    if (file_drive_status != FILE_DRIVE_ABSENT) {
+        uint8_t ata_id[512];
+        ata_identify(file_port, ata_id);
+
+        uint16_t *w = (uint16_t*) ata_id;
+        if (w[0] & (1 << 15)) {
+            file_drive_status = FILE_DRIVE_INCOMPATIBLE;
+            log("[ WARNING ] Drive is not compatible.\n");
+        }
     }
 
-    log("[ INFO ] Drive OK\n");
+    if (file_drive_status == FILE_DRIVE_OK)
+        log("[ INFO ] Drive OK\n");
 
     pit_set_frequency(100);
     log("[ INFO ] PIT frequency: 100hz\n");

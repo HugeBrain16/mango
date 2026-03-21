@@ -15,6 +15,10 @@
 #define FILE_MAX_NAME 32
 #define FILE_MAX_PATH 1024
 
+#define FILE_DRIVE_OK 0
+#define FILE_DRIVE_ABSENT 1
+#define FILE_DRIVE_INCOMPATIBLE 2
+
 typedef struct file_superblock {
     uint32_t magic;
     uint32_t version;
@@ -46,6 +50,7 @@ typedef struct file_data {
 uint16_t file_port;
 uint8_t file_drive;
 uint32_t file_current;
+int file_drive_status;
 
 void file_init(uint16_t base, uint8_t drive);
 void file_format();

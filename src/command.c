@@ -150,32 +150,34 @@ static void command_fetch(int argc, char *argv[]) {
     strfmt(buff, "Memory: %s (Free: %s)\n", mem_total, mem_free);
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
 
-    uint8_t ata_id[512];
-    ata_identify(file_port, ata_id);
-    uint16_t *w = (uint16_t*) ata_id;
-    uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
-    char disk_total[16];
-    unit_get_size(sectors * 512, disk_total);
+    if (file_drive_status == FILE_DRIVE_OK) {
+        uint8_t ata_id[512];
+        ata_identify(file_port, ata_id);
+        uint16_t *w = (uint16_t*) ata_id;
+        uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
+        char disk_total[16];
+        unit_get_size(sectors * 512, disk_total);
 
-    term_write("Disk: ", COLOR_WHITE, COLOR_BLACK);
-    
-    if (show_diskname) {
-        ata_print_string(w, 27, 46);
-        term_write(" - ", COLOR_WHITE, COLOR_BLACK);
-    }
+        term_write("Disk: ", COLOR_WHITE, COLOR_BLACK);
+        
+        if (show_diskname) {
+            ata_print_string(w, 27, 46);
+            term_write(" - ", COLOR_WHITE, COLOR_BLACK);
+        }
 
-    strfmt(buff, "%s ", disk_total);
-    term_write(buff, COLOR_WHITE, COLOR_BLACK);
-    if (file_is_formatted()) {
-        file_superblock_t sb;
-        file_read_sb(&sb);
-
-        char disk_used[16];
-        unit_get_size(sb.used * 512, disk_used);
-        strfmt(buff, "(Used: %s) ", disk_used);
+        strfmt(buff, "%s ", disk_total);
         term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        if (file_is_formatted()) {
+            file_superblock_t sb;
+            file_read_sb(&sb);
+
+            char disk_used[16];
+            unit_get_size(sb.used * 512, disk_used);
+            strfmt(buff, "(Used: %s) ", disk_used);
+            term_write(buff, COLOR_WHITE, COLOR_BLACK);
+        }
+        term_write("\n", COLOR_WHITE, COLOR_BLACK);
     }
-    term_write("\n", COLOR_WHITE, COLOR_BLACK);
 
     strcpy(buff, "Uptime:");
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
@@ -210,6 +212,7 @@ static void command_echo(int argc, char *argv[]) {
 }
 
 static void command_list(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     static char buff[FILE_MAX_NAME + 16];
@@ -244,6 +247,7 @@ static void command_list(int argc, char *argv[]) {
 }
 
 static void command_newfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc > 0) {
@@ -277,6 +281,7 @@ static void command_newfile(int argc, char *argv[]) {
 }
 
 static void command_delfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc > 0) {
@@ -294,6 +299,7 @@ static void command_delfile(int argc, char *argv[]) {
 }
 
 static void command_edit(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc > 0) {
@@ -328,6 +334,7 @@ static void command_edit(int argc, char *argv[]) {
 }
 
 static void command_newfolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc > 0) {
@@ -361,6 +368,7 @@ static void command_newfolder(int argc, char *argv[]) {
 }
 
 static void command_delfolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc > 0) {
@@ -378,6 +386,7 @@ static void command_delfolder(int argc, char *argv[]) {
 }
 
 static void command_goto(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc > 0) {
@@ -396,6 +405,7 @@ static void command_goto(int argc, char *argv[]) {
 static void command_goup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     file_node_t parent_node;
@@ -410,6 +420,7 @@ static void command_goup(int argc, char *argv[]) {
 static void command_whereami(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     char *path = heap_alloc(FILE_MAX_PATH);
@@ -421,6 +432,7 @@ static void command_whereami(int argc, char *argv[]) {
 }
 
 static void command_copyfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc < 2) return term_write("Usage: copyfile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
@@ -481,6 +493,7 @@ cleanup:
 }
 
 static void command_movefile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc < 2) return term_write("Usage: movefile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
@@ -495,6 +508,7 @@ static void command_movefile(int argc, char *argv[]) {
 }
 
 static void command_copyfolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc < 2) return term_write("Usage: copyfolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
@@ -562,6 +576,7 @@ cleanup:
 }
 
 static void command_movefolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
 
     if (argc < 2) return term_write("Usage: movefolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
@@ -578,6 +593,11 @@ static void command_movefolder(int argc, char *argv[]) {
 static void command_formatdisk(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
+    if (file_drive_status == FILE_DRIVE_ABSENT)
+        return log("[ ERROR ] No usable drive!\n");
+    else if (file_drive_status == FILE_DRIVE_INCOMPATIBLE)
+        return log("[ ERROR ] Drive is not compatible!\n");
+
     char confirm[TERM_INPUT_SIZE];
     term_get_input("This will erase the whole disk. Are you sure? (type \"y\"): ",
             confirm, sizeof(confirm), COLOR_WHITE, COLOR_BLACK);
@@ -589,6 +609,7 @@ static void command_formatdisk(int argc, char *argv[]) {
 }
 
 static void command_nodeinfo(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
     if (argc < 1) return term_write("Usage: nodeinfo <path>\n", COLOR_WHITE, COLOR_BLACK);
 
@@ -645,6 +666,7 @@ static void command_nodeinfo(int argc, char *argv[]) {
 }
 
 static void command_printfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
     if (argc < 1)
         return term_write("Usage: printfile <path>\n", COLOR_WHITE, COLOR_BLACK);
@@ -666,6 +688,7 @@ static void command_printfile(int argc, char *argv[]) {
 }
 
 static void command_runscript(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
     if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
     if (argc < 1)
         return term_write("Usage: runscript <path>\n", COLOR_WHITE, COLOR_BLACK);
@@ -768,6 +791,8 @@ static void command_datetime(int argc, char *argv[]) {
 
 static void command_diskinfo(int argc, char *argv[]) {
     unused(argc); unused(argv);
+
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
 
     char buffer[64];
 
