@@ -34,38 +34,6 @@ static void ata_print_string(uint16_t *w, int start, int end) {
     term_write(str, COLOR_WHITE, COLOR_BLACK);
 }
 
-static void command_help(int argc, char *argv[]) {
-    unused(argc); unused(argv);
-
-    term_write("Available commands:\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("help - show this message\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("scaleup - scale up screen by 1\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("scaledown - scale down screen by 1\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("clear - clear screen\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("shutdown - shut down the machine\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("fetch - show system info\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("echo - print words\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("list - list items in a folder\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("newfile - create a new file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("delfile - delete a file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("copyfile - copy a file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("movefile - move a file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("newfolder - create a new folder\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("delfolder - delete a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("copyfolder - copy a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("movefolder - move a folder and its content\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("edit - edit a file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("printfile - show the content of a file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("goto - go into a folder\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("goup - go up a folder\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("whereami - show full path to current location\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("formatdisk - format primary disk drive\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("nodeinfo - show info of a filesystem node\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("runscript - run a script file\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("time - show current time\n", COLOR_WHITE, COLOR_BLACK);
-    term_write("date - show current date\n", COLOR_WHITE, COLOR_BLACK);
-}
-
 static void command_scale(int argc, char *argv[]) {
     if (argc > 0) {
         float scale = (float)doublestr(argv[0]);
@@ -899,7 +867,6 @@ void command_handle(const char *command, int printcaret) {
     else if (!strcmp(cmd, "date")) command_date(argc, argv);
     else if (!strcmp(cmd, "datetime")) command_datetime(argc, argv);
     else if (!strcmp(cmd, "diskinfo")) command_diskinfo(argc, argv);
-    else if (!strcmp(cmd, "help")) command_help(argc, argv);
     else
         if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
 
