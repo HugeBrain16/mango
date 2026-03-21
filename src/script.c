@@ -2375,6 +2375,16 @@ static script_node_t *call_sleep(script_node_t *node) {
     return node_null();
 }
 
+static script_node_t *call_sys_ticks(script_node_t *node) {
+    script_node_t *ticks = node_null();
+    ticks->node_type = SCRIPT_AST_LITERAL;
+    ticks->value_type = SCRIPT_INT;
+    ticks->lineno = node->lineno;
+    ticks->literal.int_value = (int)pit_ticks;
+
+    return ticks;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -2767,6 +2777,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "list_pop")) ret = call_list_pop(&copy_call);
     else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
     else if (!strcmp(name, "sleep")) ret = call_sleep(&copy_call);
+    else if (!strcmp(name, "sys_ticks")) ret = call_sys_ticks(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
