@@ -671,8 +671,7 @@ static void command_runscript(int argc, char *argv[]) {
     if (!(file.flags & FILE_DATA))
         return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
 
-    script_queue = argv[0];
-    keyboard_mode = KEYBOARD_MODE_NONE;
+    script_run(argv[0]);
 }
 
 static void command_time(int argc, char *argv[]) {

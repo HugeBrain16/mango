@@ -208,8 +208,6 @@ typedef struct {
     script_node_t *node;
 } script_eval_t;
 
-const char *script_queue;
-
 void script_run(const char *path);
 
 #endif

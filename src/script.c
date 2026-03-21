@@ -9,8 +9,6 @@
 #include "config.h"
 #include "pit.h"
 
-const char *script_queue = NULL;
-
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
 static void free_stmt(script_stmt_t *stmt);
@@ -2428,6 +2426,8 @@ static script_node_t *call_sleep(script_node_t *node) {
     }
 
     uint32_t start = pit_ticks;
+
+    __asm__ volatile("sti");
     while (pit_ticks - start < (uint32_t)interval->literal.int_value / 10)
         __asm__ volatile("hlt");
 
