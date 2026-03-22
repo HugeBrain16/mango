@@ -2435,13 +2435,16 @@ static script_node_t *call_sleep(script_node_t *node) {
 }
 
 static script_node_t *call_sys_ticks(script_node_t *node) {
-    script_node_t *ticks = node_null();
-    ticks->node_type = SCRIPT_AST_LITERAL;
-    ticks->value_type = SCRIPT_INT;
-    ticks->lineno = node->lineno;
-    ticks->literal.int_value = (int)pit_ticks;
+    __asm__ volatile("sti");
+    int ticks = (int)pit_ticks;
 
-    return ticks;
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_INT;
+    value->lineno = node->lineno;
+    value->literal.int_value = ticks;
+
+    return value;
 }
 
 /* ================== */
