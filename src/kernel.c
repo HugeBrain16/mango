@@ -22,6 +22,7 @@
 #include "unit.h"
 #include "cpu.h"
 #include "script.h"
+#include "paging.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -74,6 +75,8 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     log("[ INFO ] GDT OK\n");
     idt_init();
     log("[ INFO ] IDT OK\n");
+    pages_init();
+    log("[ INFO ] Pages OK\n");
     rtc_init();
     log("[ INFO ] RTC OK\n");
     ps2_init();
@@ -86,15 +89,13 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         strfmt(buffer, "[ INFO ] CPU: Unknown\n");
     log(buffer);
 
-    char mem_lower[16];
-    char mem_upper[16];
-    unit_get_size(mbi->mem_lower << 10, mem_lower);
-    unit_get_size(mbi->mem_upper << 10, mem_upper);
-    strfmt(buffer, "[ INFO ] Memory: lower = %s, upper = %s\n", mem_lower, mem_upper);
+    heap_init(mbi);
+    strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
     log(buffer);
 
-    heap_init(mbi->mem_upper);
-    strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
+    char total_mem[16];
+    unit_get_size(heap_end - heap_start + (2 << 20), total_mem);
+    strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
     log(buffer);
 
     log("[ INFO ] Checking ATA port PRIMARY MASTER for drive...\n");

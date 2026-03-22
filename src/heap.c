@@ -1,4 +1,5 @@
 #include "heap.h"
+#include "paging.h"
 #include "string.h"
 
 #define KB(x) ((x) << 10)
@@ -10,16 +11,46 @@ typedef struct block {
     struct block *next;
 } block_t;
 
+static uint32_t init_page_tables[4][1024] __attribute__((aligned(4096)));
+static int table_index = 0;
 static block_t *block_current;
 static block_t *block_tail;
 
-void heap_init(uint32_t mem_upper) {
+static uint32_t *alloc_init_table() {
+    return init_page_tables[table_index++];
+}
+
+void heap_init(multiboot_info_t *mbi) {
     extern uint8_t _kernel_end;
 
     heap_start = &_kernel_end;
-    uint32_t total_mem = KB(mem_upper) + MB(1);
-    heap_end = (uint8_t *) total_mem - MB(1);
     heap_current = heap_start;
+
+    multiboot_memory_map_t *entry = (multiboot_memory_map_t*)mbi->mmap_addr;
+    multiboot_memory_map_t *end = (multiboot_memory_map_t*)(mbi->mmap_addr + mbi->mmap_length);
+
+    while (entry < end) {
+        if (entry->type == 1) {
+            uint32_t base = (uint32_t)entry->addr;
+            uint32_t top = base + (uint32_t)entry->len;
+
+            heap_end = (uint8_t*)top;
+
+            for (uint32_t addr = base & 0xFFC00000; addr < top; addr += 0x400000) {
+                if (page_directory[PAGE_DIR_SLOT(addr)] & 1)
+                    continue;
+
+                uint32_t *table;
+                if (table_index >= 4) {
+                    table = heap_alloc_aligned(sizeof(uint32_t) * 1024, 4096);
+                } else
+                    table = alloc_init_table();
+                page_map_physical(addr, table);
+            }
+        }
+
+        entry = (multiboot_memory_map_t*)((uint32_t)entry + entry->size + 4);
+    }
 }
 
 block_t *heap_header(void *ptr) {
@@ -69,6 +100,12 @@ void *heap_alloc(size_t size) {
     }
 
     return (uint8_t *) block + sizeof(block_t);
+}
+
+void *heap_alloc_aligned(size_t size, size_t align) {
+    void *raw = heap_alloc(size + align);
+    if (!raw) return NULL;
+    return (void*)(((uint32_t)raw + align - 1) & ~(align - 1));
 }
 
 void heap_free(void *ptr) {
