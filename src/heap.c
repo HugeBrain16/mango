@@ -42,7 +42,8 @@ void heap_init(multiboot_info_t *mbi) {
 
                 uint32_t *table;
                 if (table_index >= 4) {
-                    table = heap_alloc_aligned(sizeof(uint32_t) * 1024, 4096);
+                    void *ptr = heap_alloc(sizeof(uint32_t) * 1024 + 4096);
+                    table = (uint32_t*)(((uint32_t)ptr + 4095) & ~4095);
                 } else
                     table = alloc_init_table();
                 page_map_physical(addr, table);
@@ -100,12 +101,6 @@ void *heap_alloc(size_t size) {
     }
 
     return (uint8_t *) block + sizeof(block_t);
-}
-
-void *heap_alloc_aligned(size_t size, size_t align) {
-    void *raw = heap_alloc(size + align);
-    if (!raw) return NULL;
-    return (void*)(((uint32_t)raw + align - 1) & ~(align - 1));
 }
 
 void heap_free(void *ptr) {
