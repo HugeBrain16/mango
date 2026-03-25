@@ -1398,7 +1398,7 @@ static script_node_t *call_exec(script_node_t *node) {
     size_t argc = node->call.argc;
     script_node_t **argv = node->call.argv;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function exec() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1497,7 +1497,7 @@ static script_node_t *call_println(script_node_t *node) {
 static script_node_t *call_as_str(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function as_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1586,7 +1586,7 @@ static script_node_t *call_as_str(script_node_t *node) {
 static script_node_t *call_as_int(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function as_int() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1647,7 +1647,7 @@ static script_node_t *call_as_int(script_node_t *node) {
 static script_node_t *call_as_float(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function as_float() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1708,7 +1708,7 @@ static script_node_t *call_as_float(script_node_t *node) {
 static script_node_t *call_type_name(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function type_name() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1722,7 +1722,7 @@ static script_node_t *call_type_name(script_node_t *node) {
 static script_node_t *call_file_open(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function file_open() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1770,7 +1770,7 @@ static script_node_t *call_file_open(script_node_t *node) {
 static script_node_t *call_file_close(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_close() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1799,7 +1799,7 @@ static script_node_t *call_file_close(script_node_t *node) {
 static script_node_t *call_file_getc(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_getc() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1840,7 +1840,7 @@ static script_node_t *call_file_getc(script_node_t *node) {
 static script_node_t *call_file_peek(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_peek() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1881,7 +1881,7 @@ static script_node_t *call_file_peek(script_node_t *node) {
 static script_node_t *call_file_read(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function file_read() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1930,7 +1930,7 @@ static script_node_t *call_file_read(script_node_t *node) {
 static script_node_t *call_file_write(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function file_write() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -1967,10 +1967,68 @@ static script_node_t *call_file_write(script_node_t *node) {
     return node_null();
 }
 
+static script_node_t *call_file_isfile(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_isfile() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *path = node->call.argv[0];
+
+    if (path->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(path);
+        strfmt(msg, "Error: Function file_isfile() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file_path_isfile(path->literal.str_value))
+        return node_true();
+
+    return node_false();
+}
+
+static script_node_t *call_file_isfolder(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_isfolder() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *path = node->call.argv[0];
+
+    if (path->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(path);
+        strfmt(msg, "Error: Function file_isfolder() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file_path_isfolder(path->literal.str_value))
+        return node_true();
+
+    return node_false();
+}
+
 static script_node_t *call_char_at(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function char_at() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2124,7 +2182,7 @@ static script_node_t *call_input(script_node_t *node) {
 static script_node_t *call_config_has(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2164,7 +2222,7 @@ static script_node_t *call_config_has(script_node_t *node) {
 static script_node_t *call_config_get(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2226,7 +2284,7 @@ static script_node_t *call_list_init(script_node_t *node) {
 static script_node_t *call_list_clear(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function list_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2260,7 +2318,7 @@ static script_node_t *call_list_clear(script_node_t *node) {
 static script_node_t *call_list_pop(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function list_pop() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2292,7 +2350,7 @@ static script_node_t *call_list_pop(script_node_t *node) {
 static script_node_t *call_list_push(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function list_push() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2322,7 +2380,7 @@ static script_node_t *call_list_push(script_node_t *node) {
 static script_node_t *call_list_get(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function list_get() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2365,7 +2423,7 @@ static script_node_t *call_list_get(script_node_t *node) {
 static script_node_t *call_list_remove(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 2) {
+    if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function list_remove() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2405,7 +2463,7 @@ static script_node_t *call_list_remove(script_node_t *node) {
 static script_node_t *call_sleep(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc < 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function sleep() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2919,6 +2977,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "file_peek")) ret = call_file_peek(&copy_call);
     else if (!strcmp(name, "file_read")) ret = call_file_read(&copy_call);
     else if (!strcmp(name, "file_write")) ret = call_file_write(&copy_call);
+    else if (!strcmp(name, "file_isfile")) ret = call_file_isfile(&copy_call);
+    else if (!strcmp(name, "file_isfolder")) ret = call_file_isfolder(&copy_call);
     else if (!strcmp(name, "char_at")) ret = call_char_at(&copy_call);
     else if (!strcmp(name, "sizeof")) ret = call_sizeof(&copy_call);
     else if (!strcmp(name, "input")) ret = call_input(&copy_call);
