@@ -7,11 +7,18 @@ static uint32_t fio_get_block(fio_t *fio) {
     file_node(fio->file, &file);
 
     uint32_t sector = 1;
+    uint32_t current = file.first_block;
+    while (fio->seek >= FIO_FS_BLOCKSIZE * sector) {
+        file_data_t block;
+        file_data(current, &block);
+        if (block.next == 0)
+            break;
 
-    while (fio->seek >= FIO_FS_BLOCKSIZE * sector)
+        current = block.next;
         sector++;
+    }
 
-    return file.first_block + (sector - 1);
+    return current;
 }
 
 fio_t *fio_open(const char *path, uint8_t mode) {
