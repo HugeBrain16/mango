@@ -2543,7 +2543,7 @@ static script_node_t *call_argv(script_node_t *node) {
     }
 
     int idx = index->literal.int_value;
-    if (idx > script_argc || idx < 0)
+    if (idx >= script_argc || idx < 0)
         return node_null();
 
     script_node_t *value = node_null();
