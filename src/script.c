@@ -8,6 +8,7 @@
 #include "file.h"
 #include "config.h"
 #include "pit.h"
+#include "rand.h"
 
 static int script_argc = 0;
 static char **script_argv = NULL;
@@ -2558,6 +2559,59 @@ static script_node_t *call_argv(script_node_t *node) {
     return value;
 }
 
+static script_node_t *call_rand(script_node_t *node) {
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_INT;
+    value->lineno = node->lineno;
+    value->literal.int_value = rand();
+
+    return value;
+}
+
+static script_node_t *call_randrange(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function randrange() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *min = node->call.argv[0];
+    script_node_t *max = node->call.argv[1];
+
+    if (min->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(min);
+        strfmt(msg, "Error: Function randrange() arg 1 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (max->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(max);
+        strfmt(msg, "Error: Function randrange() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_INT;
+    value->lineno = node->lineno;
+    value->literal.int_value = randrange(min->literal.int_value, max->literal.int_value);
+
+    return value;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -3047,6 +3101,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "sys_ticks")) ret = call_sys_ticks(&copy_call);
     else if (!strcmp(name, "argc")) ret = call_argc(&copy_call);
     else if (!strcmp(name, "argv")) ret = call_argv(&copy_call);
+    else if (!strcmp(name, "rand")) ret = call_rand(&copy_call);
+    else if (!strcmp(name, "randrange")) ret = call_randrange(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {

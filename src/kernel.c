@@ -23,6 +23,7 @@
 #include "cpu.h"
 #include "script.h"
 #include "paging.h"
+#include "rand.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -131,6 +132,10 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     log("[ INFO ] PS/2 Keyboard OK\n");
 
     acpi_init();
+
+    log("[ INFO ] Seeding random...\n");
+    uint64_t dt = datetime_packed();
+    srand((uint32_t)(dt >> 32) ^ (uint32_t)dt ^ pit_ticks ^ rtc_ticks);
 
     log("[ INFO ] Initialization complete!\n");
     term_init();
