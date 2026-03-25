@@ -885,7 +885,7 @@ void command_handle(const char *command, int printcaret) {
         int found_script = 0;
 
         if (file_drive_status == FILE_DRIVE_OK && !config_has("/system/config/system.cfg", "disable_user_scripts")) {
-            char script_path[FILE_MAX_PATH];
+            char script_path[20 + COMMAND_MAX_NAME];
             strfmt(script_path, "/system/scripts/%s.sc", cmd);
 
             if (file_path_isfile(script_path)) {
