@@ -671,7 +671,7 @@ static void command_runscript(int argc, char *argv[]) {
     if (!(file.flags & FILE_DATA))
         return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
 
-    script_run(argv[0]);
+    script_run(argv[0], argc - 1, argv + 1);
 }
 
 static void command_time(int argc, char *argv[]) {
@@ -890,7 +890,7 @@ void command_handle(const char *command, int printcaret) {
 
             if (file_path_isfile(script_path)) {
                 found_script = 1;
-                script_run(script_path);
+                script_run(script_path, argc, argv);
             }
         }
 

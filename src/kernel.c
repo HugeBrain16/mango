@@ -137,7 +137,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     screen_clear(COLOR_BLACK);
 
     if (file_drive_status == FILE_DRIVE_OK && file_path_isfile("/system/init.sc"))
-        script_run("/system/init.sc");
+        script_run("/system/init.sc", 0, NULL);
 
     char *scale_config = config_get("/system/config/screen.cfg", "scale");
     if (scale_config)

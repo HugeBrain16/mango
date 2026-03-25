@@ -9,6 +9,9 @@
 #include "config.h"
 #include "pit.h"
 
+static int script_argc = 0;
+static char **script_argv = NULL;
+
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
 static void free_stmt(script_stmt_t *stmt);
@@ -2505,6 +2508,56 @@ static script_node_t *call_sys_ticks(script_node_t *node) {
     return value;
 }
 
+static script_node_t *call_argc(script_node_t *node) {
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_INT;
+    value->lineno = node->lineno;
+    value->literal.int_value = script_argc;
+
+    return value;
+}
+
+static script_node_t *call_argv(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function argv() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *index = node->call.argv[0];
+
+    if (index->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(index);
+        strfmt(msg, "Error: Function argv() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    int idx = index->literal.int_value;
+    if (idx > script_argc || idx < 0)
+        return node_null();
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_STR;
+    value->lineno = node->lineno;
+
+    int length = strlen(script_argv[idx]) + 1;
+    value->literal.str_size = length;
+    value->literal.str_value = heap_alloc(length);
+    memcpy(value->literal.str_value, script_argv[idx], length);
+
+    return value;
+}
+
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
@@ -2992,6 +3045,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
     else if (!strcmp(name, "sleep")) ret = call_sleep(&copy_call);
     else if (!strcmp(name, "sys_ticks")) ret = call_sys_ticks(&copy_call);
+    else if (!strcmp(name, "argc")) ret = call_argc(&copy_call);
+    else if (!strcmp(name, "argv")) ret = call_argv(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
@@ -3119,7 +3174,8 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
         return NULL;
 
     env_set_var(block, stmt->var.name, value);
-    free_node(value);
+    if (value != stmt->var.value)
+        free_node(value);
 
     return node_null();
 }
@@ -3150,7 +3206,8 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_stmt_t *scope = env_find_block(block, stmt->var.name);
     env_set_var(scope, stmt->var.name, value);
-    free_node(value);
+    if (value != stmt->var.value)
+        free_node(value);
 
     return node_null();
 }
@@ -3219,7 +3276,8 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
         eval->node = node_null();
     }
 
-    free_node(expr);
+    if (expr != stmt->if_stmt.expr)
+        free_node(expr);
     return eval;
 }
 
@@ -3403,7 +3461,10 @@ static void free_runtime(script_runtime_t *rt) {
     heap_free(rt);
 }
 
-void script_run(const char *path) {
+void script_run(const char *path, int argc, char *argv[]) {
+    script_argc = argc;
+    script_argv = argv;
+
     fio_t *file = fio_open(path, FIO_READ);
     if (!file) return;
 
