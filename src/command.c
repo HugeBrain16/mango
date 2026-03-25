@@ -800,6 +800,20 @@ static void command_diskinfo(int argc, char *argv[]) {
     term_write(buffer, COLOR_WHITE, COLOR_BLACK);
 }
 
+static void command_setupsystem(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+
+    if (!file_path_isfolder("/system")) command_handle("newfolder /system", 0);
+    if (!file_path_isfolder("/system/config")) command_handle("newfolder /system/config", 0);
+    if (!file_path_isfolder("/system/scripts")) command_handle("newfolder /system/scripts", 0);
+    if (!file_path_isfile("/system/init.sc")) command_handle("newfile /system/init.sc", 0);
+
+    term_write("Setup successful!\n", COLOR_WHITE, COLOR_BLACK);
+}
+
 void command_handle(const char *command, int printcaret) {
     char cmd[COMMAND_MAX_NAME] = {0};
     static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
@@ -866,10 +880,11 @@ void command_handle(const char *command, int printcaret) {
     else if (!strcmp(cmd, "date")) command_date(argc, argv);
     else if (!strcmp(cmd, "datetime")) command_datetime(argc, argv);
     else if (!strcmp(cmd, "diskinfo")) command_diskinfo(argc, argv);
+    else if (!strcmp(cmd, "setupsystem")) command_setupsystem(argc, argv);
     else {
         int found_script = 0;
 
-        if (file_drive_status == FILE_DRIVE_OK) {
+        if (file_drive_status == FILE_DRIVE_OK && !config_has("/system/config/system.cfg", "disable_user_scripts")) {
             char script_path[FILE_MAX_PATH];
             strfmt(script_path, "/system/scripts/%s.sc", cmd);
 
