@@ -2693,12 +2693,28 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         if (free_right) free_node(right);
         return node_false();
     } else if (op == SCRIPT_TOKEN_ISEQUAL) {
+        if (left->value_type == SCRIPT_BOOL || right->value_type == SCRIPT_BOOL) {
+            if (left->literal.int_value == right->literal.int_value) {
+                if (free_left) free_node(left);
+                if (free_right) free_node(right);
+                return node_true();
+            }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
+        }
+
         if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
             if (left->value_type == right->value_type) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
                 return node_true();
             }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
         }
 
         if (left->value_type == SCRIPT_STR && right->value_type == SCRIPT_STR) {
@@ -2707,6 +2723,10 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) free_node(right);
                 return node_true();
             }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
         }
 
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -2722,18 +2742,34 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) free_node(right);
                 return node_true();
             }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
+        }
+    } else if (op == SCRIPT_TOKEN_ISNTEQUAL) {
+        if (left->value_type == SCRIPT_BOOL || right->value_type == SCRIPT_BOOL) {
+            if (left->literal.int_value != right->literal.int_value) {
+                if (free_left) free_node(left);
+                if (free_right) free_node(right);
+                return node_true();
+            }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
         }
 
-        if (free_left) free_node(left);
-        if (free_right) free_node(right);
-        return node_false();
-    } else if (op == SCRIPT_TOKEN_ISNTEQUAL) {
         if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
             if (left->value_type != right->value_type) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
                 return node_true();
             }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
         }
 
         if (left->value_type == SCRIPT_STR && right->value_type == SCRIPT_STR) {
@@ -2742,6 +2778,10 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) free_node(right);
                 return node_true();
             }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
         }
 
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -2757,11 +2797,11 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) free_node(right);
                 return node_true();
             }
-        }
 
-        if (free_left) free_node(left);
-        if (free_right) free_node(right);
-        return node_false();
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
+        }
     } else if (op == SCRIPT_TOKEN_LESSTHAN) {
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
                 (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
@@ -2833,10 +2873,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) free_node(right);
                 return node_true();
             }
-        
-            if (free_left) free_node(left);
-            if (free_right) free_node(right);
-            return node_false();
         }
     }
 
