@@ -680,7 +680,7 @@ static void command_time(int argc, char *argv[]) {
 
     int time_offset = 0;
 
-    char *time_config = config_get("/config/time.cfg", "offset");
+    char *time_config = config_get("/system/config/time.cfg", "offset");
     if (time_config)
         time_offset = intstr(time_config);
 
@@ -706,7 +706,7 @@ static void command_date(int argc, char *argv[]) {
 
     int time_offset = 0;
 
-    char *time_config = config_get("/config/time.cfg", "offset");
+    char *time_config = config_get("/system/config/time.cfg", "offset");
     if (time_config)
         time_offset = intstr(time_config);
 
@@ -732,7 +732,7 @@ static void command_datetime(int argc, char *argv[]) {
 
     int time_offset = 0;
 
-    char *time_config = config_get("/config/time.cfg", "offset");
+    char *time_config = config_get("/system/config/time.cfg", "offset");
     if (time_config)
         time_offset = intstr(time_config);
 
@@ -866,8 +866,21 @@ void command_handle(const char *command, int printcaret) {
     else if (!strcmp(cmd, "date")) command_date(argc, argv);
     else if (!strcmp(cmd, "datetime")) command_datetime(argc, argv);
     else if (!strcmp(cmd, "diskinfo")) command_diskinfo(argc, argv);
-    else
-        if (cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+    else {
+        int found_script = 0;
+
+        if (file_drive_status == FILE_DRIVE_OK) {
+            char script_path[FILE_MAX_PATH];
+            strfmt(script_path, "/system/scripts/%s.sc", cmd);
+
+            if (file_path_isfile(script_path)) {
+                found_script = 1;
+                script_run(script_path);
+            }
+        }
+
+        if (!found_script && cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+    }
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
         if (!term_input_buffer && printcaret) {
