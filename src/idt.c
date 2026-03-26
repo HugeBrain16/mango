@@ -116,6 +116,15 @@ void exception_handler(int_frame_t *frame) {
     log(buff);
     strfmt(buff, "[ INFO ] Error Code: 0x%x\n", frame->error_code);
     log(buff);
+
+    if (frame->vector == 14) {
+        uint32_t cr2;
+        __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
+
+        strfmt(buff, "[ INFO ] CR2: 0x%x\n", cr2);
+        log(buff);
+    }
+
     strfmt(buff, "[ INFO ] EIP: 0x%x\n", frame->eip);
     log(buff);
     strfmt(buff, "[ INFO ] CS: 0x%x, EFLAGS: 0x%x\n", frame->cs, frame->eflags);
