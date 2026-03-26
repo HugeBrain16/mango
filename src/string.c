@@ -199,9 +199,9 @@ void strdouble(char *dest, double value, int precision) {
 
 uint32_t hexstr(const char *src) {
     uint32_t value = 0;
-    char c;
 
-    while ((c = *src++)) {
+    for (const char *p = src; *p != '\0'; p++) {
+        char c = *p;
         value <<= 4;
 
         if (isdigit(c))
@@ -314,9 +314,8 @@ void strfmt(char *dest, const char *fmt, ...) {
                 char arg[12];
                 strint(arg, va_arg(args, int));
 
-                for (size_t x = 0; x < strlen(arg); x++) {
-                    dest[i++] = arg[x];
-                }
+                for (const char *p = arg; *p != '\0'; p++)
+                    dest[i++] = *p;
                 f++;
             } else if (type == 'f') {
                 char arg[12];
@@ -332,16 +331,14 @@ void strfmt(char *dest, const char *fmt, ...) {
 
                 strdouble(arg, va_arg(args, double), precision);
 
-                for (size_t x = 0; x < strlen(arg); x++) {
-                    dest[i++] = arg[x];
-                }
+                for (const char *p = arg; *p != '\0'; p++)
+                    dest[i++] = *p;
                 f += 2;
             } else if (type == 's') {
                 const char *arg = va_arg(args, const char *);
 
-                for (size_t x = 0; x < strlen(arg); x++) {
-                    dest[i++] = arg[x];
-                }
+                for (const char *p = arg; *p != '\0'; p++)
+                    dest[i++] = *p;
                 f++;
             } else if (type == 'c') {
                 char arg = (char) va_arg(args, int);
@@ -351,9 +348,8 @@ void strfmt(char *dest, const char *fmt, ...) {
                 char arg[9];
                 strhex(arg, (uint32_t) va_arg(args, int));
 
-                for (size_t x = 0; x < strlen(arg); x++) {
-                    dest[i++] = arg[x];
-                }
+                for (const char *p = arg; *p != '\0'; p++)
+                    dest[i++] = *p;
                 f++;
             } else if (type == '%') {
                 dest[i++] = '%';

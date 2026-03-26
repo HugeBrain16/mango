@@ -22,10 +22,8 @@ void serial_putc(char c) {
 }
 
 void serial_write(const char *str) {
-    size_t length = strlen(str);
-
-    for (size_t i = 0; i < length; i++) {
-        serial_putc(str[i]);
+    for (const char *p = str; *p; p++) {
+        serial_putc(*p);
     }
 }
 

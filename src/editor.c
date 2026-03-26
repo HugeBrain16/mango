@@ -192,10 +192,8 @@ static void edit_statusbar_draw() {
         edit_pos);
 
     draw_x = 0;
-    for (size_t i = 0; i < strlen(status); i++) {
-        screen_draw_char(draw_x, draw_y,
-            status[i],
-            EDITOR_STATUS_FG, COLOR_TRANSPARENT, screen_scale);
+    for (const char *p = status; *p != '\0'; p++) {
+        screen_draw_char(draw_x, draw_y, *p, EDITOR_STATUS_FG, COLOR_TRANSPARENT, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
     }
 }

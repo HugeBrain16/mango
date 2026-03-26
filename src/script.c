@@ -437,8 +437,10 @@ static void env_append_var(script_stmt_t *block, script_var_t *var) {
 
 static script_var_t *env_new_var(const char *name) {
     script_var_t *var = heap_alloc(sizeof(script_var_t));
-    var->name = heap_alloc(strlen(name) + 1);
-    strcpy(var->name, name);
+
+    size_t length = strlen(name) + 1;
+    var->name = heap_alloc(length);
+    memcpy(var->name, name, length);
     var->next = NULL;
 
     return var;
@@ -582,9 +584,9 @@ static script_node_t *node_type_name(script_node_t *node) {
             break;
     }
 
-    size_t str_length = strlen(str_value);
-    value->literal.str_value = heap_alloc(str_length + 1);
-    strcpy(value->literal.str_value, str_value);
+    size_t str_length = strlen(str_value) + 1;
+    value->literal.str_value = heap_alloc(str_length);
+    memcpy(value->literal.str_value, str_value, str_length);
     value->literal.str_size = str_length;
     return value;
 }
@@ -1525,7 +1527,7 @@ static script_node_t *call_as_str(script_node_t *node) {
                 size_t size = strlen(buff) + 1;
                 value->literal.str_size = size;
                 value->literal.str_value = heap_alloc(size);
-                strcpy(value->literal.str_value, buff);
+                memcpy(value->literal.str_value, buff, size);
                 break;
             }
         case SCRIPT_FLOAT:
@@ -1536,7 +1538,7 @@ static script_node_t *call_as_str(script_node_t *node) {
                 size_t size = strlen(buff) + 1;
                 value->literal.str_size = size;
                 value->literal.str_value = heap_alloc(size);
-                strcpy(value->literal.str_value, buff);
+                memcpy(value->literal.str_value, buff, size);
                 break;
             }
         case SCRIPT_NULL:
@@ -1545,7 +1547,7 @@ static script_node_t *call_as_str(script_node_t *node) {
                 size_t size = strlen(buff) + 1;
                 value->literal.str_size = size;
                 value->literal.str_value = heap_alloc(size);
-                strcpy(value->literal.str_value, buff);
+                memcpy(value->literal.str_value, buff, size);
                 break;
             }
         case SCRIPT_BOOL:
@@ -1559,7 +1561,7 @@ static script_node_t *call_as_str(script_node_t *node) {
                 size_t size = strlen(buff) + 1;
                 value->literal.str_size = size;
                 value->literal.str_value = heap_alloc(size);
-                strcpy(value->literal.str_value, buff);
+                memcpy(value->literal.str_value, buff, size);
                 break;
             }
         case SCRIPT_STR:

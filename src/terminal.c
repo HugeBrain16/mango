@@ -47,8 +47,8 @@ static void term_redraw_cursor(int hide) {
 void term_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
     term_redraw_cursor(1);
 
-    for (size_t i = 0; i < strlen(text); i++) {
-        char c = text[i];
+    for (const char *p = text; *p != '\0'; p++) {
+        char c = *p;
 
         if (c != '\n')
             screen_draw_char(term_x, term_y, c, fg_color, bg_color, screen_scale); 
