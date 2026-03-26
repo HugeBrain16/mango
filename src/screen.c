@@ -14,11 +14,11 @@ void screen_init(multiboot_info_t *mbi) {
 }
 
 void screen_clear(uint32_t color) {
-    for (size_t y = 0; y < screen_height; y++) {
-        for (size_t x = 0; x < screen_width; x++) {
-            screen_buffer[y * (screen_pitch / sizeof(uint32_t)) + x] = color;
-        }
-    }
+    size_t stride = screen_pitch / sizeof(uint32_t);
+    size_t pixels = stride * screen_height;
+
+    for (size_t i = 0; i < pixels; i++)
+        screen_buffer[i] = color;
 }
 
 void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale) {
@@ -46,13 +46,15 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
 }
 
 void screen_scroll(int lines) {
-    int total_pixels = screen_width * (screen_height - lines);
+    size_t stride = screen_pitch / sizeof(uint32_t);
+    size_t rows = screen_height - lines;
 
-    memmove(screen_buffer, screen_buffer + (lines * screen_width), total_pixels * sizeof(uint32_t));
+    memmove(screen_buffer,
+        screen_buffer + lines * stride,
+        rows * stride * sizeof(uint32_t));
 
-    for (size_t y = screen_height - lines; y < screen_height; y++) {
-        for (size_t x = 0; x < screen_width; x++) {
-            screen_buffer[y * (screen_pitch / sizeof(uint32_t)) + x] = COLOR_BLACK;
-        }
-    }
+    uint32_t *bottom = screen_buffer + rows * stride;
+    size_t pixels = lines * stride;
+    for (size_t i = 0; i < pixels; i++)
+        bottom[i] = COLOR_BLACK;
 }
