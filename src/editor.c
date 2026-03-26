@@ -12,8 +12,8 @@
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
-static size_t edit_column = 0;
-static size_t edit_showfrom = 1; // by line
+static int edit_column = 0;
+static int edit_showfrom = 1; // by line
 
 static size_t get_block_size() {
     file_node_t file;
@@ -25,8 +25,8 @@ static size_t get_block_size() {
     return sizeof(block.data);
 }
 
-static size_t find_line_start(size_t pos) {
-    size_t p = pos;
+static int find_line_start(int pos) {
+    int p = pos;
     while (p > 0 && edit_buffer[p - 1] != '\n')
         p--;
     return p;
@@ -39,8 +39,8 @@ static size_t find_line_end(size_t pos) {
     return p;
 }
 
-static size_t get_line_count(size_t end) {
-    size_t line = 1;
+static int get_line_count(size_t end) {
+    int line = 1;
 
     for (size_t i = 0; i < end; i++) {
         if (edit_buffer[i] == '\n')
@@ -50,27 +50,27 @@ static size_t get_line_count(size_t end) {
     return line;
 }
 
-static size_t get_line_length(size_t pos) {
-    size_t start = find_line_start(pos);
+static int get_line_length(int pos) {
+    int start = find_line_start(pos);
     return pos - start;
 }
 
-static size_t get_x_from_pos(size_t pos) {
-    size_t line_len = get_line_length(pos);
+static int get_x_from_pos(int pos) {
+    int line_len = get_line_length(pos);
     return line_len * FONT_WIDTH * screen_scale;
 }
 
-static void clear(size_t x, size_t y, uint32_t color) {
-    size_t draw_x = x;
+static void clear(int x, int y, uint32_t color) {
+    int draw_x = x;
     while (draw_x < screen_width) {
         screen_draw_char(draw_x, y, ' ', color, color, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
     }
 }
 
-static void redraw_from_pos(size_t start_pos, size_t x, size_t y) {
-    size_t draw_x = x;
-    size_t draw_y = y;
+static void redraw_from_pos(int start_pos, int x, int y) {
+    int draw_x = x;
+    int draw_y = y;
     size_t i = start_pos;
 
     while (i < edit_cursor) {
@@ -91,8 +91,8 @@ static void redraw_from_pos(size_t start_pos, size_t x, size_t y) {
     clear(0, draw_y, EDITOR_BG);
 }
 
-static void redraw_line(size_t start_pos, size_t x, size_t y) {
-    size_t draw_x = x;
+static void redraw_line(int start_pos, int x, int y) {
+    int draw_x = x;
     size_t i = start_pos;
 
     while (i < edit_cursor && edit_buffer[i] != '\n') {
@@ -104,9 +104,9 @@ static void redraw_line(size_t start_pos, size_t x, size_t y) {
     screen_draw_char(draw_x, y, ' ', EDITOR_FG, EDITOR_BG, screen_scale);
 }
 
-static size_t get_pos_at_column(size_t line_start, size_t column) {
-    size_t line_end = find_line_end(line_start);
-    size_t line_len = line_end - line_start;
+static int get_pos_at_column(int line_start, int column) {
+    int line_end = find_line_end(line_start);
+    int line_len = line_end - line_start;
 
     if (column >= line_len)
         return line_start + line_len;
@@ -122,8 +122,8 @@ void edit_init(uint32_t file_sector) {
     edit_buffer = file_read(file_sector);
     edit_pos = 0;
 
-    size_t draw_x = 0;
-    size_t draw_y = 0;
+    int draw_x = 0;
+    int draw_y = 0;
 
     screen_clear(EDITOR_BG);
 
@@ -178,8 +178,8 @@ static void edit_statusbar_draw() {
     file_node_t file;
     file_node(edit_node, &file);
 
-    size_t draw_x = 0;
-    size_t draw_y = screen_height - ((FONT_WIDTH * screen_scale) * 2);
+    int draw_x = 0;
+    int draw_y = screen_height - ((FONT_WIDTH * screen_scale) * 2);
 
     clear(draw_x, draw_y, EDITOR_STATUS_BG);
 
@@ -201,9 +201,9 @@ static void edit_statusbar_draw() {
 static void edit_handle_scroll() {
     edit_clear_cursor();
 
-    size_t top_y = FONT_HEIGHT * screen_scale;
-    size_t bottom_y = screen_height - (top_y * 2);
-    size_t old_showfrom = edit_showfrom;
+    int top_y = FONT_HEIGHT * screen_scale;
+    int bottom_y = screen_height - (top_y * 2);
+    int old_showfrom = edit_showfrom;
 
     if (edit_y > bottom_y)
         edit_showfrom++;
@@ -211,10 +211,10 @@ static void edit_handle_scroll() {
         edit_showfrom--;
 
     if (old_showfrom != edit_showfrom) {
-        size_t line = 1;
+        int line = 1;
 
-        size_t draw_x = 0;
-        size_t draw_y = 0;
+        int draw_x = 0;
+        int draw_y = 0;
 
         screen_clear(EDITOR_BG);
 
@@ -319,14 +319,14 @@ static void edit_handle_up() {
 
     edit_clear_cursor();
 
-    size_t line_start = find_line_start(edit_pos);
+    int line_start = find_line_start(edit_pos);
     if (line_start == 0) {
         edit_redraw_cursor(0);
         return;
     }
 
-    size_t prev_line_end = line_start - 1;
-    size_t prev_line_start = find_line_start(prev_line_end);
+    int prev_line_end = line_start - 1;
+    int prev_line_start = find_line_start(prev_line_end);
 
     edit_pos = get_pos_at_column(prev_line_start, edit_column);
     edit_x = get_x_from_pos(edit_pos);
@@ -347,7 +347,7 @@ static void edit_handle_down() {
         return;
     }
 
-    size_t next_line_start = line_end + 1;
+    int next_line_start = line_end + 1;
 
     edit_pos = get_pos_at_column(next_line_start, edit_column);
     edit_x = get_x_from_pos(edit_pos);
@@ -397,7 +397,7 @@ void edit_handle_type(uint8_t scancode) {
 
     if (c == '\b') return edit_handle_backspace();
 
-    size_t max_x = screen_width - (FONT_WIDTH * screen_scale);
+    int max_x = screen_width - (FONT_WIDTH * screen_scale);
     if (edit_x >= max_x && c != '\n') return;
 
     edit_clear_cursor();

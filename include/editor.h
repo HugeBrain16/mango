@@ -14,8 +14,8 @@ uint32_t edit_node;
 char *edit_buffer;
 size_t edit_pos;
 size_t edit_cursor;
-size_t edit_x;
-size_t edit_y;
+int edit_x;
+int edit_y;
 
 void edit_init(uint32_t file_sector);
 void edit_draw_cursor();

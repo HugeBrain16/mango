@@ -37,10 +37,12 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
             int pixel_x = x + px;
             int pixel_y = y + py;
         
-            if (line & (0x80 >> col))
-                screen_buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = fg_color;
-            else if (bg_color != COLOR_TRANSPARENT)
-                screen_buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = bg_color;
+            if (pixel_x >= 0 && pixel_x < screen_width && pixel_y >= 0 && pixel_y < screen_height) {
+                if (line & (0x80 >> col))
+                    screen_buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = fg_color;
+                else if (bg_color != COLOR_TRANSPARENT)
+                    screen_buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = bg_color;
+            }
         }
     }
 }
