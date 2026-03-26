@@ -5,6 +5,7 @@
 #include "color.h"
 #include "file.h"
 
+#define EDITOR_CURSOR_BLINK 500
 #define EDITOR_BG COLOR_DARKGRAY
 #define EDITOR_FG COLOR_WHITE
 #define EDITOR_STATUS_BG COLOR_LIGHTGRAY

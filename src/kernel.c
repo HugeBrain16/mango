@@ -123,8 +123,9 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     if (file_drive_status == FILE_DRIVE_OK)
         log("[ INFO ] Drive OK\n");
 
-    pit_set_frequency(100);
-    log("[ INFO ] PIT frequency: 100hz\n");
+    pit_set_frequency(250);
+    strfmt(buffer, "[ INFO ] PIT frequency: %d\n", pit_hz);
+    log(buffer);
 
     pic_unmask(0);
     log("[ INFO ] PIT OK\n");

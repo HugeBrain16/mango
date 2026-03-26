@@ -7,11 +7,12 @@
 
 volatile uint32_t pit_ticks = 0;
 static uint32_t last_second = 0;
+int pit_hz = 0;
 
 void pit_handle() {
     pit_ticks++;
 
-    if (pit_ticks - last_second >= 100) {
+    if (pit_ticks - last_second >= (uint32_t)pit_hz) {
         last_second = pit_ticks;
 
         uptime_seconds++;
@@ -29,7 +30,9 @@ void pit_handle() {
     else if (keyboard_mode == KEYBOARD_MODE_EDIT) edit_draw_cursor();
 }
 
-void pit_set_frequency(uint32_t hz) {
+void pit_set_frequency(int hz) {
+    pit_hz = hz;
+
     uint32_t divisor = PIT_BASE_FREQ / hz;
     
     outb(PIT_COMMAND, PIT_CMD_CHANNEL0 | PIT_CMD_ACCESS_LOHI | PIT_CMD_MODE3 | PIT_CMD_BINARY);

@@ -27,7 +27,9 @@ static void term_clear_cursor() {
 }
 
 void term_draw_cursor() {
-    if (pit_ticks - cursor_ticks >= 50) {
+    uint32_t cursor_delay = (TERM_CURSOR_BLINK * pit_hz) / 1000;
+
+    if (pit_ticks - cursor_ticks >= cursor_delay) {
         cursor_visible = !cursor_visible;
         cursor_ticks = pit_ticks;
 

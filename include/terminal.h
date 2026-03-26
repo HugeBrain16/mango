@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define TERM_CURSOR_BLINK 500
 #define TERM_INPUT_SIZE 128
 
 int term_input_cursor;

@@ -30,7 +30,8 @@
 #define PIT_CMD_BCD 0x01
 
 extern volatile uint32_t pit_ticks;
+int pit_hz;
 void pit_handle();
-void pit_set_frequency(uint32_t hz);
+void pit_set_frequency(int hz);
 
 #endif

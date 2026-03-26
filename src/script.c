@@ -2490,9 +2490,10 @@ static script_node_t *call_sleep(script_node_t *node) {
     }
 
     uint32_t start = pit_ticks;
+    uint32_t wait = (interval->literal.int_value * pit_hz) / 1000;
 
     __asm__ volatile("sti");
-    while (pit_ticks - start < (uint32_t)interval->literal.int_value / 10)
+    while (pit_ticks - start < wait)
         __asm__ volatile("hlt");
 
     return node_null();
