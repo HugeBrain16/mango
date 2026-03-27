@@ -12,6 +12,8 @@
 
 static int script_argc = 0;
 static char **script_argv = NULL;
+static int script_printfg = COLOR_WHITE;
+static int script_printbg = COLOR_BLACK;
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -1434,32 +1436,32 @@ static script_node_t *call_print(script_node_t *node) {
                 {
                     char buffer[12];
                     strint(buffer, node->call.argv[i]->literal.int_value);
-                    term_write(buffer, COLOR_WHITE, COLOR_BLACK);
+                    term_write(buffer, script_printfg, script_printbg);
                     break;
                 }
             case SCRIPT_FLOAT:
                 {
                     char buffer[16];
                     strdouble(buffer, node->call.argv[i]->literal.float_value, 6);
-                    term_write(buffer, COLOR_WHITE, COLOR_BLACK);
+                    term_write(buffer, script_printfg, script_printbg);
                     break;
                 }
             case SCRIPT_STR:
                 {
-                    term_write(node->call.argv[i]->literal.str_value, COLOR_WHITE, COLOR_BLACK);
+                    term_write(node->call.argv[i]->literal.str_value, script_printfg, script_printbg);
                     break;
                 }
             case SCRIPT_NULL:
                 {
-                    term_write("null", COLOR_WHITE, COLOR_BLACK);
+                    term_write("null", script_printfg, script_printbg);
                     break;
                 }
             case SCRIPT_BOOL:
                 {
                     if (node->call.argv[i]->literal.int_value)
-                        term_write("true", COLOR_WHITE, COLOR_BLACK);
+                        term_write("true", script_printfg, script_printbg);
                     else
-                        term_write("false", COLOR_WHITE, COLOR_BLACK);
+                        term_write("false", script_printfg, script_printbg);
                     break;
                 }
             case SCRIPT_FILE:
@@ -1473,7 +1475,7 @@ static script_node_t *call_print(script_node_t *node) {
                         char msg[128];
                         strfmt(msg, "[ FILE=%d NAME=%s MODE=%d SEEK=%d ]",
                             fio_file->file, file.name, fio_file->mode, fio_file->seek);
-                        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                        term_write(msg, script_printfg, script_printbg);
                     }
                 }
                 break;
@@ -1484,7 +1486,7 @@ static script_node_t *call_print(script_node_t *node) {
                     if (list) {
                         char msg[32];
                         strfmt(msg, "[ LIST=0x%x SIZE=%d ]", list, list->size);
-                        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                        term_write(msg, script_printfg, script_printbg);
                     }
                 }
                 break;
@@ -1496,7 +1498,7 @@ static script_node_t *call_print(script_node_t *node) {
 
 static script_node_t *call_println(script_node_t *node) {
     script_node_t *ret = call_print(node);
-    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("\n", script_printfg, script_printbg);
     return ret;
 }
 
@@ -2577,7 +2579,7 @@ static script_node_t *call_randrange(script_node_t *node) {
 
     if (argc != 2) {
         char msg[64];
-        strfmt(msg, "Error: Function randrange() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function randrange() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_node(node);
         return NULL;
@@ -2613,6 +2615,72 @@ static script_node_t *call_randrange(script_node_t *node) {
     value->literal.int_value = randrange(min->literal.int_value, max->literal.int_value);
 
     return value;
+}
+
+static script_node_t *call_color_setfg(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function color_setfg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *name = node->call.argv[0];
+
+    if (name->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(name);
+        strfmt(msg, "Error: Function color_setfg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    int col = color(name->literal.str_value);
+    if (col != COLOR_INVALID)
+        script_printfg = col;
+
+    return node_null();
+}
+
+static script_node_t *call_color_setbg(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function color_setbg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *name = node->call.argv[0];
+
+    if (name->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(name);
+        strfmt(msg, "Error: Function color_setbg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    int col = color(name->literal.str_value);
+    if (col != COLOR_INVALID)
+        script_printbg = col;
+
+    return node_null();
+}
+
+static script_node_t *call_color_reset(script_node_t *node) {
+    script_printfg = COLOR_WHITE;
+    script_printbg = COLOR_BLACK;
+    return node_null();
 }
 
 /* ================== */
@@ -3142,6 +3210,9 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "argv")) ret = call_argv(&copy_call);
     else if (!strcmp(name, "rand")) ret = call_rand(&copy_call);
     else if (!strcmp(name, "randrange")) ret = call_randrange(&copy_call);
+    else if (!strcmp(name, "color_setfg")) ret = call_color_setfg(&copy_call);
+    else if (!strcmp(name, "color_setbg")) ret = call_color_setbg(&copy_call);
+    else if (!strcmp(name, "color_reset")) ret = call_color_reset(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {

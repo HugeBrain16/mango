@@ -14,5 +14,8 @@
 #define COLOR_DARKGRAY 0x222222
 #define COLOR_LIGHTGRAY 0x666666
 #define COLOR_TRANSPARENT 0xFFFFFFFF
+#define COLOR_INVALID -1
+
+int color(const char *name);
 
 #endif
