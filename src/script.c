@@ -9,6 +9,7 @@
 #include "config.h"
 #include "pit.h"
 #include "rand.h"
+#include "kernel.h"
 
 static int script_argc = 0;
 static char **script_argv = NULL;
@@ -2678,6 +2679,8 @@ static script_node_t *call_color_setbg(script_node_t *node) {
 }
 
 static script_node_t *call_color_reset(script_node_t *node) {
+    unused(node);
+
     script_printfg = COLOR_WHITE;
     script_printbg = COLOR_BLACK;
     return node_null();

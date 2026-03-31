@@ -7,9 +7,14 @@
 #include "keyboard.h"
 #include "command.h"
 #include "pic.h"
+#include "list.h"
+#include "heap.h"
+#include "serial.h"
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
+static list_t *term_history = NULL;
+static size_t term_history_idx = 0;
 
 void term_init() {
     term_x = 0;
@@ -17,6 +22,12 @@ void term_init() {
     term_input_cursor = 0;
     term_input_pos = 0;
     term_input_buffer = NULL;
+
+    if (!term_history) {
+        term_history = heap_alloc(sizeof(list_t));
+        list_init(term_history);
+        term_history_idx = 0;
+    }
 }
 
 static void term_clear_cursor() {
@@ -124,9 +135,40 @@ void term_get_input(const char* prompt, char *buffer, size_t size, uint32_t fg_c
     }
 }
 
+static void term_handle_history(int direction) {
+    if (direction == -1 && term_history_idx == 0) return;
+    if (direction == 1 && term_history_idx == term_history->size) return;
+    term_history_idx += direction;
+
+    char *line = list_get(term_history, term_history_idx - 1);
+    if (!line)
+        return;
+
+    int draw_x = term_prompt;
+    for (size_t i = 0; i < strlen(term_input) + 1; i++) {
+        screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        draw_x += FONT_WIDTH * screen_scale;
+    }
+    term_x = term_prompt;
+
+    size_t length = strlen(line) + 1;
+    strncpy(term_input, line, length);
+    term_input_cursor = length - 1;
+    term_input_pos = term_input_cursor;
+
+    for (int i = 0; i < term_input_cursor; i++) {
+        screen_draw_char(term_x, term_y, term_input[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+        term_x += FONT_WIDTH * screen_scale;
+    }
+
+    term_redraw_cursor(0);
+}
+
 void term_handle_type(uint8_t scancode) {
     if (scancode == KEY_ARROW_LEFT) return term_handle_left();
     else if (scancode == KEY_ARROW_RIGHT) return term_handle_right();
+    else if (scancode == KEY_ARROW_UP) return term_handle_history(1);
+    else if (scancode == KEY_ARROW_DOWN) return term_handle_history(-1);
 
     char c = scancode_to_char(scancode);
     if (!c || c == '\t') return;
@@ -154,6 +196,7 @@ void term_handle_type(uint8_t scancode) {
     } else {
         char s[2] = { c, '\0' };
         term_write(s, COLOR_WHITE, COLOR_BLACK);
+        term_history_idx = 0;
         term_input_cursor = 0;
         term_input_pos = 0;
 
@@ -161,6 +204,11 @@ void term_handle_type(uint8_t scancode) {
             strcpy(term_input_buffer, term_input);
             term_input_buffer = NULL;
         } else {
+            size_t length = strlen(term_input) + 1;
+            char *line = heap_alloc(length);
+            strncpy(line, term_input, length);
+            list_push(term_history, line);
+
             command_handle(term_input, 1);
         }
 
