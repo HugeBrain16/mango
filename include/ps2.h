@@ -15,6 +15,6 @@
 #define PS2_COMMAND_DISABLE_MOUSE 0xA7
 #define PS2_COMMAND_ENABLE_MOUSE 0xA8
 
-void ps2_init();
+extern void ps2_init();
 
 #endif

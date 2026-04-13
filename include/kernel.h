@@ -3,8 +3,8 @@
 
 #define unused(x) (void)(x)
 
-void log(const char *msg);
-void abort();
-void panic(const char *msg);
+extern void log(const char *msg);
+extern void abort();
+extern void panic(const char *msg);
 
 #endif

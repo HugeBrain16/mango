@@ -10,9 +10,9 @@ int screen_height;
 uint32_t screen_pitch;
 float screen_scale;
 
-void screen_init(multiboot_info_t *mbi);
-void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale);
-void screen_clear(uint32_t color);
-void screen_scroll(int lines);
+extern void screen_init(multiboot_info_t *mbi);
+extern void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale);
+extern void screen_clear(uint32_t color);
+extern void screen_scroll(int lines);
 
 #endif

@@ -9,9 +9,9 @@ uint8_t *heap_start;
 uint8_t *heap_end;
 uint8_t *heap_current;
 
-void heap_init(multiboot_info_t *mbi);
-void *heap_alloc(size_t size);
-void *heap_realloc(void *ptr, size_t size);
-void heap_free(void *ptr);
+extern void heap_init(multiboot_info_t *mbi);
+extern void *heap_alloc(size_t size);
+extern void *heap_realloc(void *ptr, size_t size);
+extern void heap_free(void *ptr);
 
 #endif

@@ -31,7 +31,8 @@
 
 extern volatile uint32_t pit_ticks;
 int pit_hz;
-void pit_handle();
-void pit_set_frequency(int hz);
+
+extern void pit_handle();
+extern void pit_set_frequency(int hz);
 
 #endif

@@ -79,10 +79,10 @@ rsdt_t *acpi_rsdt;
 fadt_t *acpi_fadt;
 dsdt_t *acpi_dsdt;
 
-void acpi_init();
-rsdp_t *acpi_find_rsdp();
-sdt_t *acpi_find_table(const char *signature);
-int acpi_mode_enabled();
-void acpi_shutdown();
+extern void acpi_init();
+extern rsdp_t *acpi_find_rsdp();
+extern sdt_t *acpi_find_table(const char *signature);
+extern int acpi_mode_enabled();
+extern void acpi_shutdown();
 
 #endif

@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 
-char cpu_name[64];
-char cpu_vendor[16];
-uint32_t cpu_family;
-uint32_t cpu_model;
+extern char cpu_name[64];
+extern char cpu_vendor[16];
+extern uint32_t cpu_family;
+extern uint32_t cpu_model;
 
-void cpu_init();
+extern void cpu_init();
 
 #endif

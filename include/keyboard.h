@@ -24,7 +24,7 @@ int keyboard_shift;
 int keyboard_ctrl;
 int keyboard_mode;
 
-char scancode_to_char(uint8_t scancode);
-void keyboard_handle();
+extern char scancode_to_char(uint8_t scancode);
+extern void keyboard_handle();
 
 #endif

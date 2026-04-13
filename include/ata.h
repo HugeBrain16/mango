@@ -51,20 +51,20 @@
 #define ATA_FLUSH 		0xE7
 #define ATA_IDENTIFY	0xEC
 
-uint16_t ata_port(uint16_t base, uint8_t port);
-uint8_t ata_status(uint16_t base);
-void ata_command(uint16_t base, uint8_t command);
-uint16_t ata_read(uint16_t base);
-void ata_write(uint16_t base, uint16_t data);
-void ata_clear_lba(uint16_t base);
-void ata_set_lba(uint16_t base, uint32_t lba);
-void ata_wait_io(uint16_t base);
-void ata_wait_ready(uint16_t base);
-void ata_wait_data(uint16_t base);
-void ata_select(uint16_t base, uint8_t drive);
-void ata_prepare(uint16_t base, uint32_t lba, uint8_t command);
-int ata_identify(uint16_t base, void *buffer);
-int ata_read_sector(uint16_t base, uint32_t lba, void *buffer);
-int ata_write_sector(uint16_t base, uint32_t lba, void *buffer);
+extern uint16_t ata_port(uint16_t base, uint8_t port);
+extern uint8_t ata_status(uint16_t base);
+extern void ata_command(uint16_t base, uint8_t command);
+extern uint16_t ata_read(uint16_t base);
+extern void ata_write(uint16_t base, uint16_t data);
+extern void ata_clear_lba(uint16_t base);
+extern void ata_set_lba(uint16_t base, uint32_t lba);
+extern void ata_wait_io(uint16_t base);
+extern void ata_wait_ready(uint16_t base);
+extern void ata_wait_data(uint16_t base);
+extern void ata_select(uint16_t base, uint8_t drive);
+extern void ata_prepare(uint16_t base, uint32_t lba, uint8_t command);
+extern int ata_identify(uint16_t base, void *buffer);
+extern int ata_read_sector(uint16_t base, uint32_t lba, void *buffer);
+extern int ata_write_sector(uint16_t base, uint32_t lba, void *buffer);
 
 #endif

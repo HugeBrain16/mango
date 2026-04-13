@@ -11,9 +11,9 @@
 #define ICW4_8086 0x01
 #define PIC_EOI 0x20
 
-void pic_unmask(uint8_t irq);
-void pic_mask(uint8_t irq);
-void pic_remap(int offset1, int offset2);
-void pic_eoi(uint8_t irq);
+extern void pic_unmask(uint8_t irq);
+extern void pic_mask(uint8_t irq);
+extern void pic_remap(int offset1, int offset2);
+extern void pic_eoi(uint8_t irq);
 
 #endif

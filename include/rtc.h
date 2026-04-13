@@ -13,14 +13,15 @@ typedef struct {
     uint16_t year;
 } rtc_datetime_t;
 
-volatile uint32_t rtc_ticks;
-void rtc_init();
-void rtc_handle();
-void rtc_datetime(rtc_datetime_t *dt);
-void rtc_to_local(rtc_datetime_t *dt, int tz_offset);
+extern volatile uint32_t rtc_ticks;
 
-uint64_t datetime_pack(rtc_datetime_t *dt);
-uint64_t datetime_packed();
-void datetime_unpack(rtc_datetime_t *dt, uint64_t time);
+extern void rtc_init();
+extern void rtc_handle();
+extern void rtc_datetime(rtc_datetime_t *dt);
+extern void rtc_to_local(rtc_datetime_t *dt, int tz_offset);
+
+extern uint64_t datetime_pack(rtc_datetime_t *dt);
+extern uint64_t datetime_packed();
+extern void datetime_unpack(rtc_datetime_t *dt, uint64_t time);
 
 #endif

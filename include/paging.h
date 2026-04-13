@@ -8,7 +8,7 @@
 
 extern uint32_t page_directory[1024] __attribute__((aligned(4096)));
 
-void pages_init();
-void page_map_physical(uint32_t addr, uint32_t *table);
+extern void pages_init();
+extern void page_map_physical(uint32_t addr, uint32_t *table);
 
 #endif

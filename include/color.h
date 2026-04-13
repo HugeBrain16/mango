@@ -16,6 +16,6 @@
 #define COLOR_TRANSPARENT 0xFFFFFFFF
 #define COLOR_INVALID -1
 
-int color(const char *name);
+extern int color(const char *name);
 
 #endif

@@ -17,6 +17,6 @@ typedef struct gdt_descriptor {
     uint32_t base;
 } __attribute__((packed)) gdt_descriptor_t;
 
-void gdt_init();
+extern void gdt_init();
 
 #endif
