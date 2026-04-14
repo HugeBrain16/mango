@@ -520,3 +520,41 @@ list_t *readlines(const char *buffer) {
 
     return lines;
 }
+
+void unescape(char *buffer, const char *src, size_t size) {
+    int is_escaped = 0;
+
+    size_t i = 0;
+    char c;
+    while(*src != '\0' && i < size - 1) {
+        c = *src;
+
+        if (is_escaped) {
+            switch (c) {
+                case 'n': buffer[i++] = '\n'; break;
+                case 't': buffer[i++] = '\t'; break;
+                case 'b': buffer[i++] = '\b'; break;
+                case 'r': buffer[i++] = '\r'; break;
+                case '"': buffer[i++] = '"'; break;
+                case '\'': buffer[i++] = '\''; break;
+                case '\\': buffer[i++] = '\\'; break;
+                default:
+                    buffer[i++] = '\\';
+                    buffer[i++] = c;
+                    break;
+            }
+
+            is_escaped = 0;
+        } else if (c == '\\')
+            is_escaped = 1;
+        else
+            buffer[i++] = c;
+
+        src++;
+    }
+
+    if (is_escaped)
+        buffer[i++] = '\\';
+
+    buffer[i] = '\0';
+}

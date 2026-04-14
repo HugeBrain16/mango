@@ -146,13 +146,21 @@ static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
     size_t i = 0;
 
     *c = fio_getc(file);
-    while (*c != '"' && *c != '\0') {
+
+    int is_escaped = 0;
+    while ((*c != '"' || is_escaped) && *c != '\0') {
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
             token->size++;
             token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
         }
 
         token->value[i++] = *c;
+
+        if (is_escaped)
+            is_escaped = 0;
+        else if (*c == '\\')
+            is_escaped = 1;
+
         *c = fio_getc(file);
     }
     token->value[i] = '\0';
@@ -630,7 +638,7 @@ static script_node_t *node_literal(script_token_t *token) {
 
         node->literal.str_size = size;
         *value = heap_alloc(size);
-        memcpy(*value, token->value, size);
+        unescape(*value, token->value, size);
     }
 
     return node;

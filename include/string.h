@@ -53,5 +53,6 @@ extern void string_trim(string_t *string);
 extern void string_free(string_t *string);
 
 extern list_t *readlines(const char *buffer);
+extern void unescape(char *buffer, const char *src, size_t size);
 
 #endif
