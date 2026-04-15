@@ -265,14 +265,22 @@ static script_token_t *tokenize(fio_t *file) {
     script_token_t *head = NULL;
     script_token_t *current = NULL;
 
+    int in_comment = 0;
+
     while (c != '\0') {
+        if (c == '#' && !in_comment)
+            in_comment = 1;
+
         if (c == '\n') {
+            if (in_comment)
+                in_comment = 0;
+
             lineno++;
             c = fio_getc(file);
             continue;
         }
 
-        if (c == ' ' || c == '\t') {
+        if (c == ' ' || c == '\t' || in_comment) {
             c = fio_getc(file);
             continue;
         }
@@ -3644,6 +3652,12 @@ void script_run(const char *path, int argc, char *argv[]) {
 
     fio_t *file = fio_open(path, FIO_READ);
     if (!file) return;
+
+    file_node_t node;
+    file_node(file->file, &node);
+
+    if (node.size == 0)
+        return;
 
     script_token_t *token_head = tokenize(file);
     if (!token_head) {
