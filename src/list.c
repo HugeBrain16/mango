@@ -11,10 +11,18 @@ int list_push(list_t *list, void *data) {
     if (!node) return 1;
 
     node->data = data;
-    node->next = list->head;
-    list->head = node;
-    list->size++;
+    node->next = NULL;
 
+    if (list->head) {
+        list_node_t *current = list->head;
+        while (current->next)
+            current = current->next;
+        current->next = node;
+    } else {
+        list->head = node;
+    }
+
+    list->size++;
     return 0;
 }
 
