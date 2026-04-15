@@ -136,11 +136,26 @@ void term_get_input(const char* prompt, char *buffer, size_t size, uint32_t fg_c
 }
 
 static void term_handle_history(int direction) {
-    if (direction == -1 && term_history_idx == 0) return;
+    if (direction == -1 && term_history_idx <= 1) {
+        int draw_x = term_prompt;
+        for (size_t i = 0; i < strlen(term_input) + 1; i++) {
+            screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+            draw_x += FONT_WIDTH * screen_scale;
+        }
+        term_x = term_prompt;
+        term_input[0] = '\0';
+        term_input_cursor = 0;
+        term_input_pos = 0;
+
+        if (term_history_idx > 0)
+            term_history_idx += direction;
+        return;
+    }
+
     if (direction == 1 && term_history_idx == term_history->size) return;
     term_history_idx += direction;
 
-    char *line = list_get(term_history, term_history_idx - 1);
+    char *line = list_get(term_history, term_history->size - term_history_idx);
     if (!line)
         return;
 
@@ -204,11 +219,13 @@ void term_handle_type(uint8_t scancode) {
             strcpy(term_input_buffer, term_input);
             term_input_buffer = NULL;
         } else {
-            size_t length = strlen(term_input) + 1;
-            char *line = heap_alloc(length);
-            strncpy(line, term_input, length);
-            list_push(term_history, line);
-
+            strtrim(term_input);
+            if (term_input[0] != '\0') {
+                size_t length = strlen(term_input) + 1;
+                char *line = heap_alloc(length);
+                strncpy(line, term_input, length);
+                list_push(term_history, line);
+            }
             command_handle(term_input, 1);
         }
 
