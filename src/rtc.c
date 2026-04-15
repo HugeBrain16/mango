@@ -136,20 +136,20 @@ void rtc_to_local(rtc_datetime_t *dt, int tz_offset) {
 
 uint64_t datetime_pack(rtc_datetime_t *dt) {
     return
-        ((uint64_t) dt->seconds << 40) |
-        ((uint64_t) dt->minutes << 32) |
-        ((uint64_t) dt->hours   << 24) |
-        ((uint64_t) dt->day     << 16) |
-        ((uint64_t) dt->month   <<  8) |
+        ((uint64_t) dt->seconds << 48) |
+        ((uint64_t) dt->minutes << 40) |
+        ((uint64_t) dt->hours   << 32) |
+        ((uint64_t) dt->day     << 24) |
+        ((uint64_t) dt->month   << 16) |
         ((uint64_t) dt->year         );
 }
 
 void datetime_unpack(rtc_datetime_t *dt, uint64_t time) {
-    dt->seconds = (time >> 40) & 0xFF;
-    dt->minutes = (time >> 32) & 0xFF;
-    dt->hours   = (time >> 24) & 0xFF;
-    dt->day     = (time >> 16) & 0xFF;
-    dt->month   = (time >>  8) & 0xFF;
+    dt->seconds = (time >> 48) & 0xFF;
+    dt->minutes = (time >> 40) & 0xFF;
+    dt->hours   = (time >> 32) & 0xFF;
+    dt->day     = (time >> 24) & 0xFF;
+    dt->month   = (time >> 16) & 0xFF;
     dt->year    = (time)       & 0xFFFF;
 }
 
