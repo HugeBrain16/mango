@@ -551,7 +551,10 @@ int folder_delete(uint32_t parent, const char *name) {
                 while (current_file) {
                     file_node(current_file, &current_file_node);
 
-                    file_delete(current, current_file_node.name);
+                    if (current_file_node.flags & FILE_DATA)
+                        file_delete(current, current_file_node.name);
+                    else
+                        folder_delete(current, current_file_node.name);
                     current_file = current_file_node.child_next;
                 }
             }
