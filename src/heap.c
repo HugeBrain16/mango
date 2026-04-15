@@ -124,12 +124,32 @@ void *heap_realloc(void *ptr, size_t size) {
 
     block_t *block = heap_header(ptr);
 
+    if (block->next && block->next->is_free) {
+        block_t *next = block->next;
+        size_t total = block->size + sizeof(block_t) + next->size;
+
+        if (total >= size) {
+            block->size = total;
+            block->next = next->next;
+
+            size_t remainder = block->size - size;
+            if (remainder >= sizeof(block_t) + 16) {
+                block_t *sliced = (block_t *) ((uint8_t *) block + sizeof(block_t) + size);
+                sliced->size = remainder - sizeof(block_t);
+                sliced->is_free = 1;
+                sliced->next = block->next;
+
+                block->size = size;
+                block->next = sliced;
+            }
+
+            return ptr;
+        }
+    }
+
     void *new = heap_alloc(size);
     if (!new) return NULL;
-
-    size_t resize = (block->size < size) ? block->size : size;
-    memcpy(new, ptr, resize);
-
+    memcpy(new, ptr, block->size < size ? block->size : size);
     heap_free(ptr);
     return new;
 }
