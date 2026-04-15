@@ -17,6 +17,13 @@ class Buffer(io.BytesIO):
 			raise BufferError("overflow")
 		return super().write(data)
 
+def is_utf8(data):
+	try:
+		data.decode("utf-8")
+		return True
+	except UnicodeDecodeError:
+		return False
+
 def date_packed(time = None):
 	if isinstance(time, datetime):
 		date = time
@@ -141,6 +148,11 @@ class Disk:
 					block = node
 				else:
 					block = self.read_block(block.next)
+
+		if is_utf8(data):
+			block.data += b"\x00";
+			file.size += 1
+			self.write_block(block)
 
 		file.time_changed = date_packed()
 		self.write_node(file)
