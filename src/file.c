@@ -129,6 +129,9 @@ int file_write(uint32_t sector, const char *data, size_t size) {
         file_data_write(current, &block);
         written += to_write;
 
+        file.size += to_write;
+        file_node_write(sector, &file);
+
         if (written < size) {
             if (block.next == 0) {
                 uint32_t new_block = file_sector_alloc();
@@ -136,9 +139,6 @@ int file_write(uint32_t sector, const char *data, size_t size) {
 
                 block.next = new_block;
                 file_data_write(current, &block);
-
-                file.size++;
-                file_node_write(sector, &file);
 
                 file_data_t data = {0};
                 data.next = 0;
@@ -162,7 +162,6 @@ char *file_read(uint32_t sector) {
     file_node(sector, &file);
 
     size_t offset = 0;
-    size_t buffer_size;
     char *buffer = NULL;
 
     uint32_t current = file.first_block;
@@ -170,19 +169,14 @@ char *file_read(uint32_t sector) {
         file_data_t block;
         file_data(current, &block);
 
-        if (!buffer) {
-            buffer_size = sizeof(block.data) * file.size;
-            buffer = heap_alloc(buffer_size + 1);
-        }
+        if (!buffer)
+            buffer = heap_alloc(file.size);
 
         memcpy(buffer + offset, block.data, sizeof(block.data));
         offset += sizeof(block.data);
 
         current = block.next;
     }
-
-    if (buffer)
-        buffer[buffer_size] = '\0';
 
     return buffer;
 }
@@ -377,7 +371,7 @@ int file_create(uint32_t parent, const char *name) {
     file.child_head = 0;
     file.child_next = 0;
     file.first_block = data_sector;
-    file.size = 1;
+    file.size = 0;
     strcpy(file.name, name);
 
     if (parent_node.child_head) {

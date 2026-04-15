@@ -626,7 +626,7 @@ static void command_nodeinfo(int argc, char *argv[]) {
     if (node.flags & FILE_FOLDER)
         strcpy(buff, "TYPE = FOLDER\n");
     else if (node.flags & FILE_DATA) {
-        strfmt(buff, "SIZE = %d (%d sectors)\n", sizeof(block.data) * node.size, node.size);
+        strfmt(buff, "SIZE = %d (%d sectors)\n", node.size, (int)node.size / sizeof(block.data));
         term_write(buff, COLOR_WHITE, COLOR_BLACK);
         strcpy(buff, "TYPE = FILE\n");
     }

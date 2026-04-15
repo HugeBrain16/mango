@@ -85,7 +85,7 @@ class Block:
 	def __init__(self):
 		self.sector = 0
 		self.next = 0
-		self.data = ""
+		self.data = b""
 
 class Disk:
 	def __init__(self, file):
@@ -101,7 +101,7 @@ class Disk:
 			self.node_create(parent, filename, FILE)
 			file = self.get_node(f"{parent}/{filename}")
 
-		self.file_write(file, open(localfile, "r").read())
+		self.file_write(file, open(localfile, "rb").read())
 
 	def file_write(self, file, data):
 		if isinstance(file, int):
@@ -109,17 +109,20 @@ class Disk:
 		elif isinstance(file, str):
 			file = self.get_node(file)
 
+		file.size = 0
 		written = 0
 		length = len(data)
 
 		block = self.read_block(file.first_block)
 		while written < length:
 			to_write = min(length - written, 508)
-			block.data += data[:to_write]
+			block.data = data[:to_write]
 			data = data[to_write:]
 			written += to_write
 
 			self.write_block(block)
+			file.size += to_write
+			self.write_node(file)
 
 			if to_write == 508:
 				if block.next == 0:
@@ -129,8 +132,6 @@ class Disk:
 
 					block.next = node_sector
 					self.write_block(block)
-					file.size += 1
-					self.write_node(file)
 
 					node = Block()
 					node.sector = node_sector
@@ -173,7 +174,7 @@ class Disk:
 		node.child_head = 0
 		node.child_next = 0
 		node.first_block = data_sector if type == FILE else 0
-		node.size = 1 if type == FILE else 0
+		node.size = 0
 		node.name = name
 
 		if parent.child_head:
@@ -323,7 +324,7 @@ class Disk:
 		block = Block()
 		block.sector = n
 		block.next = struct.unpack("<I", self.disk.read(4))[0]
-		block.data = self.disk.read(508).decode("utf-8").rstrip("\x00")
+		block.data = self.disk.read(508)
 		
 		return block
 
@@ -334,7 +335,7 @@ class Disk:
 		self.disk.write(struct.pack("<I", block.next))
 
 		buffer = Buffer(508)
-		buffer.write(block.data.encode("utf-8"))
+		buffer.write(block.data)
 		self.disk.write(buffer.getvalue())
 
 		self.disk.seek(sector)
@@ -343,7 +344,7 @@ class Disk:
 		if node.get_type() != "FILE":
 			raise TypeError("Node is not readable!")
 
-		data = io.StringIO()
+		data = io.BytesIO()
 
 		block = self.read_block(node.first_block)
 		while block.next:
@@ -351,6 +352,7 @@ class Disk:
 			block = self.read_block(block.next)
 		data.write(block.data)
 
+		data = data.getvalue()[:node.size]
 		return data
 
 	def print_tree(self, head, list_only):
@@ -528,7 +530,11 @@ if __name__ == "__main__":
 				sys.exit("error: not readable!")
 
 			data = disk.read_data(node)
-			print(data.getvalue())
+
+			try:
+				print(data.decode("utf-8"))
+			except UnicodeDecodeError:
+				print(data)
 		elif args[1] == "push":
 			if not disk.formatted:
 				sys.exit("error: disk is not formatted!")
