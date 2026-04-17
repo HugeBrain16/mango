@@ -2735,7 +2735,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
         if (!node) {
             char msg[64];
-            strfmt(msg, "Error: Undefined \"%s\" (line: %d)\n", name, binop->lineno);
+            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
             term_write(msg, COLOR_WHITE, COLOR_BLACK);
             free_node(binop);
             return NULL;
@@ -2751,7 +2751,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
         if (!node) {
             char msg[64];
-            strfmt(msg, "Error: Undefined \"%s\" (line: %d)\n", name, binop->lineno);
+            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
             term_write(msg, COLOR_WHITE, COLOR_BLACK);
             free_node(binop);
             return NULL;
@@ -3171,7 +3171,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
             script_node_t *var = env_nodeify_var(block, eval_args[i]);
             if (!var) {
                 char msg[64];
-                strfmt(msg, "Error: Undefined \"%s\" (line: %d)\n",
+                strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n",
                         eval_args[i]->literal.str_value,
                         eval_args[i]->lineno);
                 term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -3296,7 +3296,7 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
                 script_node_t *var = env_nodeify_var(block, expr);
                 if (!var) {
                     char msg[64];
-                    strfmt(msg, "Error: Undefined \"%s\" (line: %d)\n",
+                    strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n",
                         expr->literal.str_value, expr->lineno);
                     term_write(msg, COLOR_WHITE, COLOR_BLACK);
                     return NULL;
@@ -3371,7 +3371,7 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
     script_var_t *var = env_unscoped_find_var(block, stmt->var.name);
     if (!var) {
         char msg[64];
-        strfmt(msg, "Error: Undefined \"%s\" (line: %d)\n", stmt->var.name, stmt->lineno);
+        strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", stmt->var.name, stmt->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
         free_stmt(stmt);
         return NULL;
