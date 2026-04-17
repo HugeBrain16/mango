@@ -814,94 +814,99 @@ static void command_setupsystem(int argc, char *argv[]) {
     term_write("Setup successful!\n", COLOR_WHITE, COLOR_BLACK);
 }
 
-void command_handle(const char *command, int printcaret) {
-    char cmd[COMMAND_MAX_NAME] = {0};
-    static char args[COMMAND_MAX_ARGC][COMMAND_MAX_ARGV] = {0};
-    char *argv[32];
-    int argc = 0;
-    int idx = 0;
-    int in_cmd = 1;
+void command_handle(char *command, int printcaret) {
+    string_t *cmd = string_init();
+    string_t *args[COMMAND_MAX_ARG] = { NULL };
 
-    for (size_t i = 0; command[i] != '\0'; i++) {
-        if (command[i] == ' ') {
-            if (in_cmd) {
-                cmd[idx] = '\0';
-                in_cmd = 0;
-                idx = 0;
-            } else if (idx > 0) {
-                args[argc][idx] = '\0';
+    int argc = 0;
+    char *argv[COMMAND_MAX_ARG];
+
+    int read_cmd = 1;
+
+    strtrim(command);
+    while (*command != '\0') {
+        if (argc >= COMMAND_MAX_ARG) break;
+
+        char c = *command;
+        if (c == ' ') {
+            if (read_cmd)
+                read_cmd = 0;
+            else if (!string_empty(args[argc]))
                 argc++;
-                if (argc >= 32) break;
-                idx = 0;
-            }
         } else {
-            if (in_cmd) {
-                cmd[idx++] = command[i];
-            } else {
-                args[argc][idx++] = command[i];
+            if (read_cmd)
+                string_putc(cmd, c);
+            else {
+                if (!args[argc])
+                    args[argc] = string_init();
+                string_putc(args[argc], c);
             }
         }
+
+        command++;
     }
 
-    if (!in_cmd && idx > 0) {
-        args[argc][idx] = '\0';
+    if (!string_empty(args[argc]))
         argc++;
-    }
 
-    for (int i = 0; i < argc; i++) {
-        argv[i] = args[i];
-    }
+    for (int i = 0; i < argc; i++)
+        argv[i] = args[i]->value;
 
-    if (!strcmp(cmd, "scale")) command_scale(argc, argv);
-    else if (!strcmp(cmd, "scaleup")) command_scaleup(argc, argv);
-    else if (!strcmp(cmd, "scaledown")) command_scaledown(argc, argv);
-    else if (!strcmp(cmd, "clear")) command_clear(argc, argv);
-    else if (!strcmp(cmd, "shutdown")) command_shutdown(argc, argv);
-    else if (!strcmp(cmd, "fetch")) command_fetch(argc, argv);
-    else if (!strcmp(cmd, "echo")) command_echo(argc, argv);
-    else if (!strcmp(cmd, "list")) command_list(argc, argv);
-    else if (!strcmp(cmd, "newfile")) command_newfile(argc, argv);
-    else if (!strcmp(cmd, "delfile")) command_delfile(argc, argv);
-    else if (!strcmp(cmd, "edit")) command_edit(argc, argv);
-    else if (!strcmp(cmd, "newfolder")) command_newfolder(argc, argv);
-    else if (!strcmp(cmd, "delfolder")) command_delfolder(argc, argv);
-    else if (!strcmp(cmd, "goto")) command_goto(argc, argv);
-    else if (!strcmp(cmd, "goup")) command_goup(argc, argv);
-    else if (!strcmp(cmd, "whereami")) command_whereami(argc, argv);
-    else if (!strcmp(cmd, "copyfile")) command_copyfile(argc, argv);
-    else if (!strcmp(cmd, "movefile")) command_movefile(argc, argv);
-    else if (!strcmp(cmd, "copyfolder")) command_copyfolder(argc, argv);
-    else if (!strcmp(cmd, "movefolder")) command_movefolder(argc, argv);
-    else if (!strcmp(cmd, "formatdisk")) command_formatdisk(argc, argv);
-    else if (!strcmp(cmd, "nodeinfo")) command_nodeinfo(argc, argv);
-    else if (!strcmp(cmd, "printfile")) command_printfile(argc, argv);
-    else if (!strcmp(cmd, "runscript")) command_runscript(argc, argv);
-    else if (!strcmp(cmd, "time")) command_time(argc, argv);
-    else if (!strcmp(cmd, "date")) command_date(argc, argv);
-    else if (!strcmp(cmd, "datetime")) command_datetime(argc, argv);
-    else if (!strcmp(cmd, "diskinfo")) command_diskinfo(argc, argv);
-    else if (!strcmp(cmd, "setupsystem")) command_setupsystem(argc, argv);
+    if (!strcmp(cmd->value, "scale")) command_scale(argc, argv);
+    else if (!strcmp(cmd->value, "scaleup")) command_scaleup(argc, argv);
+    else if (!strcmp(cmd->value, "scaledown")) command_scaledown(argc, argv);
+    else if (!strcmp(cmd->value, "clear")) command_clear(argc, argv);
+    else if (!strcmp(cmd->value, "shutdown")) command_shutdown(argc, argv);
+    else if (!strcmp(cmd->value, "fetch")) command_fetch(argc, argv);
+    else if (!strcmp(cmd->value, "echo")) command_echo(argc, argv);
+    else if (!strcmp(cmd->value, "list")) command_list(argc, argv);
+    else if (!strcmp(cmd->value, "newfile")) command_newfile(argc, argv);
+    else if (!strcmp(cmd->value, "delfile")) command_delfile(argc, argv);
+    else if (!strcmp(cmd->value, "edit")) command_edit(argc, argv);
+    else if (!strcmp(cmd->value, "newfolder")) command_newfolder(argc, argv);
+    else if (!strcmp(cmd->value, "delfolder")) command_delfolder(argc, argv);
+    else if (!strcmp(cmd->value, "goto")) command_goto(argc, argv);
+    else if (!strcmp(cmd->value, "goup")) command_goup(argc, argv);
+    else if (!strcmp(cmd->value, "whereami")) command_whereami(argc, argv);
+    else if (!strcmp(cmd->value, "copyfile")) command_copyfile(argc, argv);
+    else if (!strcmp(cmd->value, "movefile")) command_movefile(argc, argv);
+    else if (!strcmp(cmd->value, "copyfolder")) command_copyfolder(argc, argv);
+    else if (!strcmp(cmd->value, "movefolder")) command_movefolder(argc, argv);
+    else if (!strcmp(cmd->value, "formatdisk")) command_formatdisk(argc, argv);
+    else if (!strcmp(cmd->value, "nodeinfo")) command_nodeinfo(argc, argv);
+    else if (!strcmp(cmd->value, "printfile")) command_printfile(argc, argv);
+    else if (!strcmp(cmd->value, "runscript")) command_runscript(argc, argv);
+    else if (!strcmp(cmd->value, "time")) command_time(argc, argv);
+    else if (!strcmp(cmd->value, "date")) command_date(argc, argv);
+    else if (!strcmp(cmd->value, "datetime")) command_datetime(argc, argv);
+    else if (!strcmp(cmd->value, "diskinfo")) command_diskinfo(argc, argv);
+    else if (!strcmp(cmd->value, "setupsystem")) command_setupsystem(argc, argv);
     else {
         int found_script = 0;
 
         if (file_drive_status == FILE_DRIVE_OK && !config_has("/system/config/system.cfg", "disable_user_scripts")) {
-            char script_path[20 + COMMAND_MAX_NAME];
-            strfmt(script_path, "/system/scripts/%s.sc", cmd);
+            char *script_path = heap_alloc(20 + cmd->size);
+            strfmt(script_path, "/system/scripts/%s.sc", cmd->value);
 
             if (file_path_isfile(script_path)) {
                 found_script = 1;
                 script_run(script_path, argc, argv);
             }
+
+            heap_free(script_path);
         }
 
-        if (!found_script && cmd[0] != '\0') term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+        if (!found_script && !string_empty(cmd)) term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
     }
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
-        if (!term_input_buffer && printcaret) {
+        if (!term_input_buffer && printcaret)
             term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
-        }
 
         term_prompt = term_x;
     }
+
+    string_free(cmd);
+    for (int i = 0; i < argc; i++)
+        string_free(args[i]);
 }

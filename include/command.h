@@ -1,10 +1,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#define COMMAND_MAX_NAME 128
-#define COMMAND_MAX_ARGC 32
-#define COMMAND_MAX_ARGV 512
+#define COMMAND_MAX_ARG 32
 
-extern void command_handle(const char *command, int printcaret);
+extern void command_handle(char *command, int printcaret);
 
 #endif

@@ -469,6 +469,7 @@ int string_length(string_t *string) {
 }
 
 int string_empty(string_t *string) {
+    if (!string) return 1;
     return string_length(string) == 0;
 }
 
