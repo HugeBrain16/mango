@@ -167,6 +167,8 @@ void edit_draw_cursor() {
 
         if (cursor_visible)
             screen_draw_char(edit_x, edit_y, '_', EDITOR_FG, COLOR_TRANSPARENT, screen_scale);
+
+        screen_flush();
     }
 }
 
@@ -198,6 +200,8 @@ static void edit_statusbar_draw() {
         screen_draw_char(draw_x, draw_y, *p, EDITOR_STATUS_FG, COLOR_TRANSPARENT, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
     }
+
+    screen_flush();
 }
 
 static void edit_handle_scroll() {
@@ -276,7 +280,6 @@ static void edit_handle_backspace() {
 
     edit_column = get_line_length(edit_pos);
     edit_handle_scroll();
-    edit_statusbar_draw();
 }
 
 static void edit_handle_left() {
@@ -294,7 +297,6 @@ static void edit_handle_left() {
 
     edit_column = get_line_length(edit_pos);
     edit_handle_scroll();
-    edit_statusbar_draw();
 }
 
 static void edit_handle_right() {
@@ -313,7 +315,6 @@ static void edit_handle_right() {
 
     edit_column = get_line_length(edit_pos);
     edit_handle_scroll();
-    edit_statusbar_draw();
 }
 
 static void edit_handle_up() {
@@ -335,7 +336,6 @@ static void edit_handle_up() {
     edit_y -= FONT_HEIGHT * screen_scale;
 
     edit_handle_scroll();
-    edit_statusbar_draw();
 }
 
 static void edit_handle_down() {
@@ -356,7 +356,6 @@ static void edit_handle_down() {
     edit_y += FONT_HEIGHT * screen_scale;
 
     edit_handle_scroll();
-    edit_statusbar_draw();
 }
 
 static void edit_handle_quit() {
@@ -372,6 +371,7 @@ static void edit_handle_quit() {
     term_y = 0;
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
     term_prompt = term_x;
+    screen_flush();
 }
 
 static void edit_handle_save() {
@@ -420,19 +420,18 @@ void edit_handle_type(uint8_t scancode) {
     edit_cursor++;
     edit_pos++;
 
+    edit_column = get_line_length(edit_pos);
+
     if (c == '\n') {
         redraw_from_pos(edit_pos - 1, edit_x, edit_y);
         edit_x = 0;
         edit_y += FONT_HEIGHT * screen_scale;
-
         edit_handle_scroll();
     } else {
         screen_draw_char(edit_x, edit_y, c, EDITOR_FG, EDITOR_BG, screen_scale);
         edit_x += FONT_WIDTH * screen_scale;
         redraw_line(edit_pos, edit_x, edit_y);
+        edit_redraw_cursor(0);
+        edit_statusbar_draw();
     }
-
-    edit_column = get_line_length(edit_pos);
-    edit_redraw_cursor(0);
-    edit_statusbar_draw();
 }

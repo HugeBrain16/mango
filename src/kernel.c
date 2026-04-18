@@ -30,8 +30,10 @@ uintptr_t __stack_chk_guard;
 void log(const char *msg) {
     serial_write(msg);
 
-    if (screen_buffer)
+    if (screen_buffer) {
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        screen_flush();
+    }
 }
 
 __attribute__((noreturn))
@@ -94,6 +96,9 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
     log(buffer);
 
+    screen_init_back_buffer();
+    log("[ INFO ] Initialized screen back buffer.\n");
+
     char total_mem[16];
     unit_get_size(heap_end - heap_start + (2 << 20), total_mem);
     strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
@@ -154,6 +159,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
     keyboard_mode = KEYBOARD_MODE_TERM;
     term_prompt = term_x;
+    screen_flush();
 
     for (;;)
         __asm__ volatile("hlt");

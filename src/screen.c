@@ -2,6 +2,19 @@
 #include "font.h"
 #include "string.h"
 #include "color.h"
+#include "heap.h"
+
+static uint32_t *back_buffer = NULL;
+static uint32_t back_buffer_size = 0;
+
+static uint32_t *get_buffer() {
+    return back_buffer ? back_buffer : screen_buffer;
+}
+
+void screen_flush() {
+    if (back_buffer)
+        memcpy(screen_buffer, back_buffer, back_buffer_size * sizeof(uint32_t));
+}
 
 void screen_init(multiboot_info_t *mbi) {
     screen_buffer = (uint32_t *)(uint32_t) mbi->framebuffer_addr;
@@ -13,16 +26,26 @@ void screen_init(multiboot_info_t *mbi) {
     screen_clear(COLOR_BLACK);
 }
 
+void screen_init_back_buffer() {
+    size_t stride = screen_pitch / sizeof(uint32_t);
+    back_buffer_size = stride * screen_height;
+    back_buffer = heap_alloc(back_buffer_size * sizeof(uint32_t));
+    memcpy(back_buffer, screen_buffer, back_buffer_size * sizeof(uint32_t));
+}
+
 void screen_clear(uint32_t color) {
     size_t stride = screen_pitch / sizeof(uint32_t);
     size_t pixels = stride * screen_height;
 
+    uint32_t *buffer = get_buffer();
     for (size_t i = 0; i < pixels; i++)
-        screen_buffer[i] = color;
+        buffer[i] = color;
 }
 
 void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale) {
     const uint8_t *glyph = font_bitmaps[(unsigned char) c];
+
+    uint32_t *buffer = get_buffer();
 
     int scaled_w = (int)FONT_WIDTH * scale;
     int scaled_h = (int)FONT_HEIGHT * scale;
@@ -39,9 +62,9 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
         
             if (pixel_x >= 0 && pixel_x < screen_width && pixel_y >= 0 && pixel_y < screen_height) {
                 if (line & (0x80 >> col))
-                    screen_buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = fg_color;
+                    buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = fg_color;
                 else if (bg_color != COLOR_TRANSPARENT)
-                    screen_buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = bg_color;
+                    buffer[pixel_y * (screen_pitch / sizeof(uint32_t)) + pixel_x] = bg_color;
             }
         }
     }
@@ -51,11 +74,12 @@ void screen_scroll(int lines) {
     size_t stride = screen_pitch / sizeof(uint32_t);
     size_t rows = screen_height - lines;
 
-    memmove(screen_buffer,
-        screen_buffer + lines * stride,
+    uint32_t *buffer = get_buffer();
+    memmove(buffer,
+        buffer + lines * stride,
         rows * stride * sizeof(uint32_t));
 
-    uint32_t *bottom = screen_buffer + rows * stride;
+    uint32_t *bottom = buffer + rows * stride;
     size_t pixels = lines * stride;
     for (size_t i = 0; i < pixels; i++)
         bottom[i] = COLOR_BLACK;

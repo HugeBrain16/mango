@@ -48,6 +48,8 @@ void term_draw_cursor() {
 
         if (cursor_visible)
             screen_draw_char(term_x, term_y, '_', COLOR_WHITE, COLOR_TRANSPARENT, screen_scale);
+
+        screen_flush();
     }
 }
 
@@ -58,7 +60,7 @@ static void term_redraw_cursor(int hide) {
 }
 
 void term_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
-    term_redraw_cursor(1);
+    term_clear_cursor();
 
     for (const char *p = text; *p != '\0'; p++) {
         char c = *p;
@@ -103,6 +105,8 @@ static void term_handle_backspace() {
     term_x = saved_x;
 
     term_redraw_cursor(0);
+
+    screen_flush();
 }
 
 static void term_handle_left() {
@@ -112,6 +116,8 @@ static void term_handle_left() {
     term_x -= FONT_WIDTH * screen_scale;
     term_input_pos--;
     term_redraw_cursor(0);
+
+    screen_flush();
 }
 
 static void term_handle_right() {
@@ -121,6 +127,8 @@ static void term_handle_right() {
     term_x += FONT_WIDTH * screen_scale;
     term_input_pos++;
     term_redraw_cursor(0);
+
+    screen_flush();
 }
 
 void term_get_input(const char* prompt, char *buffer, size_t size, uint32_t fg_color, uint32_t bg_color) {
@@ -149,6 +157,7 @@ static void term_handle_history(int direction) {
 
         if (term_history_idx > 0)
             term_history_idx += direction;
+        screen_flush();
         return;
     }
 
@@ -177,6 +186,8 @@ static void term_handle_history(int direction) {
     }
 
     term_redraw_cursor(0);
+
+    screen_flush();
 }
 
 void term_handle_type(uint8_t scancode) {
@@ -231,4 +242,6 @@ void term_handle_type(uint8_t scancode) {
 
         term_input[0] = '\0';
     }
+
+    screen_flush();
 }
