@@ -31,9 +31,13 @@ void term_init() {
 }
 
 static void term_clear_cursor() {
-    if (term_input_pos < term_input_cursor)
-        screen_draw_char(term_x, term_y, term_input[term_input_pos], COLOR_WHITE, COLOR_BLACK, screen_scale);
-    else
+    if (term_input_pos < term_input_cursor) {
+        char c = term_input[term_input_pos];
+        if (c == '\t')
+            c = ' ';
+
+        screen_draw_char(term_x, term_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+    } else
         screen_draw_char(term_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
 }
 
@@ -65,9 +69,15 @@ void term_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
     for (const char *p = text; *p != '\0'; p++) {
         char c = *p;
 
-        if (c != '\n')
+        if (c == '\t') {
+            for (int i = 0; i < KEYBOARD_TAB_LENGTH; i++) {
+                screen_draw_char(term_x, term_y, ' ', fg_color, bg_color, screen_scale);
+                term_x += FONT_WIDTH * screen_scale;
+            }
+        } else if (c != '\n')
             screen_draw_char(term_x, term_y, c, fg_color, bg_color, screen_scale); 
-        if (c != '\b')
+
+        if (c != '\b' && c != '\t')
             term_x += FONT_WIDTH * screen_scale;
         if (c == '\n') {
             term_x = 0;
@@ -87,23 +97,39 @@ static void term_handle_backspace() {
 
     term_clear_cursor();
 
-    for (int i = term_input_pos - 1; i < term_input_cursor - 1; i++) {
+    char deleted = term_input[term_input_pos - 1];
+
+    for (int i = term_input_pos - 1; i < term_input_cursor - 1; i++)
         term_input[i] = term_input[i + 1];
-    }
+
     term_input[--term_input_cursor] = '\0';
     term_input_pos--;
 
-    int saved_x = term_x - FONT_WIDTH * screen_scale;
-    term_x = saved_x;
+    int draw_x = term_prompt;
+    for (int i = 0; i < term_input_cursor; i++) {
+        char c = term_input[i];
 
-    for (int i = term_input_pos; i < term_input_cursor; i++) {
-        screen_draw_char(term_x, term_y, term_input[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
-        term_x += FONT_WIDTH * screen_scale;
+        if (c == '\t') {
+            for (int j = 0; j < KEYBOARD_TAB_LENGTH; j++) {
+                screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+                draw_x += FONT_WIDTH * screen_scale;
+            }
+        } else {
+            screen_draw_char(draw_x, term_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+            draw_x += FONT_WIDTH * screen_scale;
+        }
     }
 
-    screen_draw_char(term_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
-    term_x = saved_x;
+    int max_x = screen_width - (FONT_WIDTH * screen_scale);
+    while (draw_x < max_x) {
+        screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        draw_x += FONT_WIDTH * screen_scale;
+    }
 
+    if (deleted == '\t')
+        term_x -= (FONT_WIDTH * screen_scale) * KEYBOARD_TAB_LENGTH;
+    else
+        term_x -= FONT_WIDTH * screen_scale;
     term_redraw_cursor(0);
 
     screen_flush();
@@ -113,8 +139,16 @@ static void term_handle_left() {
     if (term_input_pos == 0) return;
 
     term_clear_cursor();
-    term_x -= FONT_WIDTH * screen_scale;
     term_input_pos--;
+    char c = term_input[term_input_pos];
+    if (c == '\t') {
+        term_x -= (FONT_WIDTH * screen_scale) * KEYBOARD_TAB_LENGTH;
+    } else if (term_x > term_prompt) {
+        term_x -= FONT_WIDTH * screen_scale;
+    } else {
+        term_x = term_prompt;
+    }
+
     term_redraw_cursor(0);
 
     screen_flush();
@@ -124,8 +158,20 @@ static void term_handle_right() {
     if (term_input_pos == term_input_cursor) return;
 
     term_clear_cursor();
-    term_x += FONT_WIDTH * screen_scale;
+    char b = term_input[term_input_pos];
     term_input_pos++;
+    char c = term_input[term_input_pos];
+
+    if (c == '\t' || b == '\t') {
+        term_x += (FONT_WIDTH * screen_scale) * KEYBOARD_TAB_LENGTH;
+
+        if (b != '\t' && term_input_pos < term_input_cursor)
+            term_input_pos++;
+    }
+
+    if (b != '\t')
+        term_x += FONT_WIDTH * screen_scale;
+
     term_redraw_cursor(0);
 
     screen_flush();
@@ -197,7 +243,7 @@ void term_handle_type(uint8_t scancode) {
     else if (scancode == KEY_ARROW_DOWN) return term_handle_history(-1);
 
     char c = scancode_to_char(scancode);
-    if (!c || c == '\t') return;
+    if (!c) return;
 
     if (c == '\b') return term_handle_backspace();
 
@@ -210,14 +256,27 @@ void term_handle_type(uint8_t scancode) {
         term_input[term_input_pos] = c;
         term_input[++term_input_cursor] = '\0';
 
-        int saved_x = term_x;
-        for (int i = term_input_pos; i < term_input_cursor; i++) {
-            screen_draw_char(term_x, term_y, term_input[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
-            term_x += FONT_WIDTH * screen_scale;
+        int draw_x = term_prompt;
+        for (int i = 0; i < term_input_cursor; i++) {
+            char d = term_input[i];
+
+            if (d == '\t') {
+                for (int j = 0; j < KEYBOARD_TAB_LENGTH; j++) {
+                    screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+                    draw_x += FONT_WIDTH * screen_scale;
+                }
+            } else {
+                screen_draw_char(draw_x, term_y, d, COLOR_WHITE, COLOR_BLACK, screen_scale);
+                draw_x += FONT_WIDTH * screen_scale;
+            }
         }
 
+        if (c == '\t')
+            term_x += (FONT_WIDTH * screen_scale) * KEYBOARD_TAB_LENGTH;
+        else
+            term_x += FONT_WIDTH * screen_scale;
+
         term_input_pos++;
-        term_x = saved_x + FONT_WIDTH * screen_scale;
         term_redraw_cursor(0);
     } else {
         char s[2] = { c, '\0' };

@@ -20,6 +20,8 @@
 #define KEYBOARD_MODE_TERM 1
 #define KEYBOARD_MODE_EDIT 2
 
+#define KEYBOARD_TAB_LENGTH 2
+
 int keyboard_shift;
 int keyboard_ctrl;
 int keyboard_mode;
