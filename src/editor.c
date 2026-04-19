@@ -56,8 +56,19 @@ static int get_line_length(int pos) {
 }
 
 static int get_x_from_pos(int pos) {
-    int line_len = get_line_length(pos);
-    return line_len * FONT_WIDTH * screen_scale;
+    int x = 0;
+
+    int start = find_line_start(pos);
+    for (int i = start; i < pos; i++) {
+        char c = edit_buffer[i];
+
+        if (c == '\t')
+            x += (FONT_WIDTH * screen_scale) * KEYBOARD_TAB_LENGTH;
+        else
+            x += FONT_WIDTH * screen_scale;
+    }
+
+    return x;
 }
 
 static void clear(int x, int y, uint32_t color) {
