@@ -3219,7 +3219,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
             }
 
             script_stmt_t *func = vv->literal.func;
-            script_stmt_t *call_block = stmt_block(block);
+            script_stmt_t *call_block = stmt_block(func->func.block->parent);
 
             if (call->call.argc < func->func.params_count) {
                 char msg[64];
