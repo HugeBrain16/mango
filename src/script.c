@@ -60,7 +60,7 @@ static char *node_repr(script_node_t *node) {
             break;
         case SCRIPT_STR:
             {
-                size_t size = node->literal.str_size;
+                size_t size = node->literal.str_size + 1;
                 buffer = heap_alloc(size);
 
                 memcpy(buffer, node->literal.str_value, size);
@@ -99,7 +99,7 @@ static char *node_repr(script_node_t *node) {
         case SCRIPT_LIST:
             {
                 list_t *list = node->literal.list;
-                buffer = heap_alloc(32);
+                buffer = heap_alloc(64);
 
                 if (list)
                     strfmt(buffer, "[(0x%x) LIST=0x%x SIZE=%d ]",
@@ -112,7 +112,7 @@ static char *node_repr(script_node_t *node) {
                 script_node_t *name = func->func.name;
                 int params_count = func->func.params_count;
 
-                size_t size = 16 + name->literal.str_size;
+                size_t size = 32 + name->literal.str_size;
                 for (int i = 0; i < params_count; i++)
                     size += func->func.params[i]->literal.str_size;
 
@@ -1597,72 +1597,16 @@ static script_node_t *call_as_str(script_node_t *node) {
     value->value_type = SCRIPT_STR;
     value->lineno = node->lineno;
 
-    switch (arg->value_type) {
-        case SCRIPT_INT:
-            {
-                char buff[12];
-                strint(buff, arg->literal.int_value);
-
-                size_t size = strlen(buff) + 1;
-                value->literal.str_size = size;
-                value->literal.str_value = heap_alloc(size);
-                memcpy(value->literal.str_value, buff, size);
-                break;
-            }
-        case SCRIPT_FLOAT:
-            {
-                char buff[16];
-                strdouble(buff, arg->literal.float_value, 6);
-
-                size_t size = strlen(buff) + 1;
-                value->literal.str_size = size;
-                value->literal.str_value = heap_alloc(size);
-                memcpy(value->literal.str_value, buff, size);
-                break;
-            }
-        case SCRIPT_NULL:
-            {
-                char *buff = "null";
-                size_t size = strlen(buff) + 1;
-                value->literal.str_size = size;
-                value->literal.str_value = heap_alloc(size);
-                memcpy(value->literal.str_value, buff, size);
-                break;
-            }
-        case SCRIPT_BOOL:
-            {
-                char *buff;
-                if (arg->literal.int_value)
-                    buff = "true";
-                else
-                    buff = "false";
-
-                size_t size = strlen(buff) + 1;
-                value->literal.str_size = size;
-                value->literal.str_value = heap_alloc(size);
-                memcpy(value->literal.str_value, buff, size);
-                break;
-            }
-        case SCRIPT_STR:
-            {
-                free_node(value);
-
-                size_t size = arg->literal.str_size;
-                script_node_t *copy = node_null();
-                copy->value_type = SCRIPT_STR;
-                copy->literal.str_size = size;
-                copy->literal.str_value = heap_alloc(size);
-                memcpy(copy->literal.str_value, arg->literal.str_value, size);
-                return copy;
-            }
-        default:
-            {
-                char msg[64];
-                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
-                free_node(value);
-                return NULL;
-            }
+    char *repr = node_repr(arg);
+    if (repr) {
+        value->literal.str_size = strlen(repr) + 1;
+        value->literal.str_value = repr;
+    } else {
+        char msg[64];
+        strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(value);
+        return NULL;
     }
 
     return value;
