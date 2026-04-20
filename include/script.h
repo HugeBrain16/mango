@@ -139,6 +139,7 @@ typedef struct script_node {
             double float_value;
             fio_t *file;
             list_t *list;
+            script_stmt_t *func;
         } literal;
 
         struct {

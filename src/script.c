@@ -437,6 +437,9 @@ static script_node_t *env_nodeify_var(script_stmt_t *block, script_node_t *node)
         case SCRIPT_LIST:
             nodeified->literal.list = var->list;
             break;
+        case SCRIPT_FUNC:
+            nodeified->literal.func = var->func;
+            break;
     };
     return nodeified;
 }
@@ -496,6 +499,9 @@ static void env_set_var(script_stmt_t *block, const char *name, script_node_t *v
             break;
         case SCRIPT_LIST:
             var->list = value->literal.list;
+            break;
+        case SCRIPT_FUNC:
+            var->func = value->literal.func;
             break;
     }
 }
@@ -803,7 +809,7 @@ static void free_node(script_node_t *node) {
 
     switch (node->node_type) {
         case SCRIPT_AST_LITERAL:
-            if (node->value_type == SCRIPT_STR)
+            if (node->value_type == SCRIPT_STR || node->value_type == SCRIPT_ID)
                 heap_free(node->literal.str_value);
             break;
         case SCRIPT_AST_BINOP:
@@ -1490,8 +1496,12 @@ static script_node_t *call_print(script_node_t *node) {
                         file_node(fio_file->file, &file);
 
                         char msg[128];
-                        strfmt(msg, "[ FILE=%d NAME=%s MODE=%d SEEK=%d ]",
-                            fio_file->file, file.name, fio_file->mode, fio_file->seek);
+                        strfmt(msg, "[(0x%x) FILE=%d NAME=%s MODE=%d SEEK=%d ]",
+                            node->call.argv[i],
+                            fio_file->file,
+                            file.name,
+                            fio_file->mode,
+                            fio_file->seek);
                         term_write(msg, script_printfg, script_printbg);
                     }
                 }
@@ -1501,10 +1511,38 @@ static script_node_t *call_print(script_node_t *node) {
                     list_t *list = node->call.argv[i]->literal.list;
 
                     if (list) {
-                        char msg[32];
-                        strfmt(msg, "[ LIST=0x%x SIZE=%d ]", list, list->size);
+                        char msg[64];
+                        strfmt(msg, "[(0x%x) LIST=0x%x SIZE=%d ]",
+                            node->call.argv[i], list, list->size);
                         term_write(msg, script_printfg, script_printbg);
                     }
+                }
+                break;
+            case SCRIPT_FUNC:
+                {
+                    script_stmt_t *func = node->call.argv[i]->literal.func;
+                    char *name = func->func.name->literal.str_value;
+                    int params_count = func->func.params_count;
+
+                    char msg[64];
+                    strfmt(msg, "[(0x%x) FUNC=%s ", node->call.argv[i], name);
+                    term_write(msg, script_printfg, script_printbg);
+
+                    for (int i = 0; i < params_count; i++) {
+                        if (i == 0)
+                            term_write("PARAMS=(", script_printfg, script_printbg);
+
+                        script_node_t *param = func->func.params[i];
+                        term_write(param->literal.str_value, script_printfg, script_printbg);
+
+                        if (i < params_count - 1)
+                            term_write(",", script_printfg, script_printbg);
+                    }
+
+                    if (params_count > 0)
+                        term_write(")", script_printfg, script_printbg);
+
+                    term_write(" ]", script_printfg, script_printbg);
                 }
                 break;
         }
@@ -3240,7 +3278,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
                 strfmt(msg, "Error: Variable \"%s\" is not callable (line: %d)\n", name, call->lineno);
                 term_write(msg, COLOR_WHITE, COLOR_BLACK);
                 free_node(call);
-                return NULL;    
+                return NULL;
             }
 
             script_stmt_t *func = var->func;
@@ -3433,6 +3471,7 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
             return eval;
 
         free_eval(eval);
+        eval = NULL;
         current = current->next;
     }
 
