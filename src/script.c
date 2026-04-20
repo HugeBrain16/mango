@@ -3088,6 +3088,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                     strcat(*value, right->literal.str_value);
                     i--;
                 }
+                node->literal.str_size = size + 1;
 
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
@@ -3111,6 +3112,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                     strcat(*value, left->literal.str_value);
                     i--;
                 }
+                node->literal.str_size = size + 1;
 
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
