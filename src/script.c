@@ -10,6 +10,7 @@
 #include "pit.h"
 #include "rand.h"
 #include "kernel.h"
+#include "screen.h"
 
 static int script_argc = 0;
 static char **script_argv = NULL;
@@ -44,6 +45,101 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
+
+static char *node_repr(script_node_t *node) {
+    char *buffer = NULL;
+
+    switch(node->value_type) {
+        case SCRIPT_INT:
+            buffer = heap_alloc(12);
+            strint(buffer, node->literal.int_value);
+            break;
+        case SCRIPT_FLOAT:
+            buffer = heap_alloc(16);
+            strdouble(buffer, node->literal.float_value, 6);
+            break;
+        case SCRIPT_STR:
+            {
+                size_t size = node->literal.str_size;
+                buffer = heap_alloc(size);
+
+                memcpy(buffer, node->literal.str_value, size);
+                break;
+            }
+        case SCRIPT_NULL:
+            buffer = heap_alloc(5);
+            strcpy(buffer, "null");
+            break;
+        case SCRIPT_BOOL:
+            buffer = heap_alloc(6);
+
+            if (node->literal.int_value)
+                strcpy(buffer, "true");
+            else
+                strcpy(buffer, "false");
+            break;
+        case SCRIPT_FILE:
+            {
+                fio_t *fio_file = node->literal.file;
+                buffer = heap_alloc(128);
+
+                if (fio_file) {
+                    file_node_t file;
+                    file_node(fio_file->file, &file);
+
+                    strfmt(buffer, "[(0x%x) FILE=%d NAME=%s MODE=%d SEEK=%d ]",
+                        node,
+                        fio_file->file,
+                        file.name,
+                        fio_file->mode,
+                        fio_file->seek);
+                }
+            }
+            break;
+        case SCRIPT_LIST:
+            {
+                list_t *list = node->literal.list;
+                buffer = heap_alloc(32);
+
+                if (list)
+                    strfmt(buffer, "[(0x%x) LIST=0x%x SIZE=%d ]",
+                        node, list, list->size);
+            }
+            break;
+        case SCRIPT_FUNC:
+            {
+                script_stmt_t *func = node->literal.func;
+                script_node_t *name = func->func.name;
+                int params_count = func->func.params_count;
+
+                size_t size = 16 + name->literal.str_size;
+                for (int i = 0; i < params_count; i++)
+                    size += func->func.params[i]->literal.str_size;
+
+                buffer = heap_alloc(size);
+
+                strfmt(buffer, "[(0x%x) FUNC=%s ", node, name->literal.str_value);
+                for (int i = 0; i < params_count; i++) {
+                    if (i == 0)
+                        strcat(buffer, "PARAMS=(");
+
+                    script_node_t *param = func->func.params[i];
+                    strcat(buffer, param->literal.str_value);
+
+                    if (i < params_count - 1)
+                        strcat(buffer, ", ");
+                }
+
+                if (params_count > 0)
+                    strcat(buffer, ")");
+
+                strcat(buffer, " ]");
+            }
+            break;
+    }
+
+    return buffer;
+}
 
 static void free_eval(script_eval_t *eval) {
     if (!eval) return;
@@ -1454,97 +1550,26 @@ static script_node_t *call_exec(script_node_t *node) {
 
 static script_node_t *call_print(script_node_t *node) {
     for (size_t i = 0; i < node->call.argc; i++) {
-        switch(node->call.argv[i]->value_type) {
-            case SCRIPT_INT:
-                {
-                    char buffer[12];
-                    strint(buffer, node->call.argv[i]->literal.int_value);
-                    term_write(buffer, script_printfg, script_printbg);
-                    break;
-                }
-            case SCRIPT_FLOAT:
-                {
-                    char buffer[16];
-                    strdouble(buffer, node->call.argv[i]->literal.float_value, 6);
-                    term_write(buffer, script_printfg, script_printbg);
-                    break;
-                }
-            case SCRIPT_STR:
-                {
-                    term_write(node->call.argv[i]->literal.str_value, script_printfg, script_printbg);
-                    break;
-                }
-            case SCRIPT_NULL:
-                {
-                    term_write("null", script_printfg, script_printbg);
-                    break;
-                }
-            case SCRIPT_BOOL:
-                {
-                    if (node->call.argv[i]->literal.int_value)
-                        term_write("true", script_printfg, script_printbg);
-                    else
-                        term_write("false", script_printfg, script_printbg);
-                    break;
-                }
-            case SCRIPT_FILE:
-                {
-                    fio_t *fio_file = node->call.argv[i]->literal.file;
+        char *repr = node_repr(node->call.argv[i]);
 
-                    if (fio_file) {
-                        file_node_t file;
-                        file_node(fio_file->file, &file);
+        if (repr) {
+            term_write(repr, script_printfg, script_printbg);
+            heap_free(repr);
 
-                        char msg[128];
-                        strfmt(msg, "[(0x%x) FILE=%d NAME=%s MODE=%d SEEK=%d ]",
-                            node->call.argv[i],
-                            fio_file->file,
-                            file.name,
-                            fio_file->mode,
-                            fio_file->seek);
-                        term_write(msg, script_printfg, script_printbg);
-                    }
-                }
-                break;
-            case SCRIPT_LIST:
-                {
-                    list_t *list = node->call.argv[i]->literal.list;
+            screen_flush();
+        }
+    }
 
-                    if (list) {
-                        char msg[64];
-                        strfmt(msg, "[(0x%x) LIST=0x%x SIZE=%d ]",
-                            node->call.argv[i], list, list->size);
-                        term_write(msg, script_printfg, script_printbg);
-                    }
-                }
-                break;
-            case SCRIPT_FUNC:
-                {
-                    script_stmt_t *func = node->call.argv[i]->literal.func;
-                    char *name = func->func.name->literal.str_value;
-                    int params_count = func->func.params_count;
+    return node_null();
+}
 
-                    char msg[64];
-                    strfmt(msg, "[(0x%x) FUNC=%s ", node->call.argv[i], name);
-                    term_write(msg, script_printfg, script_printbg);
+static script_node_t *call_sys_log(script_node_t *node) {
+    for (size_t i = 0; i < node->call.argc; i++) {
+        char *repr = node_repr(node->call.argv[i]);
 
-                    for (int i = 0; i < params_count; i++) {
-                        if (i == 0)
-                            term_write("PARAMS=(", script_printfg, script_printbg);
-
-                        script_node_t *param = func->func.params[i];
-                        term_write(param->literal.str_value, script_printfg, script_printbg);
-
-                        if (i < params_count - 1)
-                            term_write(",", script_printfg, script_printbg);
-                    }
-
-                    if (params_count > 0)
-                        term_write(")", script_printfg, script_printbg);
-
-                    term_write(" ]", script_printfg, script_printbg);
-                }
-                break;
+        if (repr) {
+            log(repr);
+            heap_free(repr);
         }
     }
 
@@ -3270,6 +3295,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "color_setfg")) ret = call_color_setfg(&copy_call);
     else if (!strcmp(name, "color_setbg")) ret = call_color_setbg(&copy_call);
     else if (!strcmp(name, "color_reset")) ret = call_color_reset(&copy_call);
+    else if (!strcmp(name, "sys_log")) ret = call_sys_log(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
