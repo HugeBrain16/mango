@@ -20,8 +20,8 @@
 .long 0 // entry_addr
 
 .long 0 // linear framebuffer
-.long 1024 // width
-.long 768 // height
+.long 640 // width
+.long 480 // height
 .long 32 // bit depth
 
 .section .bss
