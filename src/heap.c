@@ -70,6 +70,9 @@ static void heap_split(block_t *block, size_t size) {
 
     block->size = size;
     block->next = sliced;
+
+    if (block_tail == block)
+        block_tail = sliced;
 }
 
 void *heap_alloc(size_t size) {
