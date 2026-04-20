@@ -99,20 +99,7 @@ typedef struct script_env {
 
 typedef struct script_var {
     char *name;
-    uint8_t type;
-
-    union {
-        struct {
-            char *str_value;
-            size_t str_size;
-        };
-        int int_value;
-        double float_value;
-        script_stmt_t *func;
-        fio_t *file;
-        list_t *list;
-    };
-
+    script_node_t *value;
     struct script_var *next;
 } script_var_t;
 

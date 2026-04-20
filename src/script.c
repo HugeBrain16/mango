@@ -26,6 +26,10 @@ static void free_eval(script_eval_t *eval);
 
 static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
 
+static script_node_t *node_null();
+static script_node_t *node_true();
+static script_node_t *node_false();
+
 static script_stmt_t *parse_statement(script_token_t **token);
 static script_stmt_t *parse_statement_inner(script_token_t **token);
 static script_node_t *parse_expr(script_token_t **token);
@@ -60,7 +64,7 @@ static char *node_repr(script_node_t *node) {
             break;
         case SCRIPT_STR:
             {
-                size_t size = node->literal.str_size + 1;
+                size_t size = node->literal.str_size;
                 buffer = heap_alloc(size);
 
                 memcpy(buffer, node->literal.str_value, size);
@@ -139,6 +143,44 @@ static char *node_repr(script_node_t *node) {
     }
 
     return buffer;
+}
+
+static script_node_t *node_clone(script_node_t *node) {
+    script_node_t *cloned = node_null();
+    cloned->node_type = SCRIPT_AST_LITERAL;
+    cloned->value_type = node->value_type;
+    cloned->lineno = node->lineno;
+
+    switch (node->value_type) {
+        case SCRIPT_INT:
+        case SCRIPT_BOOL:
+            cloned->literal.int_value = node->literal.int_value;
+            break;
+        case SCRIPT_FLOAT:
+            cloned->literal.float_value = node->literal.float_value;
+            break;
+        case SCRIPT_STR:
+            {
+                size_t size = node->literal.str_size;
+                char *value = heap_alloc(size);
+                memcpy(value, node->literal.str_value, size);
+
+                cloned->literal.str_size = size;
+                cloned->literal.str_value = value;
+                break;
+            }
+        case SCRIPT_FUNC:
+            cloned->literal.func = node->literal.func;
+            break;
+        case SCRIPT_FILE:
+            cloned->literal.file = node->literal.file;
+            break;
+        case SCRIPT_LIST:
+            cloned->literal.list = node->literal.list;
+            break;
+    }
+
+    return cloned;
 }
 
 static void free_eval(script_eval_t *eval) {
@@ -431,24 +473,8 @@ fail:
 }
 
 static void free_var(script_var_t *var) {
-    switch (var->type) {
-        case SCRIPT_STR:
-            heap_free(var->str_value);
-            break;
-        case SCRIPT_FILE:
-            fio_close(var->file);
-            break;
-        case SCRIPT_LIST:
-            for (size_t i = 0; i < var->list->size; i++) {
-                script_node_t *node = (script_node_t*)list_get(var->list, i);
-                if (node) free_node(node);
-            }
-            list_clear(var->list);
-            list_free(var->list);
-            break;
-    }
-
     heap_free(var->name);
+    free_node(var->value);
     heap_free(var);
 }
 
@@ -502,41 +528,6 @@ static script_stmt_t *env_find_block(script_stmt_t *block, const char *name) {
     return NULL;
 }
 
-static script_node_t *env_nodeify_var(script_stmt_t *block, script_node_t *node) {
-    script_var_t *var = env_unscoped_find_var(block, node->literal.str_value);
-    if (!var) return NULL;
-
-    script_node_t *nodeified = heap_alloc(sizeof(script_node_t));
-    nodeified->node_type = SCRIPT_AST_LITERAL;
-    nodeified->lineno = node->lineno;
-    nodeified->value_type = var->type;
-
-    switch (var->type) {
-        case SCRIPT_INT:
-        case SCRIPT_BOOL:
-            nodeified->literal.int_value = var->int_value;
-            break;
-        case SCRIPT_FLOAT:
-            nodeified->literal.float_value = var->float_value;
-            break;
-        case SCRIPT_STR:
-            nodeified->literal.str_value = heap_alloc(var->str_size);
-            nodeified->literal.str_size = var->str_size;
-            memcpy(nodeified->literal.str_value, var->str_value, var->str_size);
-            break;
-        case SCRIPT_FILE:
-            nodeified->literal.file = var->file;
-            break;
-        case SCRIPT_LIST:
-            nodeified->literal.list = var->list;
-            break;
-        case SCRIPT_FUNC:
-            nodeified->literal.func = var->func;
-            break;
-    };
-    return nodeified;
-}
-
 static void env_append_var(script_stmt_t *block, script_var_t *var) {
     script_env_t *env = block->block.env;
 
@@ -568,35 +559,10 @@ static void env_set_var(script_stmt_t *block, const char *name, script_node_t *v
     if (!var) {
         var = env_new_var(name);
         env_append_var(block, var);
-    } else {
-        if (var->type == SCRIPT_STR)
-            heap_free(var->str_value);
-    }
+    } else
+        free_node(var->value);
 
-    var->type = value->value_type;
-    switch (value->value_type) {
-        case SCRIPT_INT:
-        case SCRIPT_BOOL:
-            var->int_value = value->literal.int_value;
-            break;
-        case SCRIPT_FLOAT:
-            var->float_value = value->literal.float_value;
-            break;
-        case SCRIPT_STR:
-            var->str_value = heap_alloc(value->literal.str_size);
-            var->str_size = value->literal.str_size;
-            memcpy(var->str_value, value->literal.str_value, value->literal.str_size);
-            break;
-        case SCRIPT_FILE:
-            var->file = value->literal.file;
-            break;
-        case SCRIPT_LIST:
-            var->list = value->literal.list;
-            break;
-        case SCRIPT_FUNC:
-            var->func = value->literal.func;
-            break;
-    }
+    var->value = node_clone(value);
 }
 
 static void env_set_var_from_stmt(script_stmt_t *block, const char *name, script_stmt_t *value) {
@@ -605,16 +571,31 @@ static void env_set_var_from_stmt(script_stmt_t *block, const char *name, script
         var = env_new_var(name);
         env_append_var(block, var);
     } else {
-        if (var->type == SCRIPT_STR)
-            heap_free(var->str_value);
+        script_node_t *vv = var->value;
+
+        switch (vv->value_type) {
+            case SCRIPT_STR:
+            case SCRIPT_INT:
+            case SCRIPT_FLOAT:
+            case SCRIPT_NULL:
+            case SCRIPT_BOOL:
+                free_node(vv);
+                break;
+        }
     }
+
+    script_node_t *node = node_null();
+    node->node_type = SCRIPT_AST_LITERAL;
+    node->lineno = value->lineno;
 
     switch (value->type) {
         case SCRIPT_STMT_FUNC:
-            var->type = SCRIPT_FUNC;
-            var->func = value;
+            node->value_type = SCRIPT_FUNC;
+            node->literal.func = value;
             break;
     }
+
+    var->value = node;
 }
 
 static script_node_t *node_null() {
@@ -1991,7 +1972,7 @@ static script_node_t *call_file_write(script_node_t *node) {
     }
 
     if (file->literal.file)
-        fio_write(file->literal.file, string->literal.str_value, string->literal.str_size);
+        fio_write(file->literal.file, string->literal.str_value, string->literal.str_size - 1);
 
     return node_null();
 }
@@ -2107,7 +2088,7 @@ static script_node_t *call_char_at(script_node_t *node) {
 static script_node_t *call_sizeof(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc > 1) {
+    if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function sizeof() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2401,7 +2382,7 @@ static script_node_t *call_list_push(script_node_t *node) {
     }
 
     if (list->literal.list)
-        list_push(list->literal.list, (void*)value);
+        list_push(list->literal.list, (void*)node_clone(value));
 
     return node_null();
 }
@@ -2443,7 +2424,7 @@ static script_node_t *call_list_get(script_node_t *node) {
     if (list->literal.list && index->literal.int_value >= 0) {
         script_node_t *value = (script_node_t*)list_get(list->literal.list, (size_t)index->literal.int_value);
         if (value)
-            return value;
+            return node_clone(value);
     }
 
     return node_null();
@@ -2734,10 +2715,10 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
     if (left->value_type == SCRIPT_ID) {
         char *name = left->literal.str_value;
-        script_node_t *node = env_nodeify_var(block, left);
+        script_var_t *var = env_unscoped_find_var(block, name);
         if (free_left) free_node(left);
 
-        if (!node) {
+        if (!var) {
             char msg[64];
             strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
             term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2745,15 +2726,14 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             return NULL;
         }
 
-        left = node;
-        free_left = 1;
+        left = var->value;
     }
     if (right->value_type == SCRIPT_ID) {
         char *name = right->literal.str_value;
-        script_node_t *node = env_nodeify_var(block, right);
+        script_var_t *var = env_unscoped_find_var(block, name);
         if (free_right) free_node(right);
 
-        if (!node) {
+        if (!var) {
             char msg[64];
             strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
             term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -2761,8 +2741,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             return NULL;
         }
 
-        right = node;
-        free_right = 1;
+        right = var->value;
     }
 
     uint8_t op = binop->binop.op;
@@ -2967,6 +2946,10 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) free_node(right);
                 return node_true();
             }
+
+            if (free_left) free_node(left);
+            if (free_right) free_node(right);
+            return node_false();
         }
     }
 
@@ -3171,21 +3154,6 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     for (size_t i = 0; i < call->call.argc; i++) {
         eval_args[i] = eval_expr(block, call->call.argv[i]);
 
-        if (eval_args[i]->value_type == SCRIPT_ID) {
-            script_node_t *var = env_nodeify_var(block, eval_args[i]);
-            if (!var) {
-                char msg[64];
-                strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n",
-                        eval_args[i]->literal.str_value,
-                        eval_args[i]->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
-                heap_free(eval_args);
-                return NULL;
-            }
-
-            eval_args[i] = var;
-        }
-
         if (!eval_args[i]) {
             for (size_t j = 0; j < i; j++)
                 free_node(eval_args[j]);
@@ -3240,7 +3208,9 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
-            if (var->type != SCRIPT_FUNC) {
+            script_node_t *vv = var->value;
+
+            if (vv->value_type != SCRIPT_FUNC) {
                 char msg[64];
                 strfmt(msg, "Error: Variable \"%s\" is not callable (line: %d)\n", name, call->lineno);
                 term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -3248,7 +3218,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
                 return NULL;
             }
 
-            script_stmt_t *func = var->func;
+            script_stmt_t *func = vv->literal.func;
             script_stmt_t *call_block = stmt_block(block);
 
             if (call->call.argc < func->func.params_count) {
@@ -3284,10 +3254,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
         }
     }
 
-    for (size_t i = 0; i < call->call.argc; i++) {
-        if (eval_args[i] != call->call.argv[i])
-            free_node(eval_args[i]);
-    }
+    for (size_t i = 0; i < call->call.argc; i++)
+        free_node(eval_args[i]);
     heap_free(eval_args);
     return (ret == NULL) ? node_null() : ret;
 }
@@ -3298,18 +3266,19 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
     switch (expr->node_type) {
         case SCRIPT_AST_LITERAL:
             if (expr->value_type == SCRIPT_ID) {
-                script_node_t *var = env_nodeify_var(block, expr);
+                char *name = expr->literal.str_value;
+
+                script_var_t *var = env_unscoped_find_var(block, name);
                 if (!var) {
                     char msg[64];
-                    strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n",
-                        expr->literal.str_value, expr->lineno);
+                    strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, expr->lineno);
                     term_write(msg, COLOR_WHITE, COLOR_BLACK);
                     return NULL;
                 }
-                return var;
+                return node_clone(var->value);
             }
 
-            return expr;
+            return node_clone(expr);
         case SCRIPT_AST_BINOP:
             return eval_binop(block, expr);
         case SCRIPT_AST_CALL:
@@ -3329,7 +3298,7 @@ static script_node_t *eval_declare(script_stmt_t *block, script_stmt_t *stmt) {
     script_var_t *var = env_find_var(block, stmt->var.name);
     if (var) {
         char msg[128];
-        if (var->type == SCRIPT_FUNC)
+        if (var->value->value_type == SCRIPT_FUNC)
             strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
         else
             strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
@@ -3351,7 +3320,7 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
     script_var_t *var = env_find_var(block, stmt->var.name);
     if (var) {
         char msg[128];
-        if (var->type == SCRIPT_FUNC)
+        if (var->value->value_type == SCRIPT_FUNC)
             strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
         else
             strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
@@ -3364,8 +3333,7 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
         return NULL;
 
     env_set_var(block, stmt->var.name, value);
-    if (value != stmt->var.value)
-        free_node(value);
+    free_node(value);
 
     return node_null();
 }
@@ -3382,7 +3350,7 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
         return NULL;
     }
 
-    if (var->type == SCRIPT_FUNC) {
+    if (var->value->value_type == SCRIPT_FUNC) {
         char msg[64];
         strfmt(msg, "Error: Cannot assign values to a function (line: %d)\n", stmt->lineno);
         term_write(msg, COLOR_WHITE, COLOR_BLACK);
@@ -3396,8 +3364,7 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_stmt_t *scope = env_find_block(block, stmt->var.name);
     env_set_var(scope, stmt->var.name, value);
-    if (value != stmt->var.value)
-        free_node(value);
+    free_node(value);
 
     return node_null();
 }
@@ -3410,7 +3377,7 @@ static script_node_t *eval_func(script_stmt_t *block, script_stmt_t *stmt) {
     script_var_t *var = env_find_var(block, name);
     if (var) {
         char msg[128];
-        if (var->type == SCRIPT_FUNC)
+        if (var->value->value_type == SCRIPT_FUNC)
             strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
         else
             strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
@@ -3467,8 +3434,7 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
         eval->node = node_null();
     }
 
-    if (expr != stmt->if_stmt.expr)
-        free_node(expr);
+    free_node(expr);
     return eval;
 }
 
@@ -3478,9 +3444,7 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
     while (1) {
         script_node_t *expr = eval_expr(block, stmt->while_stmt.expr);
         int is_true = node_istrue(expr);
-
-        if (expr != stmt->while_stmt.expr)
-            free_node(expr);
+        free_node(expr);
 
         if (!is_true)
             break;
@@ -3526,9 +3490,7 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
     while (1) {
         script_node_t *expr = eval_expr(scope, stmt->for_stmt.expr);
         int is_true = node_istrue(expr);
-
-        if (expr != stmt->for_stmt.expr)
-            free_node(expr);
+        free_node(expr);
 
         if (!is_true)
             break;
