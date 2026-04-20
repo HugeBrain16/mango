@@ -435,9 +435,6 @@ static void free_var(script_var_t *var) {
         case SCRIPT_STR:
             heap_free(var->str_value);
             break;
-        case SCRIPT_FUNC:
-            free_stmt(var->func);
-            break;
         case SCRIPT_FILE:
             fio_close(var->file);
             break;
