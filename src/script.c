@@ -219,7 +219,7 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
 
     do {
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
-            token->size++;
+            token->size *= 2;
             token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
         }
 

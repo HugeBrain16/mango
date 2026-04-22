@@ -6,7 +6,7 @@
 #include "fio.h"
 #include "list.h"
 
-#define SCRIPT_SIZE_TOKEN 4
+#define SCRIPT_SIZE_TOKEN 32
 
 #define SCRIPT_TOKEN_IDENTIFIER 0 // [a-zA-Z_]+
 #define SCRIPT_TOKEN_NUMBER     1 // [0-9]+
