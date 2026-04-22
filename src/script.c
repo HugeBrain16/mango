@@ -3588,20 +3588,15 @@ static void block_add_statement(script_stmt_t *block, script_stmt_t* stmt) {
     if (block->type != SCRIPT_STMT_BLOCK)
         return;
 
+    stmt->parent = block;
+    stmt->next = NULL;
+
     if (!block->child) {
         block->child = stmt;
-        stmt->parent = block;
+        block->tail = stmt;
     } else {
-        script_stmt_t *current = block->child;
-        while (current) {
-            if (!current->next) {
-                stmt->parent = block;
-                current->next = stmt;
-                break;
-            }
-
-            current = current->next;
-        }
+        block->tail->next = stmt;
+        block->tail = stmt;
     }
 }
 

@@ -144,6 +144,7 @@ typedef struct script_stmt {
     struct script_stmt *parent;
     struct script_stmt *child;
     struct script_stmt *next;
+    struct script_stmt *tail;
 
     union {
         struct {
