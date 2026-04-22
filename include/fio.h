@@ -14,6 +14,8 @@ typedef struct {
     uint32_t file;
     uint32_t seek;
     uint8_t mode;
+    uint32_t last_sector;
+    uint32_t last_block;
 } fio_t;
 
 extern fio_t *fio_open(const char *path, uint8_t mode);

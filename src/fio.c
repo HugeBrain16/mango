@@ -6,9 +6,19 @@ static uint32_t fio_get_block(fio_t *fio) {
     file_node_t file;
     file_node(fio->file, &file);
 
-    uint32_t sector = 1;
-    uint32_t current = file.first_block;
-    while (fio->seek >= FIO_FS_BLOCKSIZE * sector) {
+    uint32_t target_sector = fio->seek / FIO_FS_BLOCKSIZE;
+
+    uint32_t sector;
+    uint32_t current;
+    if (fio->last_block != 0 && fio->last_sector <= target_sector) {
+        sector = fio->last_sector;
+        current = fio->last_block;
+    } else {
+        sector = 0;
+        current = file.first_block;
+    }
+
+    while (sector < target_sector) {
         file_data_t block;
         file_data(current, &block);
         if (block.next == 0)
@@ -17,6 +27,9 @@ static uint32_t fio_get_block(fio_t *fio) {
         current = block.next;
         sector++;
     }
+
+    fio->last_sector = sector;
+    fio->last_block = current;
 
     return current;
 }
@@ -38,6 +51,8 @@ fio_t *fio_open(const char *path, uint8_t mode) {
     fio_t *fio = heap_alloc(sizeof(fio_t));
     fio->file = node;
     fio->mode = mode;
+    fio->last_sector = 0;
+    fio->last_block = 0;
 
     if (mode == FIO_APPEND)
         fio->seek = file.size;
