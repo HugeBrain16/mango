@@ -9,6 +9,7 @@ typedef struct block {
     size_t size;
     int is_free;
     struct block *next;
+    struct block *prev;
 } block_t;
 
 static uint32_t init_page_tables[4][1024] __attribute__((aligned(4096)));
@@ -67,6 +68,9 @@ static void heap_split(block_t *block, size_t size) {
     sliced->size = remainder - sizeof(block_t);
     sliced->is_free = 1;
     sliced->next = block->next;
+    sliced->prev = block;
+    if (sliced->next)
+        sliced->next->prev = sliced;
 
     block->size = size;
     block->next = sliced;
@@ -111,15 +115,14 @@ void *heap_alloc(size_t size) {
     block->size = size;
     block->is_free = 0;
     block->next = NULL;
+    block->prev = block_tail;
     heap_current += sizeof(block_t) + size;
 
-    if (!block_head) {
+    if (!block_head)
         block_head = block;
-        block_tail = block;
-    } else {
+    else
         block_tail->next = block;
-        block_tail = block;
-    }
+    block_tail = block;
 
     return (uint8_t *) block + sizeof(block_t);
 }
@@ -131,12 +134,28 @@ void heap_free(void *ptr) {
     block->is_free = 1;
 
     while (block->next && block->next->is_free) {
-        if (block->next == block_tail)
-            block_tail = block;
-        if (block->next == block_current)
-            block_current = block;
+        if (block->next == block_tail) block_tail = block;
+        if (block->next == block_current) block_current = block;
+
         block->size += sizeof(block_t) + block->next->size;
         block->next = block->next->next;
+
+        if (block->next)
+            block->next->prev = block;
+    }
+
+    while (block->prev && block->prev->is_free) {
+        block_t *prev = block->prev;
+
+        if (block == block_tail) block_tail = prev;
+        if (block == block_current) block_current = prev;
+
+        prev->size += sizeof(block_t) + block->size;
+        prev->next = block->next;
+
+        if (block->next)
+            block->next->prev = prev;
+        block = prev;
     }
 }
 
@@ -146,29 +165,12 @@ void *heap_realloc(void *ptr, size_t size) {
         heap_free(ptr);
         return NULL;
     }
-    size = (size + 15) & ~15;
-
     block_t *block = heap_header(ptr);
-    if (block->size >= size) {
-        heap_split(block, size);
-        return ptr;
-    }
-
-    while (block->next && block->next->is_free) {
-        if (block->next == block_tail) block_tail = block;
-        if (block->next == block_current) block_current = block;
-
-        block->size += sizeof(block_t) + block->next->size;
-        block->next = block->next->next;
-
-        if (block->size >= size) {
-            heap_split(block, size);
-            return ptr;
-        }
-    }
+    size = (size + 15) & ~15;
 
     void *new = heap_alloc(size);
     if (!new) return NULL;
+
     memcpy(new, ptr, block->size < size ? block->size : size);
     heap_free(ptr);
     return new;
