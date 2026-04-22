@@ -425,24 +425,25 @@ static script_token_t *tokenize(fio_t *file) {
 
         script_token_t *token = NULL;
 
-        if (isdigit(c) || (c == '-' && isdigit(fio_peek(file)))) {
+        char next = fio_peek(file);
+        if (isdigit(c) || (c == '-' && isdigit(next))) {
             token = lex_number(file, &c, &lineno);
         } else if (isalpha(c)) {
             token = lex_identifier(file, &c, &lineno);
         } else if (c == '"') {
             token = lex_string(file, &c, &lineno);
             if (token) c = fio_getc(file);
-        } else if (c == '=' && fio_peek(file) == '=') {
+        } else if (c == '=' && next == '=') {
             token = lex_equaloperator(file, &c, &lineno);
-        } else if (c == '!' && fio_peek(file) == '=') {
+        } else if (c == '!' && next == '=') {
             token = lex_equaloperator(file, &c, &lineno);
-        } else if (c == '>' && fio_peek(file) == '=') {
+        } else if (c == '>' && next == '=') {
             token = lex_equaloperator(file, &c, &lineno);
-        } else if (c == '<' && fio_peek(file) == '=') {
+        } else if (c == '<' && next == '=') {
             token = lex_equaloperator(file, &c, &lineno);
-        } else if (c == '&' && fio_peek(file) == '&') {
+        } else if (c == '&' && next == '&') {
             token = lex_logicoperator(file, &c, &lineno);
-        } else if (c == '|' && fio_peek(file) == '|') {
+        } else if (c == '|' && next == '|') {
             token = lex_logicoperator(file, &c, &lineno);
         } else {
             token = lex_operator(c, &lineno);
