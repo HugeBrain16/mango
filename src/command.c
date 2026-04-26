@@ -1035,7 +1035,7 @@ static int command_datetime(int argc, char *argv[]) {
     intpad(day, now.day, 2, '0');
     intpad(month, now.month, 2, '0');
 
-    strfmt(msg, "%s:%s %s-%s-%d\n", hrs, min, day, month, now.year);
+    strfmt(msg, "%d-%s-%s %s:%s\n", now.year, month, day, hrs, min);
     term_write(msg);
 
     return 0;
