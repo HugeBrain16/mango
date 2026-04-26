@@ -16,6 +16,8 @@ static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
 static list_t *term_history = NULL;
 static size_t term_history_idx = 0;
+static int term_history_max = TERM_MAX_HISTORY;
+static char *term_path = NULL;
 
 void term_init() {
     term_x = 0;
@@ -31,6 +33,9 @@ void term_init() {
         list_init(term_history);
         term_history_idx = 0;
     }
+
+    if (!term_path)
+        term_path = heap_alloc(FILE_MAX_PATH);
 }
 
 void term_load_config() {
@@ -55,6 +60,15 @@ void term_load_config() {
         else
             term_bg = TERM_COLOR_BG;
         heap_free(value);
+    }
+
+    value = config_get("/system/config/shell.cfg", "max_history");
+    if (value) {
+        int max = intstr(value);
+        if (max > 0)
+            term_history_max = max;
+        else
+            term_history_max = TERM_MAX_HISTORY;
     }
 }
 
@@ -331,6 +345,10 @@ void term_handle_type(uint8_t scancode) {
         } else {
             strtrim(term_input);
             if (term_input[0] != '\0') {
+                while ((int)term_history->size >= term_history_max) {
+                    heap_free(list_pop(term_history));
+                }
+
                 size_t length = strlen(term_input) + 1;
                 char *line = heap_alloc(length);
                 strncpy(line, term_input, length);
@@ -343,6 +361,11 @@ void term_handle_type(uint8_t scancode) {
     }
 
     screen_flush();
+}
+
+void term_update_path() {
+    if (config_has("/system/config/shell.cfg", "show_path"))
+        file_get_abspath(file_current, term_path, FILE_MAX_PATH);
 }
 
 void term_draw_prompt() {
@@ -359,11 +382,8 @@ void term_draw_prompt() {
     term_write("\n");
 
     if (config_has("/system/config/shell.cfg", "show_path")) {
-        char *path = heap_alloc(FILE_MAX_PATH);
-        file_get_abspath(file_current, path, FILE_MAX_PATH);
-        term_write(path);
+        term_write(term_path);
         term_write(" ");
-        heap_free(path);
     }
 
     term_write(symbol);

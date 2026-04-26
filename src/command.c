@@ -1132,6 +1132,8 @@ static int command_reloadconfig(int argc, char *argv[]) {
 int command_handle(char *command, int printprompt) {
     int exit = 0;
 
+    uint32_t old_location = file_current;
+
     string_t *cmd = string_init();
     string_t *args[COMMAND_MAX_ARG] = { NULL };
 
@@ -1222,8 +1224,12 @@ int command_handle(char *command, int printprompt) {
     }
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
-        if (!term_input_buffer && printprompt)
+        if (!term_input_buffer && printprompt) {
+            if (old_location != file_current)
+                term_update_path();
+
             term_draw_prompt();
+        }
 
         term_prompt = term_x;
     }

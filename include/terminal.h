@@ -7,6 +7,7 @@
 
 #define TERM_CURSOR_BLINK 500
 #define TERM_INPUT_SIZE 128
+#define TERM_MAX_HISTORY 32
 
 #define TERM_COLOR_FG COLOR_WHITE
 #define TERM_COLOR_BG COLOR_BLACK
@@ -29,5 +30,6 @@ extern void term_handle_type(uint8_t scancode);
 extern void term_get_input(const char* prompt, char *buffer, size_t size);
 extern void term_draw_prompt();
 extern void term_load_config();
+extern void term_update_path();
 
 #endif

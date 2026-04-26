@@ -146,6 +146,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     log("[ INFO ] Initialization complete!\n");
     term_init();
     term_load_config();
+    term_update_path();
     screen_clear(term_bg);
 
     if (file_drive_status == FILE_DRIVE_OK && file_path_isfile("/system/init.sc"))
