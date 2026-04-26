@@ -193,19 +193,27 @@ static void command_list(int argc, char *argv[]) {
     file_node(parent, &parent_node);
 
     if (parent_node.child_head && (parent_node.flags & FILE_FOLDER)) {
-        term_write("\nList of files:\n", COLOR_WHITE, COLOR_BLACK);
-
         uint32_t current = parent_node.child_head;
         file_node_t current_node;
 
         while (current) {
             file_node(current, &current_node);
 
-            if (current_node.flags & FILE_DATA)
-                strfmt(buff, "- %s\n", current_node.name);
-            else if (current_node.flags & FILE_FOLDER)
-                strfmt(buff, "-> %s\n", current_node.name);
-            term_write(buff, COLOR_WHITE, COLOR_BLACK);
+            if (current_node.flags & FILE_FOLDER) {
+                strfmt(buff, "%s/\n", current_node.name);
+                term_write(buff, COLOR_WHITE, COLOR_BLACK);
+            }
+            current = current_node.child_next;
+        }
+
+        current = parent_node.child_head;
+        while (current) {
+            file_node(current, &current_node);
+
+            if (current_node.flags & FILE_DATA) {
+                strfmt(buff, "%s\n", current_node.name);
+                term_write(buff, COLOR_WHITE, COLOR_BLACK);
+            }
             current = current_node.child_next;
         }
     } else if (!parent || !(parent_node.flags & FILE_FOLDER))
