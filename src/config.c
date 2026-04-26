@@ -5,6 +5,13 @@
 #include "heap.h"
 #include "file.h"
 
+static void lines_free(list_t *lines) {
+	for (size_t i = 0; i < lines->size; i++)
+		string_free((string_t*)list_get(lines, i));
+	list_clear(lines);
+	list_free(lines);
+}
+
 static void config_parse(string_t *line, string_t *name, string_t *value) {
 	int found_separator = 0;
 
@@ -35,15 +42,15 @@ int config_has(const char *path, const char *name) {
 
 		if (!strcmp(line_name->value, name)) {
 			string_free(line_name);
-			list_clear(lines);
-			list_free(lines);
+			lines_free(lines);
 			heap_free(buffer);
 			return 1;
 		}
+
+		string_free(line_name);
 	}
 
-	list_clear(lines);
-	list_free(lines);
+	lines_free(lines);
 	heap_free(buffer);
 	return 0;
 }
@@ -65,16 +72,17 @@ char *config_get(const char *path, const char *name) {
 			memcpy(value, line_value->value, line_value->size);
 			
 			string_free(line_name);
-			heap_free(line_value);
-			list_clear(lines);
-			list_free(lines);
+			string_free(line_value);
+			lines_free(lines);
 			heap_free(buffer);
 			return value;
 		}
+
+		string_free(line_name);
+		string_free(line_value);
 	}
 
-	list_clear(lines);
-	list_free(lines);
+	lines_free(lines);
 	heap_free(buffer);
 	return NULL;
 }
