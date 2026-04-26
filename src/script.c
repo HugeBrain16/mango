@@ -3198,6 +3198,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     if (free_left) free_node(left);
     if (free_right) free_node(right);
     free_node(binop);
+    free_node(node);
     return NULL;
 }
 
@@ -3453,6 +3454,9 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
     script_stmt_t *current = stmt->child;
     while (current) {
         eval = eval_statement(block, current);
+        if (!eval)
+            break;
+
         if (eval->type == SCRIPT_EVAL_RETURN ||
             eval->type == SCRIPT_EVAL_BREAK ||
             eval->type == SCRIPT_EVAL_CONTINUE ||
@@ -3464,11 +3468,8 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
         current = current->next;
     }
 
-    if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
-        eval->type = SCRIPT_EVAL_NONE;
-        eval->node = node_null();
-    }
+    if (!eval)
+        return NULL;
 
     return eval;
 }
@@ -3482,14 +3483,11 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
     else if (stmt->if_stmt.else_stmt) {
         eval = eval_statement(block, stmt->if_stmt.else_stmt);
     }
-
-    if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
-        eval->type = SCRIPT_EVAL_NONE;
-        eval->node = node_null();
-    }
-
     free_node(expr);
+
+    if (!eval)
+        return NULL;
+
     return eval;
 }
 
@@ -3526,11 +3524,8 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
         eval = NULL;
     }
 
-    if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
-        eval->type = SCRIPT_EVAL_NONE;
-        eval->node = node_null();
-    }
+    if (!eval)
+        return NULL;
 
     return eval;
 }
@@ -3577,11 +3572,8 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
 
     free_stmt(scope);
 
-    if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
-        eval->type = SCRIPT_EVAL_NONE;
-        eval->node = node_null();
-    }
+    if (!eval)
+        return NULL;
 
     return eval;
 }
@@ -3589,47 +3581,67 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) {
     if (!stmt) return NULL;
 
-    script_eval_t *eval = heap_alloc(sizeof(script_eval_t));
-    eval->type = SCRIPT_EVAL_NONE;
-    eval->node = NULL;
-
+    script_eval_t *eval = NULL;
     switch (stmt->type) {
         case SCRIPT_STMT_EXPR:
-            eval->node = eval_expr(block, stmt->expr.node);
-            break;
+            {
+                script_node_t *node = eval_expr(block, stmt->expr.node);
+                if (!node)
+                    break;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_RETURN:
-            eval->type = SCRIPT_EVAL_RETURN;
-            eval->node = eval_expr(block, stmt->expr.node);
-            break;
+            {
+                script_node_t *node = eval_expr(block, stmt->expr.node);
+                if (!node)
+                    break;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_RETURN;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_BREAK:
+            eval = heap_alloc(sizeof(script_eval_t));
             eval->type = SCRIPT_EVAL_BREAK;
+            eval->node = NULL;
             break;
         case SCRIPT_STMT_CONTINUE:
+            eval = heap_alloc(sizeof(script_eval_t));
             eval->type = SCRIPT_EVAL_CONTINUE;
+            eval->node = NULL;
             break;
         case SCRIPT_STMT_DECLARE:
+            eval = heap_alloc(sizeof(script_eval_t));
+            eval->type = SCRIPT_EVAL_NONE;
             eval->node = eval_declare(block, stmt);
             break;
         case SCRIPT_STMT_DEFINE:
+            eval = heap_alloc(sizeof(script_eval_t));
+            eval->type = SCRIPT_EVAL_NONE;
             eval->node = eval_define(block, stmt);
             break;
         case SCRIPT_STMT_ASSIGN:
+            eval = heap_alloc(sizeof(script_eval_t));
+            eval->type = SCRIPT_EVAL_NONE;
             eval->node = eval_assign(block, stmt);
             break;
         case SCRIPT_STMT_FUNC:
+            eval = heap_alloc(sizeof(script_eval_t));
+            eval->type = SCRIPT_EVAL_NONE;
             eval->node = eval_func(block, stmt);
             break;
         case SCRIPT_STMT_BLOCK:
-            free_eval(eval);
             return eval_block(block, stmt);
         case SCRIPT_STMT_IF:
-            free_eval(eval);
             return eval_if(block, stmt);
         case SCRIPT_STMT_WHILE:
-            free_eval(eval);
             return eval_while(block, stmt);
         case SCRIPT_STMT_FOR:
-            free_eval(eval);
             return eval_for(block, stmt);
     }
 
