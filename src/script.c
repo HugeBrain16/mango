@@ -2696,6 +2696,8 @@ static script_node_t *call_color_setfg(script_node_t *node) {
     int col = color(name->literal.str_value);
     if (col != COLOR_INVALID)
         script_printfg = col;
+    else
+        script_printfg = term_fg;
 
     return node_null();
 }
@@ -2726,6 +2728,8 @@ static script_node_t *call_color_setbg(script_node_t *node) {
     int col = color(name->literal.str_value);
     if (col != COLOR_INVALID)
         script_printbg = col;
+    else
+        script_printbg = term_bg;
 
     return node_null();
 }
@@ -2733,8 +2737,8 @@ static script_node_t *call_color_setbg(script_node_t *node) {
 static script_node_t *call_color_reset(script_node_t *node) {
     unused(node);
 
-    script_printfg = COLOR_WHITE;
-    script_printbg = COLOR_BLACK;
+    script_printfg = term_fg;
+    script_printbg = term_bg;
     return node_null();
 }
 
