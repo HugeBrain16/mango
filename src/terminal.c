@@ -24,11 +24,34 @@ void term_init() {
     term_input_cursor = 0;
     term_input_pos = 0;
     term_input_buffer = NULL;
+    term_fg = COLOR_WHITE;
+    term_bg = COLOR_BLACK;
 
     if (!term_history) {
         term_history = heap_alloc(sizeof(list_t));
         list_init(term_history);
         term_history_idx = 0;
+    }
+}
+
+void term_load_config() {
+    char *value;
+    int col;
+
+    value = config_get("/system/config/terminal.cfg", "color_fg");
+    if (value) {
+        col = color(value);
+        if (col != COLOR_INVALID)
+            term_fg = col;
+        heap_free(value);
+    }
+
+    value = config_get("/system/config/terminal.cfg", "color_bg");
+    if (value) {
+        int col = color(value);
+        if (col != COLOR_INVALID)
+            term_bg = col;
+        heap_free(value);
     }
 }
 
@@ -38,9 +61,9 @@ static void term_clear_cursor() {
         if (c == '\t')
             c = ' ';
 
-        screen_draw_char(term_x, term_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(term_x, term_y, c, term_fg, term_bg, screen_scale);
     } else
-        screen_draw_char(term_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(term_x, term_y, ' ', term_fg, term_bg, screen_scale);
 }
 
 void term_draw_cursor() {
@@ -53,7 +76,7 @@ void term_draw_cursor() {
         term_clear_cursor();
 
         if (cursor_visible)
-            screen_draw_char(term_x, term_y, '_', COLOR_WHITE, COLOR_TRANSPARENT, screen_scale);
+            screen_draw_char(term_x, term_y, '_', term_fg, COLOR_TRANSPARENT, screen_scale);
 
         screen_flush();
     }
@@ -65,7 +88,7 @@ static void term_redraw_cursor(int hide) {
     term_draw_cursor();
 }
 
-void term_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
+void term_write(const char *text) {
     term_clear_cursor();
 
     for (const char *p = text; *p != '\0'; p++) {
@@ -73,11 +96,11 @@ void term_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
 
         if (c == '\t') {
             for (int i = 0; i < KEYBOARD_TAB_LENGTH; i++) {
-                screen_draw_char(term_x, term_y, ' ', fg_color, bg_color, screen_scale);
+                screen_draw_char(term_x, term_y, ' ', term_fg, term_bg, screen_scale);
                 term_x += FONT_WIDTH * screen_scale;
             }
         } else if (c != '\n')
-            screen_draw_char(term_x, term_y, c, fg_color, bg_color, screen_scale); 
+            screen_draw_char(term_x, term_y, c, term_fg, term_bg, screen_scale); 
 
         if (c != '\b' && c != '\t')
             term_x += FONT_WIDTH * screen_scale;
@@ -92,6 +115,18 @@ void term_write(const char *text, uint32_t fg_color, uint32_t bg_color) {
             }
         }
     }
+}
+
+void term_write2(const char *msg, uint32_t fg_color, uint32_t bg_color) {
+    int fg = term_fg;
+    int bg = term_bg;
+    term_fg = fg_color;
+    term_bg = bg_color;
+
+    term_write(msg);
+
+    term_fg = fg;
+    term_bg = bg;
 }
 
 static void term_handle_backspace() {
@@ -113,18 +148,18 @@ static void term_handle_backspace() {
 
         if (c == '\t') {
             for (int j = 0; j < KEYBOARD_TAB_LENGTH; j++) {
-                screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+                screen_draw_char(draw_x, term_y, ' ', term_fg, term_bg, screen_scale);
                 draw_x += FONT_WIDTH * screen_scale;
             }
         } else {
-            screen_draw_char(draw_x, term_y, c, COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(draw_x, term_y, c, term_fg, term_bg, screen_scale);
             draw_x += FONT_WIDTH * screen_scale;
         }
     }
 
     int max_x = screen_width - (FONT_WIDTH * screen_scale);
     while (draw_x < max_x) {
-        screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(draw_x, term_y, ' ', term_fg, term_bg, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
     }
 
@@ -179,10 +214,10 @@ static void term_handle_right() {
     screen_flush();
 }
 
-void term_get_input(const char* prompt, char *buffer, size_t size, uint32_t fg_color, uint32_t bg_color) {
+void term_get_input(const char* prompt, char *buffer, size_t size) {
     memset(buffer, 0, size);
     term_input_buffer = buffer;
-    term_write(prompt, fg_color, bg_color);
+    term_write(prompt);
     term_prompt = term_x;
 
     __asm__ volatile("sti");
@@ -195,7 +230,7 @@ static void term_handle_history(int direction) {
     if (direction == -1 && term_history_idx <= 1) {
         int draw_x = term_prompt;
         for (size_t i = 0; i < strlen(term_input) + 1; i++) {
-            screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+            screen_draw_char(draw_x, term_y, ' ', term_fg, term_bg, screen_scale);
             draw_x += FONT_WIDTH * screen_scale;
         }
         term_x = term_prompt;
@@ -218,7 +253,7 @@ static void term_handle_history(int direction) {
 
     int draw_x = term_prompt;
     for (size_t i = 0; i < strlen(term_input) + 1; i++) {
-        screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(draw_x, term_y, ' ', term_fg, term_bg, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
     }
     term_x = term_prompt;
@@ -229,7 +264,7 @@ static void term_handle_history(int direction) {
     term_input_pos = term_input_cursor;
 
     for (int i = 0; i < term_input_cursor; i++) {
-        screen_draw_char(term_x, term_y, term_input[i], COLOR_WHITE, COLOR_BLACK, screen_scale);
+        screen_draw_char(term_x, term_y, term_input[i], term_fg, term_bg, screen_scale);
         term_x += FONT_WIDTH * screen_scale;
     }
 
@@ -264,11 +299,11 @@ void term_handle_type(uint8_t scancode) {
 
             if (d == '\t') {
                 for (int j = 0; j < KEYBOARD_TAB_LENGTH; j++) {
-                    screen_draw_char(draw_x, term_y, ' ', COLOR_WHITE, COLOR_BLACK, screen_scale);
+                    screen_draw_char(draw_x, term_y, ' ', term_fg, term_bg, screen_scale);
                     draw_x += FONT_WIDTH * screen_scale;
                 }
             } else {
-                screen_draw_char(draw_x, term_y, d, COLOR_WHITE, COLOR_BLACK, screen_scale);
+                screen_draw_char(draw_x, term_y, d, term_fg, term_bg, screen_scale);
                 draw_x += FONT_WIDTH * screen_scale;
             }
         }
@@ -282,7 +317,7 @@ void term_handle_type(uint8_t scancode) {
         term_redraw_cursor(0);
     } else {
         char s[2] = { c, '\0' };
-        term_write(s, COLOR_WHITE, COLOR_BLACK);
+        term_write(s);
         term_history_idx = 0;
         term_input_cursor = 0;
         term_input_pos = 0;
@@ -318,17 +353,19 @@ void term_draw_prompt() {
         else if (!strcmp(prompt, "tilde")) symbol = "~";
     }
 
-    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+    term_write("\n");
 
     if (config_has("/system/config/shell.cfg", "show_path")) {
         char *path = heap_alloc(FILE_MAX_PATH);
         file_get_abspath(file_current, path, FILE_MAX_PATH);
-        term_write(path, COLOR_WHITE, COLOR_BLACK);
-        term_write(" ", COLOR_WHITE, COLOR_BLACK);
+        term_write(path);
+        term_write(" ");
         heap_free(path);
     }
 
-    term_write(symbol, COLOR_WHITE, COLOR_BLACK);
-    term_write(" ", COLOR_WHITE, COLOR_BLACK);
+    term_write(symbol);
+    term_write(" ");
     term_prompt = term_x;
+
+    heap_free(prompt);
 }

@@ -31,7 +31,7 @@ void log(const char *msg) {
     serial_write(msg);
 
     if (screen_buffer) {
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         screen_flush();
     }
 }
@@ -145,7 +145,8 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     log("[ INFO ] Initialization complete!\n");
     term_init();
-    screen_clear(COLOR_BLACK);
+    term_load_config();
+    screen_clear(term_bg);
 
     if (file_drive_status == FILE_DRIVE_OK && file_path_isfile("/system/init.sc"))
         script_run("/system/init.sc", 0, NULL);
@@ -155,7 +156,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         screen_scale = doublestr(scale_config);
 
     if (!config_has("/system/config/system.cfg", "disable_welcome_message"))
-        term_write("Welcome to Mango!\n", COLOR_YELLOW, COLOR_BLACK);
+        term_write2("Welcome to Mango!\n", COLOR_YELLOW, term_bg);
     term_draw_prompt();
     keyboard_mode = KEYBOARD_MODE_TERM;
     screen_flush();

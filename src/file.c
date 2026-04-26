@@ -592,7 +592,7 @@ uint32_t file_sector_alloc() {
     file_read_sb(&sb);
 
     if (sb.used >= sb.sectors) {
-        term_write("Error: Disk full!\n", COLOR_WHITE, COLOR_BLACK);
+        term_write("Error: Disk full!\n");
         return 0;
     }
 

@@ -239,7 +239,7 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
     if (isalpha(*c) || is_float == 2) {
         char msg[64];
         strfmt(msg, "Error: Unexpected char \"%c\" (line: %d)\n", *c, *lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_token(token);
         return NULL;
     }
@@ -309,7 +309,7 @@ static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
     if (*c != '"') {
         char msg[32];
         strfmt(msg, "Error: Unclosed string (line: %d)\n", *lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_token(token);
         return NULL;
     }
@@ -341,7 +341,7 @@ static script_token_t *lex_operator(char c, size_t *lineno) {
         default: {
                      char msg[32];
                      strfmt(msg, "Error: Illegal token (line: %d): \"%c\"\n", *lineno, c);
-                     term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                     term_write(msg);
                      free_token(token);
                      return NULL;
                  }
@@ -364,7 +364,7 @@ static script_token_t *lex_equaloperator(fio_t *file, char *c, size_t *lineno) {
         default: {
             char msg[64];
             strfmt(msg, "Error: Unexpected '%c' for equal operator (line: %d)\n", *c, *lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_token(token);
             return NULL;
         }
@@ -388,7 +388,7 @@ static script_token_t *lex_logicoperator(fio_t *file, char *c, size_t *lineno) {
         default: {
             char msg[64];
             strfmt(msg, "Error: Unexpected '%c' for logic operator (line: %d)\n", *c, *lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_token(token);
             return NULL;
         }
@@ -985,7 +985,7 @@ static script_node_t *parse_factor(script_token_t **token) {
         if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
             char msg[64];
             strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_node(node);
             return NULL;
         }
@@ -996,7 +996,7 @@ static script_node_t *parse_factor(script_token_t **token) {
 
     char msg[64];
     strfmt(msg, "Error: expected value, got \"%s\" (line: %d)\n", (*token)->value, (*token)->lineno);
-    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+    term_write(msg);
     return NULL;
 }
 
@@ -1038,7 +1038,7 @@ static script_node_t *parse_call(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
 
@@ -1157,13 +1157,13 @@ static script_stmt_t *parse_declare(script_token_t **token) {
     if (name->value_type != SCRIPT_ID) {
         char msg[64];
         strfmt(msg, "Error: expected identifier (line: %d)\n", name->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(name);
         return NULL;
     }
 
     if (!*token) {
-        term_write("Error: unexpected eof\n", COLOR_WHITE, COLOR_BLACK);
+        term_write("Error: unexpected eof\n");
         free_node(name);
         return NULL;
     }
@@ -1178,7 +1178,7 @@ static script_stmt_t *parse_declare(script_token_t **token) {
         strfmt(msg, "Error: Unexpected \"%s\" (line: %d)\n",
             *token ? (*token)->value : "",
             *token ? (*token)->lineno : name->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
 }
@@ -1225,7 +1225,7 @@ static script_stmt_t *parse_block(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_RBRAC) {
         char msg[64];
         strfmt(msg, "Error: expected '}' (line: %d)\n", block->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_stmt(block);
         return NULL;
     }
@@ -1243,7 +1243,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
     if (name->value_type != SCRIPT_ID) {
         char msg[64];
         strfmt(msg, "Error: expected identifier (line: %d)\n", name->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(name);
         return NULL;
     }
@@ -1260,7 +1260,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
                 if (param->value_type != SCRIPT_ID) {
                     char msg[64];
                     strfmt(msg, "Error: expected parameter as identifier (line: %d)\n", (*token)->lineno);
-                    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                    term_write(msg);
 
                     for (size_t i = 0; i < params_count; i++)
                         free_node(params[i]);
@@ -1283,7 +1283,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
     } else {
         char msg[64];
         strfmt(msg, "Error: expected '(' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(name);
         return NULL;
     }
@@ -1291,7 +1291,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1299,7 +1299,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LBRAC) {
         char msg[64];
         strfmt(msg, "Error: expected '{' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1311,7 +1311,7 @@ static script_stmt_t *parse_if(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1323,7 +1323,7 @@ static script_stmt_t *parse_if(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1348,7 +1348,7 @@ static script_stmt_t *parse_while(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1359,7 +1359,7 @@ static script_stmt_t *parse_while(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1377,7 +1377,7 @@ static script_stmt_t *parse_for(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         return NULL;
     }
     *token = (*token)->next;
@@ -1395,7 +1395,7 @@ static script_stmt_t *parse_for(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
         char msg[64];
         strfmt(msg, "Error: expected ';' (line: %d)\n", (*token)->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
 
         free_stmt(init);
         free_node(expr);
@@ -1413,7 +1413,7 @@ static script_stmt_t *parse_for(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
         char msg[64];
         strfmt(msg, "Error: expected ')' (line: %d)\n", (*token)->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
 
         free_stmt(init);
         free_node(expr);
@@ -1490,7 +1490,7 @@ static script_stmt_t *parse_statement(script_token_t **token) {
         if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
             char msg[64];
             strfmt(msg, "Error: expected ';' (line: %d)\n", *token ? (*token)->lineno : stmt->lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_stmt(stmt);
             return NULL;
         }
@@ -1510,7 +1510,7 @@ static script_node_t *call_exit(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function exit() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1523,7 +1523,7 @@ static script_node_t *call_exit(script_node_t *node) {
         char msg[64];
         script_node_t *name = node_type_name(argv[0]);
         strfmt(msg, "Error: Function exit() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(name);
         free_node(node);
         return NULL;
@@ -1537,7 +1537,7 @@ static script_node_t *call_exec(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function exec() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1556,7 +1556,7 @@ static script_node_t *call_exec(script_node_t *node) {
         char msg[64];
         script_node_t *name = node_type_name(argv[0]);
         strfmt(msg, "Error: Function exec() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(name);
         free_node(node);
         return NULL;
@@ -1568,9 +1568,16 @@ static script_node_t *call_print(script_node_t *node) {
         char *repr = node_repr(node->call.argv[i]);
 
         if (repr) {
-            term_write(repr, script_printfg, script_printbg);
-            heap_free(repr);
+            int fg = term_fg;
+            int bg = term_bg;
+            term_fg = script_printfg;
+            term_bg = script_printbg;
 
+            term_write(repr);
+
+            term_fg = fg;
+            term_bg = bg;
+            heap_free(repr);
             screen_flush();
         }
     }
@@ -1593,7 +1600,7 @@ static script_node_t *call_sys_log(script_node_t *node) {
 
 static script_node_t *call_println(script_node_t *node) {
     script_node_t *ret = call_print(node);
-    term_write("\n", script_printfg, script_printbg);
+    term_write("\n");
     return ret;
 }
 
@@ -1603,7 +1610,7 @@ static script_node_t *call_as_str(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function as_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1622,7 +1629,7 @@ static script_node_t *call_as_str(script_node_t *node) {
     } else {
         char msg[64];
         strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(value);
         return NULL;
     }
@@ -1636,7 +1643,7 @@ static script_node_t *call_as_int(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function as_int() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1682,7 +1689,7 @@ static script_node_t *call_as_int(script_node_t *node) {
             {
                 char msg[64];
                 strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                term_write(msg);
                 free_node(value);
                 return NULL;
             }
@@ -1697,7 +1704,7 @@ static script_node_t *call_as_float(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function as_float() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1743,7 +1750,7 @@ static script_node_t *call_as_float(script_node_t *node) {
             {
                 char msg[64];
                 strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                term_write(msg);
                 free_node(value);
                 return NULL;
             }
@@ -1758,7 +1765,7 @@ static script_node_t *call_type_name(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function type_name() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1772,7 +1779,7 @@ static script_node_t *call_file_open(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function file_open() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1784,7 +1791,7 @@ static script_node_t *call_file_open(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(filename);
         strfmt(msg, "Error: Function file_open() arg 1 expects string argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1794,7 +1801,7 @@ static script_node_t *call_file_open(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(mode);
         strfmt(msg, "Error: Function file_open() arg 2 expects string argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1820,7 +1827,7 @@ static script_node_t *call_file_close(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_close() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1831,7 +1838,7 @@ static script_node_t *call_file_close(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(file);
         strfmt(msg, "Error: Function file_open() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1849,7 +1856,7 @@ static script_node_t *call_file_getc(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_getc() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1860,7 +1867,7 @@ static script_node_t *call_file_getc(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(file);
         strfmt(msg, "Error: Function file_getc() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1890,7 +1897,7 @@ static script_node_t *call_file_peek(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_peek() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1901,7 +1908,7 @@ static script_node_t *call_file_peek(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(file);
         strfmt(msg, "Error: Function file_peek() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1931,7 +1938,7 @@ static script_node_t *call_file_read(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function file_read() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1943,7 +1950,7 @@ static script_node_t *call_file_read(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(file);
         strfmt(msg, "Error: Function file_read() arg 1 expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1953,7 +1960,7 @@ static script_node_t *call_file_read(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(length);
         strfmt(msg, "Error: Function file_read() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -1980,7 +1987,7 @@ static script_node_t *call_file_write(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function file_write() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -1992,7 +1999,7 @@ static script_node_t *call_file_write(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(file);
         strfmt(msg, "Error: Function file_write() arg 1 expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2002,7 +2009,7 @@ static script_node_t *call_file_write(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(string);
         strfmt(msg, "Error: Function file_write() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2020,7 +2027,7 @@ static script_node_t *call_file_isfile(script_node_t *node) {
     if (argc < 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_isfile() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2031,7 +2038,7 @@ static script_node_t *call_file_isfile(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(path);
         strfmt(msg, "Error: Function file_isfile() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2049,7 +2056,7 @@ static script_node_t *call_file_isfolder(script_node_t *node) {
     if (argc < 1) {
         char msg[64];
         strfmt(msg, "Error: Function file_isfolder() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2060,7 +2067,7 @@ static script_node_t *call_file_isfolder(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(path);
         strfmt(msg, "Error: Function file_isfolder() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2078,7 +2085,7 @@ static script_node_t *call_char_at(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function char_at() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2090,7 +2097,7 @@ static script_node_t *call_char_at(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(string);
         strfmt(msg, "Error: Function char_at() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2100,7 +2107,7 @@ static script_node_t *call_char_at(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(index);
         strfmt(msg, "Error: Function char_at() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2128,7 +2135,7 @@ static script_node_t *call_sizeof(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function sizeof() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2196,7 +2203,7 @@ static script_node_t *call_input(script_node_t *node) {
             char msg[128];
             script_node_t *type_name = node_type_name(arg);
             strfmt(msg, "Error: Function input() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_node(type_name);
             free_node(node);
             return NULL;
@@ -2207,12 +2214,19 @@ static script_node_t *call_input(script_node_t *node) {
     } else if (argc > 1) {
         char msg[64];
         strfmt(msg, "Error: Function input() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
 
-    term_get_input(prompt == NULL ? "" : prompt, input, sizeof(input), COLOR_WHITE, COLOR_BLACK);
+    int fg = term_fg;
+    int bg = term_bg;
+    term_fg = script_printfg;
+    term_bg = script_printbg;
+    term_get_input(prompt == NULL ? "" : prompt, input, sizeof(input));
+
+    term_fg = fg;
+    term_bg = bg;
     heap_free(prompt);
 
     script_node_t *value = node_null();
@@ -2232,7 +2246,7 @@ static script_node_t *call_config_has(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2244,7 +2258,7 @@ static script_node_t *call_config_has(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(path);
         strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2254,7 +2268,7 @@ static script_node_t *call_config_has(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(name);
         strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2272,7 +2286,7 @@ static script_node_t *call_config_get(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2284,7 +2298,7 @@ static script_node_t *call_config_get(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(path);
         strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2294,7 +2308,7 @@ static script_node_t *call_config_get(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(name);
         strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2334,7 +2348,7 @@ static script_node_t *call_list_clear(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function list_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2345,7 +2359,7 @@ static script_node_t *call_list_clear(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(list);
         strfmt(msg, "Error: Function list_clear() expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2368,7 +2382,7 @@ static script_node_t *call_list_pop(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function list_pop() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2379,7 +2393,7 @@ static script_node_t *call_list_pop(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(list);
         strfmt(msg, "Error: Function list_pop() expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2400,7 +2414,7 @@ static script_node_t *call_list_push(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function list_push() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2412,7 +2426,7 @@ static script_node_t *call_list_push(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(list);
         strfmt(msg, "Error: Function list_push() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2430,7 +2444,7 @@ static script_node_t *call_list_get(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function list_get() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2442,7 +2456,7 @@ static script_node_t *call_list_get(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(list);
         strfmt(msg, "Error: Function list_get() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2452,7 +2466,7 @@ static script_node_t *call_list_get(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(index);
         strfmt(msg, "Error: Function list_get() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2473,7 +2487,7 @@ static script_node_t *call_list_remove(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function list_remove() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2485,7 +2499,7 @@ static script_node_t *call_list_remove(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(list);
         strfmt(msg, "Error: Function list_remove() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2495,7 +2509,7 @@ static script_node_t *call_list_remove(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(index);
         strfmt(msg, "Error: Function list_remove() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2513,7 +2527,7 @@ static script_node_t *call_sleep(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function sleep() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2524,7 +2538,7 @@ static script_node_t *call_sleep(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(interval);
         strfmt(msg, "Error: Function sleep() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2569,7 +2583,7 @@ static script_node_t *call_argv(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function argv() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2580,7 +2594,7 @@ static script_node_t *call_argv(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(index);
         strfmt(msg, "Error: Function argv() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2619,7 +2633,7 @@ static script_node_t *call_randrange(script_node_t *node) {
     if (argc != 2) {
         char msg[64];
         strfmt(msg, "Error: Function randrange() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2631,7 +2645,7 @@ static script_node_t *call_randrange(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(min);
         strfmt(msg, "Error: Function randrange() arg 1 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2641,7 +2655,7 @@ static script_node_t *call_randrange(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(max);
         strfmt(msg, "Error: Function randrange() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2662,7 +2676,7 @@ static script_node_t *call_color_setfg(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function color_setfg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2673,7 +2687,7 @@ static script_node_t *call_color_setfg(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(name);
         strfmt(msg, "Error: Function color_setfg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2692,7 +2706,7 @@ static script_node_t *call_color_setbg(script_node_t *node) {
     if (argc != 1) {
         char msg[64];
         strfmt(msg, "Error: Function color_setbg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(node);
         return NULL;
     }
@@ -2703,7 +2717,7 @@ static script_node_t *call_color_setbg(script_node_t *node) {
         char msg[128];
         script_node_t *type_name = node_type_name(name);
         strfmt(msg, "Error: Function color_setbg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
@@ -2758,7 +2772,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         if (!var) {
             char msg[64];
             strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_node(binop);
             return NULL;
         }
@@ -2773,7 +2787,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         if (!var) {
             char msg[64];
             strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_node(binop);
             return NULL;
         }
@@ -3064,7 +3078,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (r == 0) {
                 char msg[64];
                 strfmt(msg, "Error: Zero division (line: %d)\n", node->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                term_write(msg);
                 free_node(node);
                 return NULL;
             }
@@ -3087,7 +3101,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (r == 0) {
                 char msg[64];
                 strfmt(msg, "Error: Modulo by zero (line: %d)\n", binop->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                term_write(msg);
                 free_node(node);
                 return NULL;
             }
@@ -3180,7 +3194,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
     char msg[64];
     strfmt(msg, "Error: Unsupported operation (line: %d)\n", binop->lineno);
-    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+    term_write(msg);
     if (free_left) free_node(left);
     if (free_right) free_node(right);
     free_node(binop);
@@ -3253,7 +3267,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
             if (vv->value_type != SCRIPT_FUNC) {
                 char msg[64];
                 strfmt(msg, "Error: Variable \"%s\" is not callable (line: %d)\n", name, call->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                term_write(msg);
                 free_node(call);
                 return NULL;
             }
@@ -3265,7 +3279,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
                 char msg[64];
                 strfmt(msg, "Error: Function \"%s\" takes %d argument(s), got %d (line: %d)\n",
                     name, func->func.params_count, call->call.argc, call->lineno);
-                term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                term_write(msg);
                 free_node(call);
                 return NULL;
             }
@@ -3288,7 +3302,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
         } else {
             char msg[64];
             strfmt(msg, "Error: Undefined call \"%s\" (line: %d)\n", name, call->lineno);
-            term_write(msg, COLOR_WHITE, COLOR_BLACK);
+            term_write(msg);
             free_node(call);
             return NULL;
         }
@@ -3312,7 +3326,7 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
                 if (!var) {
                     char msg[64];
                     strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, expr->lineno);
-                    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+                    term_write(msg);
                     return NULL;
                 }
                 return node_clone(var->value);
@@ -3327,7 +3341,7 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
 
     char msg[64];
     strfmt(msg, "Error: Unsupported operation (line: %d)\n", expr->lineno);
-    term_write(msg, COLOR_WHITE, COLOR_BLACK);
+    term_write(msg);
     free_node(expr);
     return NULL;
 }
@@ -3342,7 +3356,7 @@ static script_node_t *eval_declare(script_stmt_t *block, script_stmt_t *stmt) {
             strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
         else
             strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_stmt(stmt);
         return NULL;
     }
@@ -3364,7 +3378,7 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
             strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
         else
             strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_stmt(stmt);
         return NULL;
     }
@@ -3385,7 +3399,7 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
     if (!var) {
         char msg[64];
         strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", stmt->var.name, stmt->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_stmt(stmt);
         return NULL;
     }
@@ -3393,7 +3407,7 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
     if (var->value->value_type == SCRIPT_FUNC) {
         char msg[64];
         strfmt(msg, "Error: Cannot assign values to a function (line: %d)\n", stmt->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_stmt(stmt);
         return NULL;
     }
@@ -3421,7 +3435,7 @@ static script_node_t *eval_func(script_stmt_t *block, script_stmt_t *stmt) {
             strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
         else
             strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
-        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        term_write(msg);
         free_stmt(stmt);
         return NULL;
     }
@@ -3656,6 +3670,9 @@ void script_run(const char *path, int argc, char *argv[]) {
 
     script_argc = argc;
     script_argv = argv;
+
+    script_printfg = term_fg;
+    script_printbg = term_bg;
 
     fio_t *file = fio_open(path, FIO_READ);
     if (!file) return;

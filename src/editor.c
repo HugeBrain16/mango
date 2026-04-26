@@ -425,7 +425,7 @@ static void edit_handle_quit() {
     edit_y = 0;
 
     keyboard_mode = KEYBOARD_MODE_TERM;
-    screen_clear(COLOR_BLACK);
+    screen_clear(term_bg);
     term_x = 0;
     term_y = 0;
     term_draw_prompt();
