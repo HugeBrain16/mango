@@ -113,7 +113,7 @@ void term_write(const char *text) {
 
             int max_y = screen_height - (FONT_HEIGHT * screen_scale);
             if (term_y > max_y) {
-                screen_scroll(FONT_HEIGHT * screen_scale);
+                screen_scroll(FONT_HEIGHT * screen_scale, term_bg);
                 term_y = max_y;
             }
         }

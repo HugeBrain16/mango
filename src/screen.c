@@ -70,7 +70,7 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
     }
 }
 
-void screen_scroll(int lines) {
+void screen_scroll(int lines, uint32_t color) {
     size_t stride = screen_pitch / sizeof(uint32_t);
     size_t rows = screen_height - lines;
 
@@ -82,5 +82,5 @@ void screen_scroll(int lines) {
     uint32_t *bottom = buffer + rows * stride;
     size_t pixels = lines * stride;
     for (size_t i = 0; i < pixels; i++)
-        bottom[i] = COLOR_BLACK;
+        bottom[i] = color;
 }
