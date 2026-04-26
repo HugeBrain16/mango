@@ -3,7 +3,6 @@
 #include "screen.h"
 #include "font.h"
 #include "pit.h"
-#include "color.h"
 #include "keyboard.h"
 #include "command.h"
 #include "pic.h"
@@ -43,6 +42,8 @@ void term_load_config() {
         col = color(value);
         if (col != COLOR_INVALID)
             term_fg = col;
+        else
+            term_fg = TERM_COLOR_FG;
         heap_free(value);
     }
 
@@ -51,6 +52,8 @@ void term_load_config() {
         int col = color(value);
         if (col != COLOR_INVALID)
             term_bg = col;
+        else
+            term_bg = TERM_COLOR_BG;
         heap_free(value);
     }
 }

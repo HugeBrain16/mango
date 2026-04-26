@@ -3,9 +3,13 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "color.h"
 
 #define TERM_CURSOR_BLINK 500
 #define TERM_INPUT_SIZE 128
+
+#define TERM_COLOR_FG COLOR_WHITE
+#define TERM_COLOR_BG COLOR_BLACK
 
 int term_input_cursor;
 int term_input_pos;
