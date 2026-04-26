@@ -12,6 +12,9 @@
 #include "kernel.h"
 #include "screen.h"
 
+int script_exit = 0;
+
+static int script_should_exit = 0;
 static int script_argc = 0;
 static char **script_argv = NULL;
 static int script_printfg = COLOR_WHITE;
@@ -1500,6 +1503,33 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 
 /* ==== built-ins ==== */
 
+static script_node_t *call_exit(script_node_t *node) {
+    size_t argc = node->call.argc;
+    script_node_t **argv = node->call.argv;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function exit() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(node);
+        return NULL;
+    }
+
+    if (argv[0]->value_type == SCRIPT_INT) {
+        script_exit = argv[0]->literal.int_value;
+        script_should_exit = 1;
+        return node_null();
+    } else {
+        char msg[64];
+        script_node_t *name = node_type_name(argv[0]);
+        strfmt(msg, "Error: Function exit() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
+        term_write(msg, COLOR_WHITE, COLOR_BLACK);
+        free_node(name);
+        free_node(node);
+        return NULL;
+    }
+}
+
 static script_node_t *call_exec(script_node_t *node) {
     size_t argc = node->call.argc;
     script_node_t **argv = node->call.argv;
@@ -1512,9 +1542,17 @@ static script_node_t *call_exec(script_node_t *node) {
         return NULL;
     }
 
-    if (argv[0]->value_type == SCRIPT_STR)
-        command_handle(argv[0]->literal.str_value, 0);
-    else {
+    if (argv[0]->value_type == SCRIPT_STR) {
+        int exit = command_handle(argv[0]->literal.str_value, 0);
+
+        script_node_t *value = node_null();
+        value->node_type = SCRIPT_AST_LITERAL;
+        value->value_type = SCRIPT_INT;
+        value->lineno = node->lineno;
+        value->literal.int_value = exit;
+
+        return value;
+    } else {
         char msg[64];
         script_node_t *name = node_type_name(argv[0]);
         strfmt(msg, "Error: Function exec() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
@@ -1523,8 +1561,6 @@ static script_node_t *call_exec(script_node_t *node) {
         free_node(node);
         return NULL;
     }
-
-    return node_null();
 }
 
 static script_node_t *call_print(script_node_t *node) {
@@ -3208,6 +3244,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "color_setbg")) ret = call_color_setbg(&copy_call);
     else if (!strcmp(name, "color_reset")) ret = call_color_reset(&copy_call);
     else if (!strcmp(name, "sys_log")) ret = call_sys_log(&copy_call);
+    else if (!strcmp(name, "exit")) ret = call_exit(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
@@ -3404,7 +3441,8 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
         eval = eval_statement(block, current);
         if (eval->type == SCRIPT_EVAL_RETURN ||
             eval->type == SCRIPT_EVAL_BREAK ||
-            eval->type == SCRIPT_EVAL_CONTINUE)
+            eval->type == SCRIPT_EVAL_CONTINUE ||
+            script_should_exit)
             return eval;
 
         free_eval(eval);
@@ -3457,7 +3495,7 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
         free_stmt(scope);
 
         if (eval) {
-            if (eval->type == SCRIPT_EVAL_RETURN) {
+            if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
                 return eval;
             } else if (eval->type == SCRIPT_EVAL_BREAK) {
                 free_eval(eval);
@@ -3503,7 +3541,7 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
         free_stmt(scopescope);
 
         if (eval) {
-            if (eval->type == SCRIPT_EVAL_RETURN) {
+            if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
                 free_stmt(scope);
                 return eval;
             } else if (eval->type == SCRIPT_EVAL_BREAK) {
@@ -3613,6 +3651,9 @@ static void free_runtime(script_runtime_t *rt) {
 }
 
 void script_run(const char *path, int argc, char *argv[]) {
+    script_exit = 0;
+    script_should_exit = 0;
+
     script_argc = argc;
     script_argv = argv;
 
@@ -3622,12 +3663,15 @@ void script_run(const char *path, int argc, char *argv[]) {
     file_node_t node;
     file_node(file->file, &node);
 
-    if (node.size == 0)
+    if (node.size == 0) {
+        script_exit = 1;
         return;
+    }
 
     script_token_t *token_head = tokenize(file);
     if (!token_head) {
         fio_close(file);
+        script_exit = 1;
         return;
     }
     fio_close(file);

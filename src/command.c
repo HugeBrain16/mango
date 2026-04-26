@@ -34,7 +34,7 @@ static void ata_print_string(uint16_t *w, int start, int end) {
     term_write(str, COLOR_WHITE, COLOR_BLACK);
 }
 
-static void command_scale(int argc, char *argv[]) {
+static int command_scale(int argc, char *argv[]) {
     if (argc > 0) {
         float scale = (float)doublestr(argv[0]);
 
@@ -45,30 +45,37 @@ static void command_scale(int argc, char *argv[]) {
         strfmt(buf, "%f2", screen_scale);
         term_write(buf, COLOR_WHITE, COLOR_BLACK);
     }
+
+    return 0;
 }
 
-static void command_scaleup(int argc, char *argv[]) {
+static int command_scaleup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     screen_scale += 1.0f;
+    return 0;
 }
 
-static void command_scaledown(int argc, char *argv[]) {
+static int command_scaledown(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     if (screen_scale > 1.0f)
         screen_scale -= 1.0f;
+
+    return 0;
 }
 
-static void command_clear(int argc, char *argv[]) {
+static int command_clear(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     screen_clear(COLOR_BLACK);
     term_x = 0;
     term_y = 0;
+
+    return 0;
 }
 
-static void command_shutdown(int argc, char *argv[]) {
+static int command_shutdown(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     term_write("Shutting down...\n", COLOR_WHITE, COLOR_BLACK);
@@ -82,9 +89,11 @@ static void command_shutdown(int argc, char *argv[]) {
         acpi_shutdown();
 
     abort();
+
+    return 0;
 }
 
-static void command_fetch(int argc, char *argv[]) {
+static int command_fetch(int argc, char *argv[]) {
     int show_diskname = 0;
     int show_ribbon = 1;
 
@@ -169,19 +178,30 @@ static void command_fetch(int argc, char *argv[]) {
     term_write("=", COLOR_PURPLE, COLOR_PURPLE);
     term_write("=", COLOR_DARKGRAY, COLOR_DARKGRAY);
     term_write("\n\n", COLOR_BLACK, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_echo(int argc, char *argv[]) {
+static int command_echo(int argc, char *argv[]) {
     for (int i = 0; i < argc; i++) {
         term_write(argv[i], COLOR_WHITE, COLOR_BLACK);
         term_write(" ", COLOR_BLACK, COLOR_BLACK);
     }
     term_write("\n", COLOR_BLACK, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_list(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_list(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     static char buff[FILE_MAX_NAME + 16];
     uint32_t parent;
@@ -216,18 +236,31 @@ static void command_list(int argc, char *argv[]) {
             }
             current = current_node.child_next;
         }
-    } else if (!parent || !(parent_node.flags & FILE_FOLDER))
+    } else if (!parent || !(parent_node.flags & FILE_FOLDER)) {
         term_write("Not a folder.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
     else
         term_write("Empty folder.\n", COLOR_WHITE, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_newfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_newfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (argc > 0) {
         uint32_t parent;
+
+        int exit = 0;
 
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
@@ -239,47 +272,83 @@ static void command_newfile(int argc, char *argv[]) {
                 parent = file_get_node(path_parent);
 
             if (parent) {
-                if (strlen(path_basename) > FILE_MAX_NAME)
+                if (strlen(path_basename) > FILE_MAX_NAME) {
                     term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
-                else if (file_exists(parent, path_basename))
+                    exit = 1;
+                } else if (file_exists(parent, path_basename)) {
                     term_write("File with the same name already exist!\n", COLOR_WHITE, COLOR_BLACK);
-                else if (!file_create(parent, path_basename))
+                    exit = 1;
+                } else if (!file_create(parent, path_basename)) {
                     term_write("Failed creating a new file!\n", COLOR_WHITE, COLOR_BLACK);
-            } else
+                    exit = 1;
+                }
+            } else {
                 term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
-        } else
+                exit = 1;
+            }
+        } else {
             term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
+            exit = 1;
+        }
 
         heap_free(path_parent);
         heap_free(path_basename);
-    } else
+        return exit;
+    } else {
         term_write("Usage: newfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_delfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_delfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
 
-        if (!target) return term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+        if (!target) {
+            term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+            return 1;
+        }
 
         file_node_t target_node;
         file_node(target, &target_node);
 
-        if (!file_delete(target_node.parent, target_node.name))
+        if (!file_delete(target_node.parent, target_node.name)) {
             term_write("Failed deleting file!\n", COLOR_WHITE, COLOR_BLACK);
-    } else
+            return 1;
+        }
+
+        return 0;
+    } else {
         term_write("Usage: delfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_edit(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_edit(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (argc > 0) {
         uint32_t parent;
+
+        int exit = 0;
 
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
@@ -296,25 +365,43 @@ static void command_edit(int argc, char *argv[]) {
                     command_clear(argc, argv);
 
                     edit_init(file_get(parent, path_basename));
-                } else
+                } else {
                     term_write("File does not exist!\n", COLOR_WHITE, COLOR_BLACK);
-            } else
+                    exit = 1;
+                }
+            } else {
                 term_write("Invalid path!\n", COLOR_WHITE, COLOR_BLACK);
-        } else
+                exit = 1;
+            }
+        } else {
             term_write("Invalid path!\n", COLOR_WHITE, COLOR_BLACK);
+            exit = 1;
+        }
 
         heap_free(path_parent);
         heap_free(path_basename);
-    } else
+        return exit;
+    } else {
         term_write("Usage: edit <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_newfolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_newfolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (argc > 0) {
         uint32_t parent;
+
+        int exit = 0;
 
         char *path_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
         char *path_basename = heap_alloc(FILE_MAX_NAME);
@@ -326,26 +413,44 @@ static void command_newfolder(int argc, char *argv[]) {
                 parent = file_get_node(path_parent);
 
             if (parent) {
-                if (strlen(path_basename) > FILE_MAX_NAME)
+                if (strlen(path_basename) > FILE_MAX_NAME) {
                     term_write("Folder name is too long!\n", COLOR_WHITE, COLOR_BLACK);
-                else if (folder_exists(parent, path_basename))
+                    exit = 1;
+                } else if (folder_exists(parent, path_basename)) {
                     term_write("Folder with the same name already exist!\n", COLOR_WHITE, COLOR_BLACK);
-                else if (!folder_create(parent, path_basename))
+                    exit = 1;
+                } else if (!folder_create(parent, path_basename)) {
                     term_write("Failed creating a new folder!\n", COLOR_WHITE, COLOR_BLACK);
-            } else
+                    exit = 1;
+                }
+            } else {
                 term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
-        } else
+                exit = 1;
+            }
+        } else {
             term_write("Invalid path.\n", COLOR_WHITE, COLOR_BLACK);
+            exit = 1;
+        }
 
         heap_free(path_parent);
         heap_free(path_basename);
-    } else
+        return exit;
+    } else {
         term_write("Usage: newfolder <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_delfolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_delfolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
@@ -353,51 +458,88 @@ static void command_delfolder(int argc, char *argv[]) {
         file_node(target, &target_node);
 
         if (target != FILE_SECTOR_ROOT) {
-            if (!folder_delete(target_node.parent, target_node.name))
+            if (!folder_delete(target_node.parent, target_node.name)) {
                 term_write("Failed deleting folder!\n", COLOR_WHITE, COLOR_BLACK);
-        } else
+                return 1;
+            }
+
+            return 0;
+        } else {
             term_write("Cannot delete root folder!\n", COLOR_WHITE, COLOR_BLACK);
-    } else
+            return 1;
+        }
+    } else {
         term_write("Usage: delfolder <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_goto(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_goto(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
         file_node_t target_node;
         file_node(target, &target_node);
 
-        if (target && (target_node.flags & FILE_FOLDER))
+        if (target && (target_node.flags & FILE_FOLDER)) {
             file_current = target;
-        else
+            return 0;
+        } else {
             term_write("Not a folder.\n", COLOR_WHITE, COLOR_BLACK);
-    } else
+            return 1;
+        }
+    } else {
         term_write("Usage: goto <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_goup(int argc, char *argv[]) {
+static int command_goup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     file_node_t parent_node;
     file_node(file_current, &parent_node);
 
-    if (parent_node.parent)
+    if (parent_node.parent) {
         file_current = parent_node.parent;
-    else
+        return 0;
+    } else {
         term_write("Already at topmost folder!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 }
 
-static void command_whereami(int argc, char *argv[]) {
+static int command_whereami(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     char *path = heap_alloc(FILE_MAX_PATH);
     file_get_abspath(file_current, path, FILE_MAX_PATH);
@@ -405,25 +547,47 @@ static void command_whereami(int argc, char *argv[]) {
     term_write(path, COLOR_WHITE, COLOR_BLACK);
     term_write("\n", COLOR_WHITE, COLOR_BLACK);
     heap_free(path);
+
+    return 0;
 }
 
-static void command_copyfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_copyfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
-    if (argc < 2) return term_write("Usage: copyfile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 2) {
+        term_write("Usage: copyfile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     uint32_t src = file_get_node(argv[0]);
     file_node_t src_node;
     file_node(src, &src_node);
 
-    if (!src) return term_write("Source file doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
-    if (!(src_node.flags & FILE_DATA)) return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!src) {
+        term_write("Source file doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!(src_node.flags & FILE_DATA)) {
+        term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    int exit = 0;
 
     char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
     char *dest_basename = heap_alloc(FILE_MAX_NAME);
     if (!file_split_path(argv[1], dest_parent, dest_basename)) {
         term_write("Invalid destination path!\n", COLOR_WHITE, COLOR_BLACK);
+        exit = 1;
         goto cleanup;
     }
 
@@ -435,6 +599,7 @@ static void command_copyfile(int argc, char *argv[]) {
 
     if (!dest_parent_node) {
         term_write("Parent folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+        exit = 1;
         goto cleanup;
     }
 
@@ -453,7 +618,12 @@ static void command_copyfile(int argc, char *argv[]) {
         file_write(dest, data, strlen(data));
         heap_free(data);
     } else {
-        if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+        if (strlen(dest_basename) > FILE_MAX_NAME) {
+            term_write("File name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+            exit = 1;
+            goto cleanup;
+        }
+
         file_create(dest_parent_node, dest_basename);
         dest = file_get(dest_parent_node, dest_basename);
         file_node(dest, &dest_node);
@@ -466,13 +636,25 @@ static void command_copyfile(int argc, char *argv[]) {
 cleanup:
     heap_free(dest_parent);
     heap_free(dest_basename);
+
+    return exit;
 }
 
-static void command_movefile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_movefile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
-    if (argc < 2) return term_write("Usage: movefile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 2) {
+        term_write("Usage: movefile <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     command_copyfile(argc, argv);
 
@@ -481,25 +663,46 @@ static void command_movefile(int argc, char *argv[]) {
     file_node(src, &src_node);
 
     file_delete(src_node.parent, src_node.name);
+    return 0;
 }
 
-static void command_copyfolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_copyfolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
-    if (argc < 2) return term_write("Usage: copyfolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 2) {
+        term_write("Usage: copyfolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     uint32_t src = file_get_node(argv[0]);
     file_node_t src_node;
     file_node(src, &src_node);
 
-    if (!src) return term_write("Source folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
-    if (!(src_node.flags & FILE_FOLDER)) return term_write("Not a folder!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!src) {
+        term_write("Source folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!(src_node.flags & FILE_FOLDER)) {
+        term_write("Not a folder!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    int exit = 0;
 
     char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
     char *dest_basename = heap_alloc(FILE_MAX_NAME);
     if (!file_split_path(argv[1], dest_parent, dest_basename)) {
         term_write("Invalid destination path!\n", COLOR_WHITE, COLOR_BLACK);
+        exit = 1;
         goto cleanup;
     }
 
@@ -511,6 +714,7 @@ static void command_copyfolder(int argc, char *argv[]) {
 
     if (!dest_parent_node) {
         term_write("Parent folder doesn't exist!\n", COLOR_WHITE, COLOR_BLACK);
+        exit = 1;
         goto cleanup;
     }
 
@@ -525,7 +729,12 @@ static void command_copyfolder(int argc, char *argv[]) {
             file_node(dest, &dest_node);
         }
     } else {
-        if (strlen(dest_basename) > FILE_MAX_NAME) return term_write("Folder name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+        if (strlen(dest_basename) > FILE_MAX_NAME) {
+            term_write("Folder name is too long!\n", COLOR_WHITE, COLOR_BLACK);
+            exit = 1;
+            goto cleanup;
+        }
+
         folder_create(dest_parent_node, dest_basename);
         dest = folder_get(dest_parent_node, dest_basename);
         file_node(dest, &dest_node);
@@ -549,13 +758,25 @@ static void command_copyfolder(int argc, char *argv[]) {
 cleanup:
     heap_free(dest_parent);
     heap_free(dest_basename);
+
+    return exit;
 }
 
-static void command_movefolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+static int command_movefolder(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
-    if (argc < 2) return term_write("Usage: movefolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 2) {
+        term_write("Usage: movefolder <src> <dest>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     command_copyfolder(argc, argv);
 
@@ -564,15 +785,19 @@ static void command_movefolder(int argc, char *argv[]) {
     file_node(src, &src_node);
 
     folder_delete(src_node.parent, src_node.name);
+    return 0;
 }
 
-static void command_formatdisk(int argc, char *argv[]) {
+static int command_formatdisk(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status == FILE_DRIVE_ABSENT)
-        return log("[ ERROR ] No usable drive!\n");
-    else if (file_drive_status == FILE_DRIVE_INCOMPATIBLE)
-        return log("[ ERROR ] Drive is not compatible!\n");
+    if (file_drive_status == FILE_DRIVE_ABSENT) {
+        log("[ ERROR ] No usable drive!\n");
+        return 1;
+    } else if (file_drive_status == FILE_DRIVE_INCOMPATIBLE) {
+        log("[ ERROR ] Drive is not compatible!\n");
+        return 1;
+    }
 
     char confirm[TERM_INPUT_SIZE];
     term_get_input("This will erase the whole disk. Are you sure? (type \"y\"): ",
@@ -581,16 +806,33 @@ static void command_formatdisk(int argc, char *argv[]) {
     if (!strcmp(confirm, "y")) {
         file_format();
         term_write("Disk formatted.\n", COLOR_WHITE, COLOR_BLACK);
+        return 0;
     }
+
+    return 1;
 }
 
-static void command_nodeinfo(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
-    if (argc < 1) return term_write("Usage: nodeinfo <path>\n", COLOR_WHITE, COLOR_BLACK);
+static int command_nodeinfo(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 1) {
+        term_write("Usage: nodeinfo <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     uint32_t node_sector = file_get_node(argv[0]);
-    if (!node_sector) return term_write("Not found\n", COLOR_WHITE, COLOR_BLACK);
+    if (!node_sector) {
+        term_write("Not found\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     file_node_t node;
     file_data_t block;
@@ -639,50 +881,81 @@ static void command_nodeinfo(int argc, char *argv[]) {
         strcpy(buff, "TYPE = FILE\n");
     }
     term_write(buff, COLOR_WHITE, COLOR_BLACK);
+    return 0;
 }
 
-static void command_printfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
-    if (argc < 1)
-        return term_write("Usage: printfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+static int command_printfile(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 1) {
+        term_write("Usage: printfile <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     uint32_t file_sector = file_get_node(argv[0]);
-    if (!file_sector)
-        return term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_sector) {
+        term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     file_node_t file;
     file_node(file_sector, &file);
 
-    if (!(file.flags & FILE_DATA))
-        return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!(file.flags & FILE_DATA)) {
+        term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     char *file_content = file_read(file_sector);
     term_write(file_content, COLOR_WHITE, COLOR_BLACK);
 
     heap_free(file_content);
+    return 0;
 }
 
-static void command_runscript(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
-    if (argc < 1)
-        return term_write("Usage: runscript <path>\n", COLOR_WHITE, COLOR_BLACK);
+static int command_runscript(int argc, char *argv[]) {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (argc < 1) {
+        term_write("Usage: runscript <path>\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     uint32_t file_sector = file_get_node(argv[0]);
-    if (!file_sector)
-        return term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!file_sector) {
+        term_write("File not found!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     file_node_t file;
     file_node(file_sector, &file);
 
-    if (!(file.flags & FILE_DATA))
-        return term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+    if (!(file.flags & FILE_DATA)) {
+        term_write("Not a file!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     script_run(argv[0], argc - 1, argv + 1);
+    return script_exit;
 }
 
-static void command_time(int argc, char *argv[]) {
+static int command_time(int argc, char *argv[]) {
     rtc_datetime_t now;
     rtc_datetime(&now);
 
@@ -706,9 +979,11 @@ static void command_time(int argc, char *argv[]) {
 
     strfmt(msg, "%s:%s\n", hrs, min);
     term_write(msg, COLOR_WHITE, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_date(int argc, char *argv[]) {
+static int command_date(int argc, char *argv[]) {
     rtc_datetime_t now;
     rtc_datetime(&now);
 
@@ -732,9 +1007,11 @@ static void command_date(int argc, char *argv[]) {
 
     strfmt(msg, "%s-%s-%d\n", day, month, now.year);
     term_write(msg, COLOR_WHITE, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_datetime(int argc, char *argv[]) {
+static int command_datetime(int argc, char *argv[]) {
     rtc_datetime_t now;
     rtc_datetime(&now);
 
@@ -762,12 +1039,17 @@ static void command_datetime(int argc, char *argv[]) {
 
     strfmt(msg, "%s:%s %s-%s-%d\n", hrs, min, day, month, now.year);
     term_write(msg, COLOR_WHITE, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_diskinfo(int argc, char *argv[]) {
+static int command_diskinfo(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     char buffer[64];
 
@@ -806,13 +1088,22 @@ static void command_diskinfo(int argc, char *argv[]) {
     unit_get_size(sectors * 512, disk_total);
     strfmt(buffer, "SECTORS = %d (%s)\n", sectors, disk_total);
     term_write(buffer, COLOR_WHITE, COLOR_BLACK);
+
+    return 0;
 }
 
-static void command_setupsystem(int argc, char *argv[]) {
+static int command_setupsystem(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) return term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
-    if (!file_is_formatted()) return term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n", COLOR_WHITE, COLOR_BLACK);
+        return 1;
+    }
 
     if (!file_path_isfolder("/system")) command_handle("newfolder /system", 0);
     if (!file_path_isfolder("/system/config")) command_handle("newfolder /system/config", 0);
@@ -820,9 +1111,12 @@ static void command_setupsystem(int argc, char *argv[]) {
     if (!file_path_isfile("/system/init.sc")) command_handle("newfile /system/init.sc", 0);
 
     term_write("Setup successful!\n", COLOR_WHITE, COLOR_BLACK);
+    return 0;
 }
 
-void command_handle(char *command, int printprompt) {
+int command_handle(char *command, int printprompt) {
+    int exit = 0;
+
     string_t *cmd = string_init();
     string_t *args[COMMAND_MAX_ARG] = { NULL };
 
@@ -860,35 +1154,35 @@ void command_handle(char *command, int printprompt) {
     for (int i = 0; i < argc; i++)
         argv[i] = args[i]->value;
 
-    if (!strcmp(cmd->value, "scale")) command_scale(argc, argv);
-    else if (!strcmp(cmd->value, "scaleup")) command_scaleup(argc, argv);
-    else if (!strcmp(cmd->value, "scaledown")) command_scaledown(argc, argv);
-    else if (!strcmp(cmd->value, "clear")) command_clear(argc, argv);
-    else if (!strcmp(cmd->value, "shutdown")) command_shutdown(argc, argv);
-    else if (!strcmp(cmd->value, "fetch")) command_fetch(argc, argv);
-    else if (!strcmp(cmd->value, "echo")) command_echo(argc, argv);
-    else if (!strcmp(cmd->value, "list")) command_list(argc, argv);
-    else if (!strcmp(cmd->value, "newfile")) command_newfile(argc, argv);
-    else if (!strcmp(cmd->value, "delfile")) command_delfile(argc, argv);
-    else if (!strcmp(cmd->value, "edit")) command_edit(argc, argv);
-    else if (!strcmp(cmd->value, "newfolder")) command_newfolder(argc, argv);
-    else if (!strcmp(cmd->value, "delfolder")) command_delfolder(argc, argv);
-    else if (!strcmp(cmd->value, "goto")) command_goto(argc, argv);
-    else if (!strcmp(cmd->value, "goup")) command_goup(argc, argv);
-    else if (!strcmp(cmd->value, "whereami")) command_whereami(argc, argv);
-    else if (!strcmp(cmd->value, "copyfile")) command_copyfile(argc, argv);
-    else if (!strcmp(cmd->value, "movefile")) command_movefile(argc, argv);
-    else if (!strcmp(cmd->value, "copyfolder")) command_copyfolder(argc, argv);
-    else if (!strcmp(cmd->value, "movefolder")) command_movefolder(argc, argv);
-    else if (!strcmp(cmd->value, "formatdisk")) command_formatdisk(argc, argv);
-    else if (!strcmp(cmd->value, "nodeinfo")) command_nodeinfo(argc, argv);
-    else if (!strcmp(cmd->value, "printfile")) command_printfile(argc, argv);
-    else if (!strcmp(cmd->value, "runscript")) command_runscript(argc, argv);
-    else if (!strcmp(cmd->value, "time")) command_time(argc, argv);
-    else if (!strcmp(cmd->value, "date")) command_date(argc, argv);
-    else if (!strcmp(cmd->value, "datetime")) command_datetime(argc, argv);
-    else if (!strcmp(cmd->value, "diskinfo")) command_diskinfo(argc, argv);
-    else if (!strcmp(cmd->value, "setupsystem")) command_setupsystem(argc, argv);
+    if (!strcmp(cmd->value, "scale")) exit = command_scale(argc, argv);
+    else if (!strcmp(cmd->value, "scaleup")) exit = command_scaleup(argc, argv);
+    else if (!strcmp(cmd->value, "scaledown")) exit = command_scaledown(argc, argv);
+    else if (!strcmp(cmd->value, "clear")) exit = command_clear(argc, argv);
+    else if (!strcmp(cmd->value, "shutdown")) exit = command_shutdown(argc, argv);
+    else if (!strcmp(cmd->value, "fetch")) exit = command_fetch(argc, argv);
+    else if (!strcmp(cmd->value, "echo")) exit = command_echo(argc, argv);
+    else if (!strcmp(cmd->value, "list")) exit = command_list(argc, argv);
+    else if (!strcmp(cmd->value, "newfile")) exit = command_newfile(argc, argv);
+    else if (!strcmp(cmd->value, "delfile")) exit = command_delfile(argc, argv);
+    else if (!strcmp(cmd->value, "edit")) exit = command_edit(argc, argv);
+    else if (!strcmp(cmd->value, "newfolder")) exit = command_newfolder(argc, argv);
+    else if (!strcmp(cmd->value, "delfolder")) exit = command_delfolder(argc, argv);
+    else if (!strcmp(cmd->value, "goto")) exit = command_goto(argc, argv);
+    else if (!strcmp(cmd->value, "goup")) exit = command_goup(argc, argv);
+    else if (!strcmp(cmd->value, "whereami")) exit = command_whereami(argc, argv);
+    else if (!strcmp(cmd->value, "copyfile")) exit = command_copyfile(argc, argv);
+    else if (!strcmp(cmd->value, "movefile")) exit = command_movefile(argc, argv);
+    else if (!strcmp(cmd->value, "copyfolder")) exit = command_copyfolder(argc, argv);
+    else if (!strcmp(cmd->value, "movefolder")) exit = command_movefolder(argc, argv);
+    else if (!strcmp(cmd->value, "formatdisk")) exit = command_formatdisk(argc, argv);
+    else if (!strcmp(cmd->value, "nodeinfo")) exit = command_nodeinfo(argc, argv);
+    else if (!strcmp(cmd->value, "printfile")) exit = command_printfile(argc, argv);
+    else if (!strcmp(cmd->value, "runscript")) exit = command_runscript(argc, argv);
+    else if (!strcmp(cmd->value, "time")) exit = command_time(argc, argv);
+    else if (!strcmp(cmd->value, "date")) exit = command_date(argc, argv);
+    else if (!strcmp(cmd->value, "datetime")) exit = command_datetime(argc, argv);
+    else if (!strcmp(cmd->value, "diskinfo")) exit = command_diskinfo(argc, argv);
+    else if (!strcmp(cmd->value, "setupsystem")) exit = command_setupsystem(argc, argv);
     else {
         int found_script = 0;
 
@@ -899,12 +1193,16 @@ void command_handle(char *command, int printprompt) {
             if (file_path_isfile(script_path)) {
                 found_script = 1;
                 script_run(script_path, argc, argv);
+                exit = script_exit;
             }
 
             heap_free(script_path);
         }
 
-        if (!found_script && !string_empty(cmd)) term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+        if (!found_script && !string_empty(cmd)) {
+            term_write("Unknown command\n", COLOR_WHITE, COLOR_BLACK);
+            exit = 1;
+        }
     }
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
@@ -917,4 +1215,6 @@ void command_handle(char *command, int printprompt) {
     string_free(cmd);
     for (int i = 0; i < argc; i++)
         string_free(args[i]);
+
+    return exit;
 }
