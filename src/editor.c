@@ -428,8 +428,7 @@ static void edit_handle_quit() {
     screen_clear(COLOR_BLACK);
     term_x = 0;
     term_y = 0;
-    term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
-    term_prompt = term_x;
+    term_draw_prompt();
     screen_flush();
 }
 

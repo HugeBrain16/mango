@@ -822,7 +822,7 @@ static void command_setupsystem(int argc, char *argv[]) {
     term_write("Setup successful!\n", COLOR_WHITE, COLOR_BLACK);
 }
 
-void command_handle(char *command, int printcaret) {
+void command_handle(char *command, int printprompt) {
     string_t *cmd = string_init();
     string_t *args[COMMAND_MAX_ARG] = { NULL };
 
@@ -908,8 +908,8 @@ void command_handle(char *command, int printcaret) {
     }
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
-        if (!term_input_buffer && printcaret)
-            term_write("\n> ", COLOR_WHITE, COLOR_BLACK);
+        if (!term_input_buffer && printprompt)
+            term_draw_prompt();
 
         term_prompt = term_x;
     }

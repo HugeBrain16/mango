@@ -10,6 +10,8 @@
 #include "list.h"
 #include "heap.h"
 #include "serial.h"
+#include "config.h"
+#include "file.h"
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
@@ -303,4 +305,30 @@ void term_handle_type(uint8_t scancode) {
     }
 
     screen_flush();
+}
+
+void term_draw_prompt() {
+    char *symbol = ">";
+
+    char *prompt = config_get("/system/config/shell.cfg", "prompt");
+    if (prompt) {
+        if (!strcmp(prompt, "arrow")) symbol = ">";
+        else if (!strcmp(prompt, "tag") || !strcmp(prompt, "hashtag")) symbol = "#";
+        else if (!strcmp(prompt, "dollar")) symbol = "$";
+        else if (!strcmp(prompt, "tilde")) symbol = "~";
+    }
+
+    term_write("\n", COLOR_WHITE, COLOR_BLACK);
+
+    if (config_has("/system/config/shell.cfg", "show_path")) {
+        char *path = heap_alloc(FILE_MAX_PATH);
+        file_get_abspath(file_current, path, FILE_MAX_PATH);
+        term_write(path, COLOR_WHITE, COLOR_BLACK);
+        term_write(" ", COLOR_WHITE, COLOR_BLACK);
+        heap_free(path);
+    }
+
+    term_write(symbol, COLOR_WHITE, COLOR_BLACK);
+    term_write(" ", COLOR_WHITE, COLOR_BLACK);
+    term_prompt = term_x;
 }

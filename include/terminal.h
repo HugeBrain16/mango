@@ -20,5 +20,6 @@ extern void term_write(const char *msg, uint32_t fg_color, uint32_t bg_color);
 extern void term_draw_cursor();
 extern void term_handle_type(uint8_t scancode);
 extern void term_get_input(const char* prompt, char *buffer, size_t size, uint32_t fg_color, uint32_t bg_color);
+extern void term_draw_prompt();
 
 #endif

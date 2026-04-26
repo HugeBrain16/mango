@@ -3,6 +3,6 @@
 
 #define COMMAND_MAX_ARG 32
 
-extern void command_handle(char *command, int printcaret);
+extern void command_handle(char *command, int printprompt);
 
 #endif
