@@ -109,9 +109,9 @@ static int command_fetch(int argc, char *argv[]) {
     if (show_ribbon) {
         term_write("\n");
         for (int i = 0; i < 6; i++) {
-            term_write2("=", COLOR_YELLOW, term_bg);
+            term_write2("=", term_fg != COLOR_WHITE ? term_fg : COLOR_YELLOW, term_bg);
             term_write2("=", COLOR_WHITE, term_bg);
-            term_write2("=", COLOR_YELLOW, term_bg);
+            term_write2("=", term_fg != COLOR_WHITE ? term_fg : COLOR_YELLOW, term_bg);
         }
     }
     term_write("\nKernel: Mango\n");
@@ -1126,7 +1126,7 @@ static int command_reloadconfig(int argc, char *argv[]) {
     }
 
     term_load_config();
-    return 0;
+    return command_clear(argc, argv);
 }
 
 int command_handle(char *command, int printprompt) {
