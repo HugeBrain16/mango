@@ -518,6 +518,8 @@ list_t *readlines(const char *buffer) {
 
     if (string_length(line))
         list_push(lines, (string_t*)line);
+    else
+        string_free(line);
 
     return lines;
 }

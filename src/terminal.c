@@ -69,6 +69,7 @@ void term_load_config() {
             term_history_max = max;
         else
             term_history_max = TERM_MAX_HISTORY;
+        heap_free(value);
     }
 }
 

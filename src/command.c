@@ -960,8 +960,10 @@ static int command_time(int argc, char *argv[]) {
     int time_offset = 0;
 
     char *time_config = config_get("/system/config/time.cfg", "offset");
-    if (time_config)
+    if (time_config) {
         time_offset = intstr(time_config);
+        heap_free(time_config);
+    }
 
     if (argc == 1)
         time_offset = intstr(argv[0]);
@@ -988,8 +990,10 @@ static int command_date(int argc, char *argv[]) {
     int time_offset = 0;
 
     char *time_config = config_get("/system/config/time.cfg", "offset");
-    if (time_config)
+    if (time_config) {
         time_offset = intstr(time_config);
+        heap_free(time_config);
+    }
 
     if (argc == 1)
         time_offset = intstr(argv[0]);
@@ -1016,8 +1020,10 @@ static int command_datetime(int argc, char *argv[]) {
     int time_offset = 0;
 
     char *time_config = config_get("/system/config/time.cfg", "offset");
-    if (time_config)
+    if (time_config) {
         time_offset = intstr(time_config);
+        heap_free(time_config);
+    }
 
     if (argc == 1)
         time_offset = intstr(argv[0]);
