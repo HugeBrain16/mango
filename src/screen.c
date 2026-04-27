@@ -84,3 +84,28 @@ void screen_scroll(int lines, uint32_t color) {
     for (size_t i = 0; i < pixels; i++)
         bottom[i] = color;
 }
+
+void screen_draw_rgba(const void *data, size_t size, int x, int y, int width, int height) {
+    size_t stride = screen_pitch / sizeof(uint32_t);
+    const uint8_t *d = (const uint8_t *)data;
+    uint32_t *buffer = get_buffer();
+
+    for (int dy = 0; dy < height; dy++) {
+        for (int dx = 0; dx < width; dx++) {
+            size_t i = ((size_t)dy * width + dx) * 4;
+            if (i + 3 >= size) return;
+
+            uint32_t pixel =
+                ((uint32_t)d[i + 3] << 24) |
+                ((uint32_t)d[i + 0] << 16) |
+                ((uint32_t)d[i + 1] <<  8) |
+                ((uint32_t)d[i + 2]);
+
+            int pixel_x = x + dx;
+            int pixel_y = y + dy;
+
+            if (pixel_x >= 0 && pixel_x < screen_width && pixel_y >= 0 && pixel_y < screen_height)
+                buffer[pixel_y * stride + pixel_x] = pixel;
+        }
+    }
+}

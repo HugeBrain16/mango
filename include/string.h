@@ -6,11 +6,13 @@
 
 #include "list.h"
 
+extern void *memchr(const void *ptr, int value, size_t size);
 extern void *memset(void *bufptr, int value, size_t size);
 extern int memcmp(const void *aptr, const void *bptr, size_t size);
 extern void *memcpy(void* restrict destptr, const void* restrict srcptr, size_t size);
 extern void *memmove(void *destptr, const void *srcptr, size_t size);
 
+extern char *strstr(const char* str1, const char *str2);
 extern size_t strlen(const char *str);
 extern void strcpy(char *dest, const char *src);
 extern void strcat(char *dest, const char *src);

@@ -18,6 +18,7 @@
 #include "config.h"
 #include "acpi.h"
 #include "cpu.h"
+#include <external/spng/spng.h>
 
 static void ata_print_string(uint16_t *w, int start, int end) {
     char str[64];
@@ -32,6 +33,20 @@ static void ata_print_string(uint16_t *w, int start, int end) {
 
     strrtrim(str);
     term_write(str);
+}
+
+static int nodisk() {
+    if (file_drive_status != FILE_DRIVE_OK) {
+        term_write("No drive.\n");
+        return 1;
+    }
+
+    if (!file_is_formatted()) {
+        term_write("Disk is not formatted!\n");
+        return 1;
+    }
+
+    return 0;
 }
 
 static int command_scale(int argc, char *argv[]) {
@@ -192,15 +207,7 @@ static int command_echo(int argc, char *argv[]) {
 }
 
 static int command_list(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     static char buff[FILE_MAX_NAME + 16];
     uint32_t parent;
@@ -246,15 +253,7 @@ static int command_list(int argc, char *argv[]) {
 }
 
 static int command_newfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc > 0) {
         uint32_t parent;
@@ -300,15 +299,7 @@ static int command_newfile(int argc, char *argv[]) {
 }
 
 static int command_delfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
@@ -334,15 +325,7 @@ static int command_delfile(int argc, char *argv[]) {
 }
 
 static int command_edit(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc > 0) {
         uint32_t parent;
@@ -387,15 +370,7 @@ static int command_edit(int argc, char *argv[]) {
 }
 
 static int command_newfolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc > 0) {
         uint32_t parent;
@@ -441,15 +416,7 @@ static int command_newfolder(int argc, char *argv[]) {
 }
 
 static int command_delfolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
@@ -474,15 +441,7 @@ static int command_delfolder(int argc, char *argv[]) {
 }
 
 static int command_goto(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc > 0) {
         uint32_t target = file_get_node(argv[0]);
@@ -505,15 +464,7 @@ static int command_goto(int argc, char *argv[]) {
 static int command_goup(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     file_node_t parent_node;
     file_node(file_current, &parent_node);
@@ -530,15 +481,7 @@ static int command_goup(int argc, char *argv[]) {
 static int command_whereami(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     char *path = heap_alloc(FILE_MAX_PATH);
     file_get_abspath(file_current, path, FILE_MAX_PATH);
@@ -551,15 +494,7 @@ static int command_whereami(int argc, char *argv[]) {
 }
 
 static int command_copyfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 2) {
         term_write("Usage: copyfile <src> <dest>\n");
@@ -640,15 +575,7 @@ cleanup:
 }
 
 static int command_movefile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 2) {
         term_write("Usage: movefile <src> <dest>\n");
@@ -666,15 +593,7 @@ static int command_movefile(int argc, char *argv[]) {
 }
 
 static int command_copyfolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 2) {
         term_write("Usage: copyfolder <src> <dest>\n");
@@ -762,15 +681,7 @@ cleanup:
 }
 
 static int command_movefolder(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 2) {
         term_write("Usage: movefolder <src> <dest>\n");
@@ -811,15 +722,7 @@ static int command_formatdisk(int argc, char *argv[]) {
 }
 
 static int command_nodeinfo(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 1) {
         term_write("Usage: nodeinfo <path>\n");
@@ -883,15 +786,7 @@ static int command_nodeinfo(int argc, char *argv[]) {
 }
 
 static int command_printfile(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 1) {
         term_write("Usage: printfile <path>\n");
@@ -920,15 +815,7 @@ static int command_printfile(int argc, char *argv[]) {
 }
 
 static int command_runscript(int argc, char *argv[]) {
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (argc < 1) {
         term_write("Usage: runscript <path>\n");
@@ -1099,15 +986,7 @@ static int command_diskinfo(int argc, char *argv[]) {
 static int command_setupsystem(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     if (!file_path_isfolder("/system")) command_handle("newfolder /system", 0);
     if (!file_path_isfolder("/system/config")) command_handle("newfolder /system/config", 0);
@@ -1121,18 +1000,54 @@ static int command_setupsystem(int argc, char *argv[]) {
 static int command_reloadconfig(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    if (file_drive_status != FILE_DRIVE_OK) {
-        term_write("No drive.\n");
-        return 1;
-    }
-
-    if (!file_is_formatted()) {
-        term_write("Disk is not formatted!\n");
-        return 1;
-    }
+    if (nodisk()) return 1;
 
     term_load_config();
     return command_clear(argc, argv);
+}
+
+static int command_viewimage(int argc, char *argv[]) {
+    if (nodisk()) return 1;
+
+    if (argc < 1) {
+        term_write("Usage: viewimage <path>");
+        return 1;
+    }
+
+    uint32_t file_sector = file_get_node(argv[0]);
+    if (!file_sector) {
+        term_write("Not found!");
+        return 1;
+    }
+
+    file_node_t file;
+    file_node(file_sector, &file);
+
+    if (!(file.flags & FILE_DATA)) {
+        term_write("Not a file!");
+        return 1;
+    }
+
+    spng_ctx *ctx = spng_ctx_new(0);
+    char *content = file_read(file_sector);
+    spng_set_png_buffer(ctx, content, file.size);
+
+    struct spng_ihdr ihdr = {0};
+    spng_get_ihdr(ctx, &ihdr);
+
+    size_t size;
+    spng_decoded_image_size(ctx, SPNG_FMT_RGBA8, &size);
+
+    void *data = heap_alloc(size);
+    spng_decode_image(ctx, data, size, SPNG_FMT_RGBA8, 0);
+
+    screen_draw_rgba(data, size, 0, term_y + (FONT_HEIGHT * screen_scale), ihdr.width, ihdr.height);
+    term_y += ihdr.height + (FONT_HEIGHT * screen_scale);
+
+    heap_free(content);
+    heap_free(data);
+    spng_ctx_free(ctx);
+    return 0;
 }
 
 int command_handle(char *command, int printprompt) {
@@ -1207,6 +1122,7 @@ int command_handle(char *command, int printprompt) {
     else if (!strcmp(cmd->value, "diskinfo")) exit = command_diskinfo(argc, argv);
     else if (!strcmp(cmd->value, "setupsystem")) exit = command_setupsystem(argc, argv);
     else if (!strcmp(cmd->value, "reloadconfig")) exit = command_reloadconfig(argc, argv);
+    else if (!strcmp(cmd->value, "viewimage")) exit = command_viewimage(argc, argv);
     else {
         int found_script = 0;
 

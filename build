@@ -32,6 +32,7 @@ compile() {
 assemble() {
     echo "Compiling $1..."
     out=$(echo "$1" | sed 's|^src/||; s|\.s$|.o|')
+    mkdir -p $(dirname "$DIR/$out")
     i686-elf-as $1 -o $DIR/$out
 
     if [ "$out" != "crti.o" ] && [ "$out" != "crtn.o" ]; then

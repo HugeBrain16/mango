@@ -188,3 +188,14 @@ void *heap_realloc(void *ptr, size_t size) {
     heap_free(ptr);
     return new;
 }
+
+void *heap_calloc(size_t base, size_t size) {
+    if (base == 0 || size == 0) return NULL;
+
+    size_t total = base * size;
+    void *ptr = heap_alloc(total);
+    if (!ptr) return NULL;
+
+    memset(ptr, 0, total);
+    return ptr;
+}

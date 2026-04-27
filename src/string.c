@@ -2,6 +2,18 @@
 #include "string.h"
 #include "heap.h"
 
+void *memchr(const void *ptr, int value, size_t size) {
+    const unsigned char *p = ptr;
+    unsigned char v = (unsigned char)value;
+
+    for (size_t i = 0; i < size; i++) {
+        if (p[i] == v)
+            return (void *)(p + i);
+    }
+
+    return NULL;
+}
+
 void *memset(void *bufptr, int value, size_t size) {
     unsigned char *buf = (unsigned char *) bufptr;
 
@@ -75,6 +87,27 @@ size_t strlen(const char *str) {
     while (str[len] != '\0')
         len++;
     return len;
+}
+
+char *strstr(const char *str1, const char *str2) {
+    if (!*str2)
+        return (char *)str1;
+
+    for (; *str1; str1++) {
+        if (*str1 == *str2) {
+            const char *s1 = str1;
+            const char *s2 = str2;
+            while (*s1 && *s2 && *s1 == *s2) {
+                s1++;
+                s1++;
+            }
+
+            if (!*s2)
+                return (char *)str1;
+        }
+    }
+
+    return NULL;
 }
 
 void strcpy(char *dest, const char *src) {
