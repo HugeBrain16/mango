@@ -79,6 +79,19 @@ static void heap_split(block_t *block, size_t size) {
         block_tail = sliced;
 }
 
+size_t heap_free_bytes() {
+    size_t total = (size_t)(heap_end - heap_current);
+
+    block_t *current = block_head;
+    while (current) {
+        if (current->is_free)
+            total += current->size + sizeof(block_t);
+        current = current->next;
+    }
+
+    return total;
+}
+
 void *heap_alloc(size_t size) {
     if (size == 0) return NULL;
     size = (size + 15) & ~15; // align 16

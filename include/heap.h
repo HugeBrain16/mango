@@ -13,5 +13,6 @@ extern void heap_init(multiboot_info_t *mbi);
 extern void *heap_alloc(size_t size);
 extern void *heap_realloc(void *ptr, size_t size);
 extern void heap_free(void *ptr);
+extern size_t heap_free_bytes();
 
 #endif

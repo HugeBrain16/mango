@@ -122,7 +122,7 @@ static int command_fetch(int argc, char *argv[]) {
     char mem_total[16];
     char mem_free[16];
     unit_get_size(heap_end - heap_start + (2 << 20), mem_total);
-    unit_get_size(heap_end - heap_current + (2 << 20), mem_free);
+    unit_get_size(heap_free_bytes() + (2 << 20), mem_free);
     strfmt(buff, "Memory: %s (Free: %s)\n", mem_total, mem_free);
     term_write(buff);
 
