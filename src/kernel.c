@@ -148,6 +148,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     term_load_config();
     term_update_path();
     screen_clear(term_bg);
+    keyboard_mode = KEYBOARD_MODE_TERM;
 
     if (file_drive_status == FILE_DRIVE_OK && file_path_isfile("/system/init.sc"))
         script_run("/system/init.sc", 0, NULL);
@@ -159,8 +160,6 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     if (!config_has("/system/config/system.cfg", "disable_welcome_message"))
         term_write2("Welcome to Mango!\n", COLOR_YELLOW, term_bg);
     term_draw_prompt();
-    keyboard_mode = KEYBOARD_MODE_TERM;
-    screen_flush();
 
     for (;;)
         __asm__ volatile("hlt");
