@@ -3472,8 +3472,11 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
         current = current->next;
     }
 
-    if (!eval)
-        return NULL;
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = NULL;
+    }
 
     return eval;
 }
@@ -3489,8 +3492,11 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
     }
     free_node(expr);
 
-    if (!eval)
-        return NULL;
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = NULL;
+    }
 
     return eval;
 }
@@ -3528,8 +3534,11 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
         eval = NULL;
     }
 
-    if (!eval)
-        return NULL;
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = NULL;
+    }
 
     return eval;
 }
@@ -3576,8 +3585,11 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
 
     free_stmt(scope);
 
-    if (!eval)
-        return NULL;
+    if (!eval) {
+        eval = heap_alloc(sizeof(script_eval_t));
+        eval->type = SCRIPT_EVAL_NONE;
+        eval->node = NULL;
+    }
 
     return eval;
 }
