@@ -5,6 +5,12 @@ if [[ $MANGO_TOOLCHAIN -ne 1 ]]; then
     exit 1
 fi
 
+CC=""
+if command -v ccache >/dev/null 2>&1; then
+    CC="ccache "
+fi
+CC="$CC i686-elf-gcc"
+
 CFLAGS="-std=gnu99 -ffreestanding -O2 -g -Wall -Wextra -fstack-protector"
 
 DIR="$(mktemp -t mango.XXXX -d)"
@@ -18,7 +24,7 @@ compile() {
     echo "Compiling $1..."
     out=$(echo "$1" | sed 's|^src/||; s|\.c$|.o|')
     mkdir -p $(dirname "$DIR/$out")
-    i686-elf-gcc -c $1 -Iinclude -o $DIR/$out $CFLAGS
+    $CC -c $1 -Iinclude -o $DIR/$out $CFLAGS
     OBJECTS="$OBJECTS $DIR/$out"
 }
 
@@ -42,7 +48,7 @@ done
 
 echo "Objects ($OBJECTS)"
 echo "Linking kernel..."
-i686-elf-gcc -T src/linker.ld -o mango.bin -nostdlib \
+$CC -T src/linker.ld -o mango.bin -nostdlib \
     $CFLAGS $CRTI $CRTBEGIN $OBJECTS $CRTEND $CRTN -lgcc
 
 if [[ $? -ne 0 ]]; then
