@@ -111,12 +111,15 @@ static int command_shutdown(int argc, char *argv[]) {
 static int command_fetch(int argc, char *argv[]) {
     int show_diskname = 0;
     int show_ribbon = 1;
+    int show_colors = 1;
 
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "diskname"))
             show_diskname = 1;
         else if (!strcmp(argv[i], "noribbon"))
             show_ribbon = 0;
+        else if (!strcmp(argv[i], "nocolors"))
+            show_colors = 0;
     }
 
     char buff[128];
@@ -186,11 +189,13 @@ static int command_fetch(int argc, char *argv[]) {
     }
     term_write("\n");
 
-    term_write("\n");
-    term_write2("=", COLOR_YELLOW, COLOR_YELLOW);
-    term_write2("=", COLOR_WHITE, COLOR_WHITE);
-    term_write2("=", COLOR_PURPLE, COLOR_PURPLE);
-    term_write2("=", COLOR_DARKGRAY, COLOR_DARKGRAY);
+    if (show_colors) {
+        term_write("\n");
+        term_write2("=", COLOR_YELLOW, COLOR_YELLOW);
+        term_write2("=", COLOR_WHITE, COLOR_WHITE);
+        term_write2("=", COLOR_PURPLE, COLOR_PURPLE);
+        term_write2("=", COLOR_DARKGRAY, COLOR_DARKGRAY);
+    }
     term_write("\n\n");
 
     return 0;
