@@ -46,11 +46,14 @@
 #define SCRIPT_TOKEN_FOR        38 // for
 #define SCRIPT_TOKEN_BREAK      39 // break
 #define SCRIPT_TOKEN_CONTINUE   40 // continue
+#define SCRIPT_TOKEN_LSBRAC     41 // [
+#define SCRIPT_TOKEN_RSBRAC     42 // ]
 
 #define SCRIPT_AST_BINOP        0
 #define SCRIPT_AST_LITERAL      1
 #define SCRIPT_AST_CALL         2
-#define SCRIPT_AST_STATEMENT    3
+#define SCRIPT_AST_INDEX        3
+#define SCRIPT_AST_STATEMENT    4
 
 #define SCRIPT_STMT_EXPR        0
 #define SCRIPT_STMT_ASSIGN      1
@@ -134,6 +137,11 @@ typedef struct script_node {
             struct script_node **argv;
             size_t argc;
         } call;
+
+        struct {
+            struct script_node *var;
+            struct script_node *index;
+        } index;
     };
 } script_node_t;
 
