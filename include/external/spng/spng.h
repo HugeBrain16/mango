@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
+
+/* Modified for compatibility with Mango OS */
+
 #ifndef SPNG_H
 #define SPNG_H
 

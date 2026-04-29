@@ -28,6 +28,8 @@
   (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
+/* Modified for compatibility with Mango OS */
+
 #ifndef ZLIB_H
 #define ZLIB_H
 
