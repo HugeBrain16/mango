@@ -12,6 +12,7 @@ extern int memcmp(const void *aptr, const void *bptr, size_t size);
 extern void *memcpy(void* restrict destptr, const void* restrict srcptr, size_t size);
 extern void *memmove(void *destptr, const void *srcptr, size_t size);
 
+extern char *strsub(char *s, size_t n);
 extern char *strstr(const char* str1, const char *str2);
 extern size_t strlen(const char *str);
 extern void strcpy(char *dest, const char *src);

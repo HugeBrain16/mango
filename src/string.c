@@ -89,6 +89,12 @@ size_t strlen(const char *str) {
     return len;
 }
 
+char *strsub(char *s, size_t n) {
+    while (n-- && *s)
+        s++;
+    return s;
+}
+
 char *strstr(const char *str1, const char *str2) {
     if (!*str2)
         return (char *)str1;

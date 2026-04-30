@@ -24,6 +24,7 @@
 #include "script.h"
 #include "paging.h"
 #include "rand.h"
+#include "pci.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -95,6 +96,33 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     heap_init(mbi);
     strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
     log(buffer);
+
+    for (int x = 0; x < PCI_MAX_BUS; x++) {
+        for (int y = 0; y < PCI_MAX_DEV; y++) {
+            pci_device_t dev = {0};
+
+            char idstr[9];
+            if (pci_get_device(&dev, x, y)) {
+                strfmt(buffer, "[ INFO ] (PCI) Bus:%d Device:%d ", x, y);
+                log(buffer);
+
+                if (dev.revision) {
+                    strfmt(buffer, "Rev:%d ", dev.revision);
+                    log(buffer);
+                }
+
+                strhex(idstr, (uint32_t)dev.vendor_id);
+                log(strsub(idstr, 4));
+
+                log(":");
+
+                strhex(idstr, (uint32_t)dev.device_id);
+                log(strsub(idstr, 4));
+
+                log("\n");
+            }
+        }
+    }
 
     screen_init_back_buffer();
     log("[ INFO ] Initialized screen back buffer.\n");
