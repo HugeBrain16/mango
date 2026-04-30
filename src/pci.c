@@ -28,11 +28,12 @@ int pci_get_device(pci_device_t *device, uint8_t bus, uint8_t dev) {
 		device->device_id = PCI_DEVICE(id);
 		device->vendor_id = PCI_VENDOR(id);
 
-		device->header_type = header >> 24;
-		device->class_code = code & 0xFFFF;
-		device->subclass = code >> 24;
-		device->interface = code >> 16;
-		device->revision = code >> 8;
+		device->class_code = (code >> 24) & 0xFF;
+		device->subclass   = (code >> 16) & 0xFF;
+		device->interface  = (code >>  8) & 0xFF;
+		device->revision   = (code) 	  & 0xFF;
+
+		device->header_type = (header >> 16) & 0xFF;
 	}
 	return 1;
 }
