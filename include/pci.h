@@ -19,6 +19,9 @@
 #define PCI_DEVICE(config) ((config) >> 16)
 
 typedef struct {
+	uint8_t bus;
+	uint8_t dev;
+
 	uint16_t device_id;
 	uint16_t vendor_id;
 	uint8_t revision;

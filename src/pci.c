@@ -25,6 +25,9 @@ int pci_get_device(pci_device_t *device, uint8_t bus, uint8_t dev) {
 	uint32_t header = pci_get_config(bus, dev, 0, 0xC); // only for getting header type
 
 	if (device) {
+		device->bus = bus;
+		device->dev = dev;
+
 		device->device_id = PCI_DEVICE(id);
 		device->vendor_id = PCI_VENDOR(id);
 
