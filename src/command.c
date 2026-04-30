@@ -554,7 +554,7 @@ static int command_copyfile(int argc, char *argv[]) {
         }
 
         char *data = file_read(src);
-        file_write(dest, data, strlen(data));
+        file_write(dest, data, src_node.size);
         heap_free(data);
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) {
@@ -568,7 +568,7 @@ static int command_copyfile(int argc, char *argv[]) {
         file_node(dest, &dest_node);
 
         char *data = file_read(src);
-        file_write(dest, data, strlen(data));
+        file_write(dest, data, src_node.size);
         heap_free(data);
     }
 
@@ -672,7 +672,7 @@ static int command_copyfolder(int argc, char *argv[]) {
 
         uint32_t dest_child = file_get(dest, child_node.name);
         char *data = file_read(child);
-        file_write(dest_child, data, strlen(data));
+        file_write(dest_child, data, child_node.size);
         heap_free(data);
 
         child = child_node.child_next;
