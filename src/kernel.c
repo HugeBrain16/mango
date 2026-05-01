@@ -25,6 +25,7 @@
 #include "paging.h"
 #include "rand.h"
 #include "pci.h"
+#include "sound.h"
 
 uintptr_t __stack_chk_guard;
 
@@ -170,6 +171,12 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     log("[ INFO ] Seeding random...\n");
     uint64_t dt = datetime_packed();
     srand((uint32_t)(dt >> 32) ^ (uint32_t)dt ^ pit_ticks ^ rtc_ticks);
+
+    log("[ INFO ] Initializing sound...\n");
+    if(sound_init())
+        log("[ INFO ] Sound OK\n");
+    else
+        log("[ WARNING ] Sound initialization failed!\n");
 
     log("[ INFO ] Initialization complete!\n");
     term_init();

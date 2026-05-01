@@ -8,6 +8,7 @@
 #include "keyboard.h"
 #include "pit.h"
 #include "rtc.h"
+#include "sound.h"
 
 static idt_entry_t idt[256];
 static idt_ptr_t idt_ptr;
@@ -151,5 +152,7 @@ void irq_handler(int_frame_t *frame) {
         keyboard_handle();
     } else if (irq == 8) {
         rtc_handle();
+    } else if (irq == sound_irq) {
+        sound_handle();
     }
 }

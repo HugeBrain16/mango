@@ -14,6 +14,8 @@
 #define PCI_REG_ID 0x0
 #define PCI_REG_IO 0x4
 #define PCI_REG_CODE 0x8
+#define PCI_REG_INT 0x3C
+#define PCI_REG_BAR(n) (0x10 + (n << 2))
 
 #define PCI_VENDOR(config) ((config) & 0xFFFF)
 #define PCI_DEVICE(config) ((config) >> 16)
@@ -33,7 +35,10 @@ typedef struct {
 } pci_device_t;
 
 extern uint32_t pci_addr(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset);
-extern uint32_t pci_get_config(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset);
-extern int pci_get_device(pci_device_t *device, uint8_t bus, uint8_t dev);
+extern uint32_t pci_read_config(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset);
+extern void pci_write_config(uint32_t value, uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset);
 
+extern int pci_get_device(pci_device_t *device, uint8_t bus, uint8_t dev);
+extern uint32_t pci_device_read(pci_device_t *device, uint8_t func, uint8_t offset);
+extern void pci_device_write(pci_device_t *device, uint32_t value, uint8_t func, uint8_t offset);
 #endif

@@ -18,7 +18,12 @@
 #include "config.h"
 #include "acpi.h"
 #include "cpu.h"
+#include "sound.h"
 #include <external/spng/spng.h>
+
+#define MINIMP3_NO_SIMD
+#define MINIMP3_IMPLEMENTATION
+#include <external/minimp3/minimp3.h>
 
 static void ata_print_string(uint16_t *w, int start, int end) {
     char str[64];
@@ -1055,6 +1060,58 @@ static int command_viewimage(int argc, char *argv[]) {
     return 0;
 }
 
+static int command_playaudio(int argc, char *argv[]) {
+    if (nodisk()) return 1;
+
+    if (argc < 1) {
+        term_write("Usage: playaudio <path>");
+        return 1;
+    }
+
+    uint32_t file_sector = file_get_node(argv[0]);
+    if (!file_sector) {
+        term_write("Not found!");
+        return 1;
+    }
+
+    file_node_t file;
+    file_node(file_sector, &file);
+
+    if (!(file.flags & FILE_DATA)) {
+        term_write("Not a file!");
+        return 1;
+    }
+
+    uint8_t *mp3_data = (uint8_t*)file_read(file_sector);
+    uint32_t mp3_size = file.size;
+
+    mp3dec_t *decoder = heap_alloc(sizeof(mp3dec_t));
+    mp3dec_init(decoder);
+
+    int16_t *pcm_buff = heap_alloc(mp3_size * 12);
+    uint32_t pcm_total = 0;
+
+    mp3dec_frame_info_t info;
+    int16_t *frame_buf = heap_alloc(MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(int16_t));
+
+    while (mp3_size > 0) {
+        int samples = mp3dec_decode_frame(decoder, mp3_data, mp3_size, frame_buf, &info);
+        if (samples == 0 || info.frame_bytes == 0) break;
+
+        uint32_t count = samples * info.channels;
+        memcpy(pcm_buff + pcm_total, frame_buf, count * 2);
+        pcm_total += count;
+
+        mp3_data += info.frame_bytes;
+        mp3_size -= info.frame_bytes;
+    }
+
+    heap_free(frame_buf);
+    heap_free(decoder);
+    sound_play_pcm(pcm_buff, pcm_total);
+    return 0;
+}
+
 int command_handle(char *command, int printprompt) {
     int exit = 0;
 
@@ -1128,6 +1185,7 @@ int command_handle(char *command, int printprompt) {
     else if (!strcmp(cmd->value, "setupsystem")) exit = command_setupsystem(argc, argv);
     else if (!strcmp(cmd->value, "reloadconfig")) exit = command_reloadconfig(argc, argv);
     else if (!strcmp(cmd->value, "viewimage")) exit = command_viewimage(argc, argv);
+    else if (!strcmp(cmd->value, "playaudio")) exit = command_playaudio(argc, argv);
     else {
         int found_script = 0;
 
