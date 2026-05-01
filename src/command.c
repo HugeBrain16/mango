@@ -19,6 +19,7 @@
 #include "acpi.h"
 #include "cpu.h"
 #include "sound.h"
+#include "pci.h"
 #include <external/spng/spng.h>
 
 #define MINIMP3_NO_SIMD
@@ -1112,6 +1113,72 @@ static int command_playaudio(int argc, char *argv[]) {
     return 0;
 }
 
+static int command_listpci(int argc, char *argv[]) {
+    int show_bus = 1;
+    int show_device = 1;
+    int show_rev = 1;
+    int show_class = 0;
+    int show_subclass = 0;
+
+    for (int i = 0; i < argc; i++) {
+        if (!strcmp(argv[i], "nobus"))
+            show_bus = 0;
+        else if (!strcmp(argv[i], "nodevice"))
+            show_device = 0;
+        else if (!strcmp(argv[i], "norev"))
+            show_rev = 0;
+        else if (!strcmp(argv[i], "class"))
+            show_class = 1;
+        else if (!strcmp(argv[i], "subclass"))
+            show_subclass = 1;
+    }
+
+    char buffer[64];
+    for (int x = 0; x < PCI_MAX_BUS; x++) {
+        for (int y = 0; y < PCI_MAX_DEV; y++) {
+            pci_device_t dev = {0};
+
+            char idstr[9];
+            if (pci_get_device(&dev, x, y)) {
+                strhex(idstr, (uint32_t)dev.vendor_id);
+                term_write(strsub(idstr, 4));
+                term_write(":");
+                strhex(idstr, (uint32_t)dev.device_id);
+                term_write(strsub(idstr, 4));
+
+                if (show_bus) {
+                    strfmt(buffer, " Bus:%d", x);
+                    term_write(buffer);
+                }
+
+                if (show_device) {
+                    strfmt(buffer, " Device:%d", y);
+                    term_write(buffer);
+                }
+
+                if (dev.revision && show_rev) {
+                    strfmt(buffer, " Rev:%d", dev.revision);
+                    term_write(buffer);
+                }
+
+                if (show_class) {
+                    strfmt(buffer, " Class:%d", dev.class_code);
+                    term_write(buffer);
+                }
+
+                if (show_subclass) {
+                    strfmt(buffer, " Subclass:%d", dev.subclass);
+                    term_write(buffer);
+                }
+
+                term_write("\n");
+            }
+        }
+    }
+
+    return 0;
+}
+
 int command_handle(char *command, int printprompt) {
     int exit = 0;
 
@@ -1186,6 +1253,7 @@ int command_handle(char *command, int printprompt) {
     else if (!strcmp(cmd->value, "reloadconfig")) exit = command_reloadconfig(argc, argv);
     else if (!strcmp(cmd->value, "viewimage")) exit = command_viewimage(argc, argv);
     else if (!strcmp(cmd->value, "playaudio")) exit = command_playaudio(argc, argv);
+    else if (!strcmp(cmd->value, "listpci")) exit = command_listpci(argc, argv);
     else {
         int found_script = 0;
 
