@@ -5,3 +5,4 @@
 *.tar*
 toolchain/*
 !toolchain/init.sh
+!res/*
