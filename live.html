@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="favicon.ico" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+    <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
+    <title>Mango OS - Live Demo</title>
+  </head>
+  <body>
+    <script src="res/libv86.js"></script>
+    <script>
+      "use strict";
+
+      window.onload = function() {
+        var emulator = window.emulator = new V86({
+          wasm_path: "res/v86.wasm",
+          screen_container: document.getElementById("screen"),
+          cdrom: { url: "res/mango.iso" },
+          bios: { url: "res/seabios.bin" },
+          vga_bios: { url: "res/vgabios.bin" },
+          autostart: true
+        });
+      }
+    </script>
+
+    <div id="navbar" align="center">
+      <a href="index.html" class="page">Home</a>
+      <a href="#" class="page page-active">Demo</a>
+      <a href="https://github.com/hugebrain16/mango" class="page page-newtab" target="_blank">Repo</a>
+    </div>
+    <div class="layout">
+      <div class="row-wrapper">
+        <div class="wrapper">
+          <div id="screen">
+            <div style="white-space: pre; font: 14px monospace;"></div>
+            <canvas style="display: none"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
