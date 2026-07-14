@@ -9,15 +9,16 @@
     <title>Mango OS - Live Demo</title>
   </head>
   <body>
-    <script src="res/libv86.js"></script>
+    <script src="res/libv86-debug.js"></script>
     <script>
       "use strict";
 
       window.onload = function() {
         var emulator = window.emulator = new V86({
-          wasm_path: "res/v86.wasm",
+          wasm_path: "res/v86-debug.wasm",
           screen_container: document.getElementById("screen"),
           cdrom: { url: "res/mango.iso" },
+          // hda: { buffer: new ArrayBuffer(16 * 1024 * 1024) }, // waiting until v86 bug resolved...
           bios: { url: "res/seabios.bin" },
           vga_bios: { url: "res/vgabios.bin" },
           autostart: true
