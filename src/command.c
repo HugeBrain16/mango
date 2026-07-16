@@ -725,7 +725,11 @@ static int command_formatdisk(int argc, char *argv[]) {
 
     if (!strcmp(confirm, "y")) {
         file_format();
-        term_write("Disk formatted.\n");
+
+        if (file_is_formatted())
+            term_write("Disk formatted.\n");
+        else
+            term_write("Failed to format disk.\n");
         return 0;
     }
 
@@ -1257,7 +1261,7 @@ int command_handle(char *command, int printprompt) {
     else {
         int found_script = 0;
 
-        if (file_drive_status == FILE_DRIVE_OK && !config_has("/system/config/system.cfg", "disable_user_scripts")) {
+        if (!config_has("/system/config/system.cfg", "disable_user_scripts")) {
             char *script_path = heap_alloc(20 + cmd->size);
             strfmt(script_path, "/system/scripts/%s.sc", cmd->value);
 

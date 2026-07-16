@@ -133,29 +133,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
     log(buffer);
 
-    log("[ INFO ] Checking ATA port PRIMARY MASTER for drive...\n");
-    file_init(ATA_PRIMARY, ATA_MASTER);
-
-    uint8_t status = ata_status(file_port);
-    if (status == 0x00 || status == 0xFF) {
-        file_drive_status = FILE_DRIVE_ABSENT;
-        strfmt(buffer, "[ WARNING ] No primary drive. (status: %x)\n", status);
-        log(buffer);
-    }
-
-    if (file_drive_status != FILE_DRIVE_ABSENT) {
-        uint8_t ata_id[512];
-        ata_identify(file_port, ata_id);
-
-        uint16_t *w = (uint16_t*) ata_id;
-        if (w[0] & (1 << 15)) {
-            file_drive_status = FILE_DRIVE_INCOMPATIBLE;
-            log("[ WARNING ] Drive is not compatible.\n");
-        }
-    }
-
-    if (file_drive_status == FILE_DRIVE_OK)
-        log("[ INFO ] Drive OK\n");
+    file_init_by_slot(2);
 
     pit_set_frequency(250);
     strfmt(buffer, "[ INFO ] PIT frequency: %d\n", pit_hz);
@@ -185,7 +163,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     screen_clear(term_bg);
     keyboard_mode = KEYBOARD_MODE_TERM;
 
-    if (file_drive_status == FILE_DRIVE_OK && file_path_isfile("/system/init.sc"))
+    if (file_is_ready() && file_path_isfile("/system/init.sc"))
         script_run("/system/init.sc", 0, NULL);
 
     char *scale_config = config_get("/system/config/screen.cfg", "scale");

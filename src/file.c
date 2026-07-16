@@ -5,6 +5,9 @@
 #include "terminal.h"
 #include "color.h"
 #include "rtc.h"
+#include "kernel.h"
+
+int file_drive_status = FILE_DRIVE_UNSET;
 
 void file_read_sb(file_superblock_t *sb) {
     uint8_t buffer[512];
@@ -57,13 +60,68 @@ int file_is_formatted() {
     return sb.magic == FILE_MAGIC;
 }
 
-void file_init(uint16_t base, uint8_t drive) {
+int file_is_ready() {
+    return file_drive_status == FILE_DRIVE_OK && file_is_formatted();
+}
+
+int file_init(uint16_t base, uint8_t drive) {
     ata_select(base, drive);
     file_port = base;
     file_drive = drive;
 
     file_current = FILE_SECTOR_ROOT;
-    file_drive_status = FILE_DRIVE_OK;
+    file_drive_status = FILE_DRIVE_UNSET;
+
+    char msg[64];
+    uint8_t status = ata_status(file_port);
+
+    if (status == 0x00 || status == 0xFF) {
+        file_drive_status = FILE_DRIVE_ABSENT;
+        strfmt(msg, "[ WARNING ] ATA: Could not detect drive. (status: %x)\n", status);
+        log(msg);
+    }
+
+    if (file_drive_status != FILE_DRIVE_ABSENT) {
+        uint8_t ata_id[512];
+
+        if (!ata_identify(file_port, ata_id)) {
+            file_drive_status = FILE_DRIVE_INCOMPATIBLE;
+            log("[ WARNING ] ATA: Failed to identify drive.\n");
+        } else {
+            uint16_t *w = (uint16_t*) ata_id;
+            if (w[0] & (1 << 15)) {
+                file_drive_status = FILE_DRIVE_INCOMPATIBLE;
+                log("[ WARNING ] ATA: Drive is not compatible.\n");
+            }
+        }
+    }
+
+    if (file_drive_status == FILE_DRIVE_UNSET) {
+        file_drive_status = FILE_DRIVE_OK;
+
+        strfmt(msg, "[ INFO ] ATA: Drive OK. (status: %x)\n", status);
+        log(msg);
+    }
+
+    return 1;
+}
+
+int file_init_by_slot(uint8_t slot) {
+    if (slot < 1 || slot > ATA_MAX_DEV) return 0;
+
+    char msg[64];
+    strfmt(msg, "[ INFO ] ATA: Initializing drive (slot: %d)\n", slot);
+    log(msg);
+
+    switch (slot) {
+        case 1: return file_init(ATA_PRIMARY, ATA_MASTER);
+        case 2: return file_init(ATA_PRIMARY, ATA_SLAVE);
+        case 3: return file_init(ATA_SECONDARY, ATA_MASTER);
+        case 4: return file_init(ATA_SECONDARY, ATA_SLAVE);
+        default: return 0;
+    }
+
+    return 0;
 }
 
 uint32_t file_get(uint32_t parent, const char *name) {

@@ -41,18 +41,24 @@ void ata_wait_io(uint16_t base) {
 }
 
 void ata_wait_ready(uint16_t base) {
-    while (inb(ata_port(base, ATA_PORT_STATUS)) & ATA_STATUS_BSY);
+    while (ata_status(base) & ATA_STATUS_BSY);
 }
 
-void ata_wait_data(uint16_t base) {
-    while (!(inb(ata_port(base, ATA_PORT_STATUS)) & ATA_STATUS_DRQ));
+int ata_wait_data(uint16_t base) {
+    while (!(ata_status(base) & ATA_STATUS_DRQ)) {
+        uint8_t status = ata_status(base);
+        if (status & ATA_STATUS_ERR || status & ATA_STATUS_DF)
+            return 0;
+    }
+
+    return 1;
 }
 
 void ata_select(uint16_t base, uint8_t drive) {
     outb(ata_port(base, ATA_PORT_DRIVE), (ATA_DRV_BASE + drive) | ATA_DRV_LBA);   
 }
 
-void ata_prepare(uint16_t base, uint32_t lba, uint8_t command) {
+int ata_prepare(uint16_t base, uint32_t lba, uint8_t command) {
     ata_wait_ready(base);
 
     if (command != ATA_IDENTIFY)
@@ -61,11 +67,14 @@ void ata_prepare(uint16_t base, uint32_t lba, uint8_t command) {
         ata_clear_lba(base);
 
     ata_command(base, command);
-    ata_wait_data(base);
+    ata_wait_io(base);
+
+    return ata_wait_data(base);
 }
 
 int ata_identify(uint16_t base, void *buffer) {
-    ata_prepare(base, 0, ATA_IDENTIFY);
+    if (!ata_prepare(base, 0, ATA_IDENTIFY))
+        return 0;
 
     uint8_t status = ata_status(base);
     if (status == 0xFF || status & ATA_STATUS_ERR) return 0;
@@ -79,7 +88,8 @@ int ata_identify(uint16_t base, void *buffer) {
 }
 
 int ata_read_sector(uint16_t base, uint32_t lba, void *buffer) {
-    ata_prepare(base, lba, ATA_READ);
+    if (!ata_prepare(base, lba, ATA_READ))
+        return 0;
 
     uint8_t status = ata_status(base);
     if (status & ATA_STATUS_ERR) return 0;
@@ -93,7 +103,8 @@ int ata_read_sector(uint16_t base, uint32_t lba, void *buffer) {
 }
 
 int ata_write_sector(uint16_t base, uint32_t lba, void *buffer) {
-    ata_prepare(base, lba, ATA_WRITE);
+    if (!ata_prepare(base, lba, ATA_WRITE))
+        return 0;
 
     uint8_t status = ata_status(base);
     if (status & ATA_STATUS_ERR) return 0;
@@ -104,6 +115,7 @@ int ata_write_sector(uint16_t base, uint32_t lba, void *buffer) {
         ata_write(base, word[i]);
 
     ata_command(base, ATA_FLUSH);
+    ata_wait_io(base);
     ata_wait_ready(base);
 
     return 1;

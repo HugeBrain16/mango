@@ -15,6 +15,7 @@
 #define FILE_MAX_NAME 32
 #define FILE_MAX_PATH 1024
 
+#define FILE_DRIVE_UNSET -1
 #define FILE_DRIVE_OK 0
 #define FILE_DRIVE_ABSENT 1
 #define FILE_DRIVE_INCOMPATIBLE 2
@@ -50,12 +51,14 @@ typedef struct file_data {
 uint16_t file_port;
 uint8_t file_drive;
 uint32_t file_current;
-int file_drive_status;
+extern int file_drive_status;
 
-extern void file_init(uint16_t base, uint8_t drive);
+extern int file_init(uint16_t base, uint8_t drive);
+extern int file_init_by_slot(uint8_t slot);
 
 extern void file_format();
 extern int file_is_formatted();
+extern int file_is_ready();
 
 extern void file_read_sb(file_superblock_t *sb);
 extern void file_write_sb(file_superblock_t *sb);
