@@ -1,5 +1,6 @@
 #include "ata.h"
 #include "io.h"
+#include "pit.h"
 
 uint16_t ata_port(uint16_t base, uint8_t port) {
     return (uint16_t) base + port;
@@ -40,8 +41,14 @@ void ata_wait_io(uint16_t base) {
         inb(ata_port(base, ATA_PORT_STATUS));
 }
 
-void ata_wait_ready(uint16_t base) {
-    while (ata_status(base) & ATA_STATUS_BSY);
+int ata_wait_ready(uint16_t base) {
+    uint32_t start = pit_ticks;
+    while (ata_status(base) & ATA_STATUS_BSY) {
+        if (pit_ticks - start > 1000)
+            return 0;
+    }
+
+    return 1;
 }
 
 int ata_wait_data(uint16_t base) {
@@ -55,11 +62,13 @@ int ata_wait_data(uint16_t base) {
 }
 
 void ata_select(uint16_t base, uint8_t drive) {
-    outb(ata_port(base, ATA_PORT_DRIVE), (ATA_DRV_BASE + drive) | ATA_DRV_LBA);   
+    outb(ata_port(base, ATA_PORT_DRIVE), ATA_DRV_BASE | (drive << 4) | ATA_DRV_LBA);
+    ata_wait_io(base);
 }
 
 int ata_prepare(uint16_t base, uint32_t lba, uint8_t command) {
-    ata_wait_ready(base);
+    if (!ata_wait_ready(base))
+        return 0;
 
     if (command != ATA_IDENTIFY)
         ata_set_lba(base, lba);

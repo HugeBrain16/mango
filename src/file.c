@@ -64,6 +64,18 @@ int file_is_ready() {
     return file_drive_status == FILE_DRIVE_OK && file_is_formatted();
 }
 
+int file_drive_slot() {
+    int slot = -1;
+
+    if (file_port == ATA_PRIMARY) slot = 0;
+    else if (file_port == ATA_SECONDARY) slot = 2;
+
+    if (file_drive == ATA_MASTER) slot += 1;
+    else if (file_drive == ATA_SLAVE) slot += 2;
+
+    return slot;
+}
+
 int file_init(uint16_t base, uint8_t drive) {
     ata_select(base, drive);
     file_port = base;
@@ -75,7 +87,7 @@ int file_init(uint16_t base, uint8_t drive) {
     char msg[64];
     uint8_t status = ata_status(file_port);
 
-    if (status == 0x00 || status == 0xFF) {
+    if (status == 0x00 || status == 0x7F || status == 0xFF) {
         file_drive_status = FILE_DRIVE_ABSENT;
         strfmt(msg, "[ WARNING ] ATA: Could not detect drive. (status: %x)\n", status);
         log(msg);

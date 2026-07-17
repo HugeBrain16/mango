@@ -55,6 +55,7 @@ extern int file_drive_status;
 
 extern int file_init(uint16_t base, uint8_t drive);
 extern int file_init_by_slot(uint8_t slot);
+extern int file_drive_slot();
 
 extern void file_format();
 extern int file_is_formatted();

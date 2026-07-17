@@ -133,7 +133,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
     log(buffer);
 
-    file_init_by_slot(2);
+    file_init_by_slot(1);
 
     pit_set_frequency(250);
     strfmt(buffer, "[ INFO ] PIT frequency: %d\n", pit_hz);

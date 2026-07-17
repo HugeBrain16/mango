@@ -61,7 +61,7 @@ extern void ata_write(uint16_t base, uint16_t data);
 extern void ata_clear_lba(uint16_t base);
 extern void ata_set_lba(uint16_t base, uint32_t lba);
 extern void ata_wait_io(uint16_t base);
-extern void ata_wait_ready(uint16_t base);
+extern int ata_wait_ready(uint16_t base);
 extern int ata_wait_data(uint16_t base);
 extern void ata_select(uint16_t base, uint8_t drive);
 extern int ata_prepare(uint16_t base, uint32_t lba, uint8_t command);

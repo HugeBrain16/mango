@@ -960,40 +960,30 @@ static int command_diskinfo(int argc, char *argv[]) {
     char buffer[64];
 
     uint8_t ata_id[512];
-    ata_identify(file_port, ata_id);
-    uint16_t *w = (uint16_t*) ata_id;
+    if (ata_identify(file_port, ata_id)) {
+        uint16_t *w = (uint16_t*) ata_id;
 
-    term_write("PORT = ");
-    if (file_port == ATA_PRIMARY)
-        term_write("PRIMARY");
-    else if (file_port == ATA_SECONDARY)
-        term_write("SECONDARY");
-    term_write("\n");
+        strfmt(buffer, "SLOT = %d\n", file_drive_slot());
+        term_write(buffer);
 
-    term_write("DRIVE = ");
-    if (file_drive == ATA_MASTER)
-        term_write("MASTER");
-    else if (file_drive == ATA_SLAVE)
-        term_write("SLAVE");
-    term_write("\n");
+        term_write("SERIAL NUMBER = ");
+        ata_print_string(w, 10, 19);
+        term_write("\n");
 
-    term_write("SERIAL NUMBER = ");
-    ata_print_string(w, 10, 19);
-    term_write("\n");
+        term_write("FIRMWARE REV = ");
+        ata_print_string(w, 23, 26);
+        term_write("\n");
 
-    term_write("FIRMWARE REV = ");
-    ata_print_string(w, 23, 26);
-    term_write("\n");
+        term_write("MODEL NUMBER = ");
+        ata_print_string(w, 27, 46);
+        term_write("\n");
 
-    term_write("MODEL NUMBER = ");
-    ata_print_string(w, 27, 46);
-    term_write("\n");
-
-    uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
-    char disk_total[16];
-    unit_get_size(sectors * 512, disk_total);
-    strfmt(buffer, "SECTORS = %d (%s)\n", sectors, disk_total);
-    term_write(buffer);
+        uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
+        char disk_total[16];
+        unit_get_size(sectors * 512, disk_total);
+        strfmt(buffer, "SECTORS = %d (%s)\n", sectors, disk_total);
+        term_write(buffer);
+    } else term_write("Couldn't identify disk.\n");
 
     return 0;
 }
