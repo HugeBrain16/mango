@@ -3,7 +3,7 @@
 ![mango](https://i.imgur.com/5RssEB5.png)
 
 features include:
-- basic shell & terminal
+- basic shell & terminal. list of [commands](https://github.com/HugeBrain16/mango/wiki/Programs#shell)
 - custom filesystem
 - text editor
 - experimental userspace (user scripts, init script & system customizations)
