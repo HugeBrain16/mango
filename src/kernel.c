@@ -1,7 +1,7 @@
 #include <stdint.h>
+#include "kernel.h"
 #include "multiboot.h"
 #include "serial.h"
-#include "string.h"
 #include "heap.h"
 #include "screen.h"
 #include "terminal.h"
@@ -26,8 +26,20 @@
 #include "rand.h"
 #include "pci.h"
 #include "sound.h"
+#include "command.h"
+#include "fio.h"
 
+char early_boot[128] = {0};
+int boot_logging = 1;
+string_t *boot_log = NULL;
 uintptr_t __stack_chk_guard;
+
+static void setup_log() {
+    if (!file_path_isfile("/system/system.log")) {
+        if (!file_path_isfolder("/system")) command_handle("newfolder /system", 0);
+        command_handle("newfile /system/system.log", 0);
+    }
+}
 
 void log(const char *msg) {
     serial_write(msg);
@@ -35,6 +47,14 @@ void log(const char *msg) {
     if (screen_buffer) {
         term_write(msg);
         screen_flush();
+    }
+
+    if (file_is_ready() && !boot_logging) {
+        setup_log();
+
+        fio_t *syslog = fio_open("/system/system.log", 'a');
+        fio_write(syslog, msg, strlen(msg));
+        fio_close(syslog);
     }
 }
 
@@ -61,41 +81,65 @@ void __stack_chk_fail() {
 
 __attribute__((noreturn))
 void main(uint32_t magic, multiboot_info_t *mbi) {
+    char *msg;
     char buffer[64];
 
     serial_init();
 
-    if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
-        panic("[ PANIC ] Invalid magic number!\n");
-    if (!(mbi->flags & (1 << 12)))
-        panic("[ PANIC ] No video!\n");
+    if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
+        msg = "[ PANIC ] Invalid magic number!\n";
+        strcat(early_boot, msg);
+        panic(msg);
+    }
+    if (!(mbi->flags & (1 << 12))) {
+        msg = "[ PANIC ] No video!\n";
+        strcat(early_boot, msg);
+        panic(msg);
+    }
 
     screen_init(mbi);
     term_init();
 
+    pages_init();
+    msg = "[ INFO ] Pages OK\n";
+    strcat(early_boot, msg);
+    log(msg);
+
+    heap_init(mbi);
+    strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
+    strcat(early_boot, buffer);
+    log(buffer);
+
+    boot_log = string_from(early_boot);
+
     strfmt(buffer, "[ INFO ] Screen: %dx%d\n", screen_width, screen_height);
+    string_puts(boot_log, buffer);
     log(buffer);
 
     gdt_init();
-    log("[ INFO ] GDT OK\n");
+    msg = "[ INFO ] GDT OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
     idt_init();
-    log("[ INFO ] IDT OK\n");
-    pages_init();
-    log("[ INFO ] Pages OK\n");
+    msg = "[ INFO ] IDT OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
+
     rtc_init();
-    log("[ INFO ] RTC OK\n");
+    msg = "[ INFO ] RTC OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
     ps2_init();
-    log("[ INFO ] PS/2 OK\n");
+    msg = "[ INFO ] PS/2 OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
 
     cpu_init();
     if (strlen(cpu_name) > 0)
         strfmt(buffer, "[ INFO ] CPU: %s\n", cpu_name);
     else
         strfmt(buffer, "[ INFO ] CPU: Unknown\n");
-    log(buffer);
-
-    heap_init(mbi);
-    strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
+    string_puts(boot_log, buffer);
     log(buffer);
 
     for (int x = 0; x < PCI_MAX_BUS; x++) {
@@ -105,58 +149,93 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
             char idstr[9];
             if (pci_get_device(&dev, x, y)) {
                 strfmt(buffer, "[ INFO ] (PCI) Bus:%d Device:%d ", x, y);
+                string_puts(boot_log, buffer);
                 log(buffer);
 
                 if (dev.revision) {
                     strfmt(buffer, "Rev:%d ", dev.revision);
+                    string_puts(boot_log, buffer);
                     log(buffer);
                 }
 
                 strhex(idstr, (uint32_t)dev.vendor_id);
-                log(strsub(idstr, 4));
+                msg = strsub(idstr, 4);
+                string_puts(boot_log, msg);
+                log(msg);
 
+                string_putc(boot_log, ':');
                 log(":");
 
                 strhex(idstr, (uint32_t)dev.device_id);
-                log(strsub(idstr, 4));
+                msg = strsub(idstr, 4);
+                string_puts(boot_log, msg);
+                log(msg);
 
+                string_putc(boot_log, '\n');
                 log("\n");
             }
         }
     }
 
     screen_init_back_buffer();
-    log("[ INFO ] Initialized screen back buffer.\n");
+    msg = "[ INFO ] Initialized screen back buffer\n";
+    string_puts(boot_log, msg);
+    log(msg);
 
     char total_mem[16];
     unit_get_size(heap_end - heap_start + (2 << 20), total_mem);
     strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
+    string_puts(boot_log, buffer);
     log(buffer);
 
     file_init_by_slot(1);
 
     pit_set_frequency(250);
     strfmt(buffer, "[ INFO ] PIT frequency: %d\n", pit_hz);
+    string_puts(boot_log, buffer);
     log(buffer);
 
     pic_unmask(0);
-    log("[ INFO ] PIT OK\n");
+    msg = "[ INFO ] PIT OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
     pic_unmask(1);
-    log("[ INFO ] PS/2 Keyboard OK\n");
+    msg = "[ INFO ] PS/2 Keyboard OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
 
     acpi_init();
 
-    log("[ INFO ] Seeding random...\n");
+    msg = "[ INFO ] Seeding random...\n";
+    string_puts(boot_log, msg);
+    log(msg);
     uint64_t dt = datetime_packed();
     srand((uint32_t)(dt >> 32) ^ (uint32_t)dt ^ pit_ticks ^ rtc_ticks);
 
-    log("[ INFO ] Initializing sound...\n");
-    if(sound_init())
-        log("[ INFO ] Sound OK\n");
-    else
-        log("[ WARNING ] Sound initialization failed!\n");
+    msg = "[ INFO ] Initializing sound...\n";
+    string_puts(boot_log, msg);
+    log(msg);
+    if(sound_init()) {
+        msg = "[ INFO ] Sound OK\n";
+        string_puts(boot_log, msg);
+        log(msg);
+    } else {
+        msg = "[ WARNING ] Sound initialization failed!\n";
+        string_puts(boot_log, msg);
+        log(msg);
+    }
 
-    log("[ INFO ] Initialization complete!\n");
+    msg = "[ INFO ] Initialization complete!\n";
+    string_puts(boot_log, msg);
+    log(msg);
+
+    setup_log();
+    fio_t *syslog = fio_open("/system/system.log", 'w');
+    fio_write(syslog, boot_log->value, boot_log->size);
+    fio_close(syslog);
+    string_free(boot_log);
+    boot_logging = 0;
+
     term_init();
     term_load_config();
     term_update_path();

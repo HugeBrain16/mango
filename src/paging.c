@@ -25,12 +25,26 @@ void pages_init() {
 	page_map_physical(0, first_page_table);
 	page_map_physical((uint32_t)screen_buffer, screen_page_table);
 
-	log("[ INFO ] Loading page directory...\n");
+	char *msg = "[ INFO ] Loading page_directory...\n";
+	if (boot_logging) {
+		if (boot_log)
+			string_puts(boot_log, msg);
+		else
+			strcat(early_boot, msg);
+	}
+	log(msg);
 	__asm__ volatile(
 		"mov %0, %%cr3\n"
 	:: "r"(page_directory));
 
-	log("[ INFO ] Enabling paging...\n");
+	msg = "[ INFO ] Enabling paging...\n";
+	if (boot_logging) {
+		if (boot_log)
+			string_puts(boot_log, msg);
+		else
+			strcat(early_boot, msg);
+	}
+	log(msg);
 	__asm__ volatile(
 		"mov %%cr0, %%eax\n"
 		"or $0x80000000, %%eax\n"

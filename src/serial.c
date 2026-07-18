@@ -13,7 +13,14 @@ void serial_init() {
     outb(SERIAL_PORT + 2, 0xC7);
     outb(SERIAL_PORT + 4, 0x0B);
 
-    log("[ INFO ] Serial: COM1\n");
+    char *msg = "[ INFO ] Serial: COM1\n";
+    if (boot_logging) {
+        if (boot_log)
+            string_puts(boot_log, msg);
+        else
+            strcat(early_boot, msg);
+    }
+    log(msg);
 }
 
 void serial_putc(char c) {

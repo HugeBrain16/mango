@@ -68,9 +68,13 @@ void acpi_shutdown() {
 }
 
 void acpi_init() {
+	char *msg;
 	char buffer[64];
 
-	log("[ INFO ] ACPI Initializing...\n");
+	msg = "[ INFO ] ACPI Initializing...\n";
+	if (boot_logging)
+		string_puts(boot_log, msg);
+	log(msg);
 
 	acpi_rsdp = acpi_find_rsdp();
 	if (acpi_rsdp) {
@@ -79,34 +83,50 @@ void acpi_init() {
 			version = "2.0";
 
 		strfmt(buffer, "[ INFO ] ACPI v%s\n", version);
+		if (boot_logging)
+			string_puts(boot_log, buffer);
 		log(buffer);
 
 		strfmt(buffer, "[ INFO ] ACPI RSDP: 0x%x\n", acpi_rsdp);
 	} else
 		strfmt(buffer, "[ WARNING ] Could not find RSDP!\n");
+	if (boot_logging)
+		string_puts(boot_log, buffer);
 	log(buffer);
 
 	if (acpi_rsdp) {
 		acpi_rsdt = (rsdt_t*)acpi_rsdp->rsdt_addr;
 		strfmt(buffer, "[ INFO ] ACPI RSDT: 0x%x\n", acpi_rsdt);
+		if (boot_logging)
+			string_puts(boot_log, buffer);
 		log(buffer);
 
 		acpi_fadt = (fadt_t*)acpi_find_table("FACP");
 		strfmt(buffer, "[ INFO ] ACPI FADT: 0x%x\n", acpi_fadt);
+		if (boot_logging)
+			string_puts(boot_log, buffer);
 		log(buffer);
 
 		acpi_dsdt = (dsdt_t*)acpi_fadt->dsdt;
 		strfmt(buffer, "[ INFO ] ACPI DSDT: 0x%x\n", acpi_dsdt);
+		if (boot_logging)
+			string_puts(boot_log, buffer);
 		log(buffer);
 
 		if (acpi_fadt->smi_command_port != 0) {
-	        log("[ INFO ] ACPI mode is not enabled, attempting to enable...\n");
+			msg = "[ INFO ] ACPI mode is not enabled, attempting to enable...\n";
+	        if (boot_logging)
+	        	string_puts(boot_log, msg);
+	        log(msg);
 	        outb(acpi_fadt->smi_command_port, acpi_fadt->acpi_enable);
 
 	        uint32_t start = pit_ticks;
 	        while (!acpi_mode_enabled()) {
 	            if (pit_ticks - start > 3000) {
-	                log("[ WARNING ] ACPI intialization timed out!\n");
+	            	msg = "[ WARNING ] ACPI Initialization timed out!\n";
+	                if (boot_logging)
+	                	string_puts(boot_log, msg);
+	                log(msg);
 	                break;
 	            }
 	        }
@@ -114,7 +134,10 @@ void acpi_init() {
 	}
 
     if (acpi_mode_enabled())
-        log("[ INFO ] ACPI OK\n");
+        msg = "[ INFO ] ACPI OK\n";
     else
-        log("[ WARNING ] ACPI mode is not enabled!\n");
+        msg = "[ WARNING ] ACPI mode is not enabled!\n";
+    if (boot_logging)
+    	string_puts(boot_log, msg);
+    log(msg);
 }
