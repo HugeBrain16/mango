@@ -6,7 +6,7 @@ features include:
 - basic shell & terminal. list of [commands](https://github.com/HugeBrain16/mango/wiki/Programs#shell)
 - custom filesystem
 - text editor
-- experimental userspace (user scripts, init script & system customizations)
+- experimental user environment (user scripts, init script & system customizations)
 - scripting , [see here](https://github.com/HugeBrain16/mango/wiki/Scripting)
 
 install i686-elf toolchain (Binutils, GCC, GDB) into "toolchain" folder
