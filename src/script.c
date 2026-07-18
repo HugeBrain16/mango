@@ -2360,6 +2360,7 @@ static script_node_t *call_config_get(script_node_t *node) {
     ret->literal.str_size = length;
     ret->literal.str_value = heap_alloc(length);
     memcpy(ret->literal.str_value, value, length);
+    heap_free(value);
 
     return ret;
 }

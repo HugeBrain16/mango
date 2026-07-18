@@ -167,8 +167,10 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         script_run("/system/init.sc", 0, NULL);
 
     char *scale_config = config_get("/system/config/screen.cfg", "scale");
-    if (scale_config)
+    if (scale_config) {
         screen_scale = doublestr(scale_config);
+        heap_free(scale_config);
+    }
 
     if (!config_has("/system/config/system.cfg", "disable_welcome_message"))
         term_write2("Welcome to Mango!\n", COLOR_YELLOW, term_bg);
