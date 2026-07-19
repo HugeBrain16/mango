@@ -303,6 +303,9 @@ void term_handle_type(uint8_t scancode) {
     if (c == '\b') return term_handle_backspace();
 
     if (c != '\n') {
+        if (term_input_cursor >= TERM_INPUT_SIZE)
+            return;
+
         term_clear_cursor();
 
         for (int i = term_input_cursor; i > term_input_pos; i--)
