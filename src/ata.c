@@ -1,6 +1,7 @@
 #include "ata.h"
 #include "io.h"
 #include "pit.h"
+#include "string.h"
 
 uint16_t ata_port(uint16_t base, uint8_t port) {
     return (uint16_t) base + port;
@@ -128,5 +129,23 @@ int ata_write_sector(uint16_t base, uint32_t lba, void *buffer) {
     ata_wait_io(base);
     ata_wait_ready(base);
 
+    return 1;
+}
+
+int ata_get_string(uint16_t *w, int start, int end, char *dest, size_t size) {
+    int j = 0;
+
+    for (int i = start; i < end; i++) {
+        if (j + 2 < (int)size) {
+            dest[j++] = (char)((w[i] >> 8) & 0xFF);
+            dest[j++] = (char)(w[i] & 0xFF);
+        }
+    }
+
+    dest[j] = '\0';
+    strrtrim(dest);
+
+    if (j < end)
+        return 0;
     return 1;
 }

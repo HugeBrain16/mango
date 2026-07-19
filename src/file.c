@@ -689,3 +689,15 @@ uint32_t file_sector_alloc() {
     ata_write_sector(file_port, sector, buffer);
     return sector;
 }
+
+int file_drive_spec(drive_t *drive) {
+    uint8_t ata_id[512];
+    if (!ata_identify(file_port, ata_id))
+        return 0;
+
+    uint16_t *w = (uint16_t*) ata_id;
+    ata_get_string(w, 10, 19, drive->serial, sizeof(drive->serial));
+    ata_get_string(w, 23, 26, drive->rev, sizeof(drive->rev));
+    ata_get_string(w, 27, 46, drive->model, sizeof(drive->model));
+    return 1;
+}

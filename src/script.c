@@ -11,6 +11,7 @@
 #include "rand.h"
 #include "kernel.h"
 #include "screen.h"
+#include "cpu.h"
 
 int script_exit = 0;
 
@@ -626,6 +627,37 @@ static script_node_t *node_false() {
     script_node_t *node = node_true();
     node->literal.int_value = 0;
 
+    return node;
+}
+
+static script_node_t *node_string(char *src) {
+    script_node_t *node = node_null();
+    node->node_type = SCRIPT_AST_LITERAL;
+    node->value_type = SCRIPT_STR;
+    node->lineno = 0;
+
+    size_t length = strlen(src) + 1;
+    node->literal.str_size = length;
+    node->literal.str_value = heap_alloc(length);
+    memcpy(node->literal.str_value, src, node->literal.str_size);
+    return node;
+}
+
+static script_node_t *node_int(int n) {
+    script_node_t *node = node_null();
+    node->node_type = SCRIPT_AST_LITERAL;
+    node->value_type = SCRIPT_INT;
+    node->lineno = 0;
+    node->literal.int_value = n;
+    return node;
+}
+
+static script_node_t *node_float(double n) {
+    script_node_t *node = node_null();
+    node->node_type = SCRIPT_AST_LITERAL;
+    node->value_type = SCRIPT_FLOAT;
+    node->lineno = 0;
+    node->literal.float_value = n;
     return node;
 }
 
@@ -1537,6 +1569,63 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 }
 
 /* ==== built-ins ==== */
+
+static script_node_t *call_cpu_name(script_node_t *node) {
+    script_node_t *value = node_string(cpu_name);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_cpu_vendor(script_node_t *node) {
+    script_node_t *value = node_string(cpu_vendor);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_cpu_family(script_node_t *node) {
+    script_node_t *value = node_int(cpu_family);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_cpu_model(script_node_t *node) {
+    script_node_t *value = node_int(cpu_model);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_ata_slot(script_node_t *node) {
+    script_node_t *value = node_int(file_drive_slot());
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_ata_serial(script_node_t *node) {
+    drive_t drive;
+    file_drive_spec(&drive);
+
+    script_node_t *value = node_string(drive.serial);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_ata_rev(script_node_t *node) {
+    drive_t drive;
+    file_drive_spec(&drive);
+
+    script_node_t *value = node_string(drive.rev);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_ata_model(script_node_t *node) {
+    drive_t drive;
+    file_drive_spec(&drive);
+
+    script_node_t *value = node_string(drive.model);
+    value->lineno = node->lineno;
+    return value;
+}
 
 static script_node_t *call_exit(script_node_t *node) {
     size_t argc = node->call.argc;
@@ -3300,6 +3389,14 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "color_reset")) ret = call_color_reset(&copy_call);
     else if (!strcmp(name, "sys_log")) ret = call_sys_log(&copy_call);
     else if (!strcmp(name, "exit")) ret = call_exit(&copy_call);
+    else if (!strcmp(name, "ata_slot")) ret = call_ata_slot(&copy_call);
+    else if (!strcmp(name, "ata_serial")) ret = call_ata_serial(&copy_call);
+    else if (!strcmp(name, "ata_rev")) ret = call_ata_rev(&copy_call);
+    else if (!strcmp(name, "ata_model")) ret = call_ata_model(&copy_call);
+    else if (!strcmp(name, "cpu_name")) ret = call_cpu_name(&copy_call);
+    else if (!strcmp(name, "cpu_vendor")) ret = call_cpu_vendor(&copy_call);
+    else if (!strcmp(name, "cpu_family")) ret = call_cpu_family(&copy_call);
+    else if (!strcmp(name, "cpu_model")) ret = call_cpu_model(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {

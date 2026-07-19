@@ -48,6 +48,12 @@ typedef struct file_data {
     uint8_t data[508];
 } file_data_t;
 
+typedef struct {
+    char serial[21];
+    char rev[9];
+    char model[41];
+} drive_t;
+
 uint16_t file_port;
 uint8_t file_drive;
 uint32_t file_current;
@@ -56,6 +62,7 @@ extern int file_drive_status;
 extern int file_init(uint16_t base, uint8_t drive);
 extern int file_init_by_slot(uint8_t slot);
 extern int file_drive_slot();
+extern int file_drive_spec(drive_t *drive);
 
 extern void file_format();
 extern int file_is_formatted();

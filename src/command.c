@@ -26,21 +26,6 @@
 #define MINIMP3_IMPLEMENTATION
 #include <external/minimp3/minimp3.h>
 
-static void ata_print_string(uint16_t *w, int start, int end) {
-    char str[64];
-    int j = 0;
-
-    for (int i = start; i < end; i++) {
-        str[j++] = (char)((w[i] >> 8) & 0xFF);
-        str[j++] = (char)(w[i] & 0xFF);
-    }
-
-    str[j] = '\0';
-
-    strrtrim(str);
-    term_write(str);
-}
-
 static int nodisk() {
     if (file_drive_status != FILE_DRIVE_OK) {
         term_write("No drive.\n");
@@ -159,9 +144,11 @@ static int command_fetch(int argc, char *argv[]) {
         unit_get_size(sectors * 512, disk_total);
 
         term_write("Disk: ");
-        
+
         if (show_diskname) {
-            ata_print_string(w, 27, 46);
+            char name[64];
+            ata_get_string(w, 27, 46, name, 64);
+            term_write(name);
             term_write(" - ");
         }
 
@@ -962,20 +949,22 @@ static int command_diskinfo(int argc, char *argv[]) {
     uint8_t ata_id[512];
     if (ata_identify(file_port, ata_id)) {
         uint16_t *w = (uint16_t*) ata_id;
+        drive_t drive;
+        file_drive_spec(&drive);
 
         strfmt(buffer, "SLOT = %d\n", file_drive_slot());
         term_write(buffer);
 
         term_write("SERIAL NUMBER = ");
-        ata_print_string(w, 10, 19);
+        term_write(drive.serial);
         term_write("\n");
 
         term_write("FIRMWARE REV = ");
-        ata_print_string(w, 23, 26);
+        term_write(drive.rev);
         term_write("\n");
 
         term_write("MODEL NUMBER = ");
-        ata_print_string(w, 27, 46);
+        term_write(drive.model);
         term_write("\n");
 
         uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
