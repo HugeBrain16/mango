@@ -52,9 +52,10 @@ int ata_wait_ready(uint16_t base) {
 }
 
 int ata_wait_data(uint16_t base) {
+    uint32_t start = pit_ticks;
     while (!(ata_status(base) & ATA_STATUS_DRQ)) {
         uint8_t status = ata_status(base);
-        if (status & ATA_STATUS_ERR || status & ATA_STATUS_DF)
+        if (status & ATA_STATUS_ERR || status & ATA_STATUS_DF || pit_ticks - start > 5000)
             return 0;
     }
 
