@@ -2646,6 +2646,66 @@ static script_node_t *call_list_remove(script_node_t *node) {
     return node_null();
 }
 
+static script_node_t *call_list_str(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(list);
+        strfmt(msg, "Error: Function list_str() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list) {
+        string_t *str = string_init();
+        string_putc(str, '[');
+        list_t *l = list->literal.list;
+        for (int i = 0; i < (int)l->size; i++) {
+            script_node_t *li = (script_node_t*)list_get(l, i);
+            char *val = node_repr(li);
+            if (val) {
+                if (i > 0)
+                    string_puts(str, ", ");
+
+                char sym = NULL;
+                if (li->value_type == SCRIPT_STR) {
+                    if (strhasc(val, '\''))
+                        sym = '"';
+                    else
+                        sym = '\'';
+                }
+
+                if (sym)
+                    string_putc(str, sym);
+                string_puts(str, val);
+                if (sym)
+                    string_putc(str, sym);
+            }
+        }
+        string_putc(str, ']');
+
+        script_node_t *res = node_string(str->value);
+        res->lineno = node->lineno;
+        string_free(str);
+        return res;
+    }
+
+    return node_null();
+}
+
 static script_node_t *call_sleep(script_node_t *node) {
     size_t argc = node->call.argc;
 
@@ -3378,6 +3438,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "list_get")) ret = call_list_get(&copy_call);
     else if (!strcmp(name, "list_pop")) ret = call_list_pop(&copy_call);
     else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
+    else if (!strcmp(name, "list_str")) ret = call_list_str(&copy_call);
     else if (!strcmp(name, "sleep")) ret = call_sleep(&copy_call);
     else if (!strcmp(name, "sys_ticks")) ret = call_sys_ticks(&copy_call);
     else if (!strcmp(name, "argc")) ret = call_argc(&copy_call);

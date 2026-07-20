@@ -5,11 +5,13 @@
 
 typedef struct list_node {
     void *data;
+    struct list_node *prev;
     struct list_node *next;
 } list_node_t;
 
 typedef struct list {
     list_node_t *head;
+    list_node_t *tail;
     size_t size;
 } list_t;
 

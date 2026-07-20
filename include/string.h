@@ -22,6 +22,7 @@ extern void strncat(char *dest, const char *src, size_t dsize, size_t ssize);
 extern void strhex(char *dest, uint32_t value);
 extern void strflip(char *dest, size_t start, size_t end);
 extern void strint(char *dest, int value);
+extern int strhasc(char *src, char c);
 extern uint32_t hexstr(const char *src);
 extern int intstr(const char *src);
 extern double doublestr(const char *src);

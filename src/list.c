@@ -3,6 +3,7 @@
 
 void list_init(list_t *list) {
     list->head = NULL;
+    list->tail = NULL;
     list->size = 0;
 }
 
@@ -13,15 +14,14 @@ int list_push(list_t *list, void *data) {
     node->data = data;
     node->next = NULL;
 
-    if (list->head) {
-        list_node_t *current = list->head;
-        while (current->next)
-            current = current->next;
-        current->next = node;
+    if (list->tail) {
+        list->tail->prev = list->tail;
+        list->tail->next = node;
     } else {
         list->head = node;
     }
 
+    list->tail = node;
     list->size++;
     return 0;
 }
@@ -64,7 +64,11 @@ int list_remove(list_t *list, size_t index) {
     }
 
     list_node_t *target = current->next;
-    current->next = target->next;
+    if (list->tail != current->next) {
+        current->next = target->next;
+        current->prev = target->prev;
+    }
+
     heap_free(target);
     list->size--;
 

@@ -458,6 +458,14 @@ void intpad(char *dest, int num, size_t n, char c) {
     dest[idx] = '\0';
 }
 
+int strhasc(char *src, char c) {
+    for(; *src != '\0'; src++) {
+        if (*src == c)
+            return 1;
+    }
+    return 0;
+}
+
 string_t *string_init() {
     string_t *string = heap_alloc(sizeof(string_t));
     if (!string) return NULL;
