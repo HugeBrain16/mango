@@ -233,18 +233,19 @@ char *file_read(uint32_t sector) {
     file_node(sector, &file);
 
     size_t offset = 0;
-    char *buffer = NULL;
+    char *buffer = heap_alloc(file.size + 1);
+    buffer[file.size] = '\0';
 
     uint32_t current = file.first_block;
-    while (current) {
+    while (current && offset < file.size) {
         file_data_t block;
         file_data(current, &block);
 
-        if (!buffer)
-            buffer = heap_alloc(file.size);
+        size_t remaining = file.size - offset;
+        size_t size = remaining < sizeof(block.data) ? remaining : sizeof(block.data);
 
-        memcpy(buffer + offset, block.data, sizeof(block.data));
-        offset += sizeof(block.data);
+        memcpy(buffer + offset, block.data, size);
+        offset += size;
 
         current = block.next;
     }
