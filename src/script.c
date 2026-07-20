@@ -59,6 +59,7 @@ static script_node_t *call_file_read(script_node_t *node);
 static script_node_t *call_file_write(script_node_t *node);
 static script_node_t *call_file_isfile(script_node_t *node);
 static script_node_t *call_file_isfolder(script_node_t *node);
+static script_node_t *call_file_list(script_node_t *node);
 static script_node_t *call_char_at(script_node_t *node);
 static script_node_t *call_sizeof(script_node_t *node);
 static script_node_t *call_input(script_node_t *node);
@@ -2252,6 +2253,54 @@ static script_node_t *call_file_isfolder(script_node_t *node) {
     return node_false();
 }
 
+static script_node_t *call_file_list(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc < 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function file_list() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *path = node->call.argv[0];
+
+    if (path->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(path);
+        strfmt(msg, "Error: Function file_list() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (file_path_isfolder(path->literal.str_value)) {
+        script_node_t *list = call_list_init(node);
+
+        file_node_t target_node;
+        uint32_t target = file_get_node(path->literal.str_value);
+        file_node(target, &target_node);
+
+        if (target_node.child_head) {
+            uint32_t current = target_node.child_head;
+            file_node_t current_node;
+
+            while (current) {
+                file_node(current, &current_node);
+                list_push(list->literal.list, (void*)node_string(current_node.name));
+
+                current = current_node.child_next;
+            }
+        }
+
+        return list;
+    }
+
+    return node_null();
+}
+
 static script_node_t *call_char_at(script_node_t *node) {
     size_t argc = node->call.argc;
 
@@ -3477,6 +3526,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "file_write")) ret = call_file_write(&copy_call);
     else if (!strcmp(name, "file_isfile")) ret = call_file_isfile(&copy_call);
     else if (!strcmp(name, "file_isfolder")) ret = call_file_isfolder(&copy_call);
+    else if (!strcmp(name, "file_list")) ret = call_file_list(&copy_call);
     else if (!strcmp(name, "char_at")) ret = call_char_at(&copy_call);
     else if (!strcmp(name, "sizeof")) ret = call_sizeof(&copy_call);
     else if (!strcmp(name, "input")) ret = call_input(&copy_call);
