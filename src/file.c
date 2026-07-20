@@ -181,6 +181,7 @@ void file_data_write(uint32_t sector, file_data_t *data) {
 int file_write(uint32_t sector, const char *data, size_t size) {
     file_node_t file;
     file_node(sector, &file);
+    file.size = 0;
 
     size_t written = 0;
     uint32_t current = file.first_block;
