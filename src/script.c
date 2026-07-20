@@ -72,6 +72,7 @@ static script_node_t *call_list_get(script_node_t *node);
 static script_node_t *call_list_pop(script_node_t *node);
 static script_node_t *call_list_remove(script_node_t *node);
 static script_node_t *call_list_str(script_node_t *node);
+static script_node_t *call_list_has(script_node_t *node);
 static script_node_t *call_sleep(script_node_t *node);
 static script_node_t *call_sys_ticks(script_node_t *node);
 static script_node_t *call_argc(script_node_t *node);
@@ -102,6 +103,42 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
+
+static script_node_t *node_cmp(script_node_t *n1, script_node_t *n2) {
+    int cmp = 0;
+
+    if (n1->value_type == n2->value_type) {
+        switch (n1->value_type) {
+            case SCRIPT_LIST:
+                cmp = n1->literal.list == n2->literal.list;
+                break;
+            case SCRIPT_STR:
+                cmp = !strcmp(n1->literal.str_value, n2->literal.str_value);
+                break;
+            case SCRIPT_INT:
+            case SCRIPT_BOOL:
+                cmp = n1->literal.int_value == n2->literal.int_value;
+                break;
+            case SCRIPT_FLOAT:
+                cmp = n1->literal.float_value == n2->literal.float_value;
+                break;
+            case SCRIPT_FILE:
+                cmp = n1->literal.file == n2->literal.file;
+                break;
+            case SCRIPT_FUNC:
+                cmp = n1->literal.func == n2->literal.func;
+                break;
+            case SCRIPT_NULL:
+                cmp = 1;
+                break;
+        }
+    }
+
+    if (cmp)
+        return node_true();
+
+    return node_false();
+}
 
 static char *node_repr(script_node_t *node) {
     char *buffer = NULL;
@@ -2805,6 +2842,42 @@ static script_node_t *call_list_str(script_node_t *node) {
     return node_null();
 }
 
+static script_node_t *call_list_has(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+    script_node_t *item = node->call.argv[1];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(list);
+        strfmt(msg, "Error: Function list_has() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (list->literal.list && list->literal.list->size > 0) {
+        list_t *l = list->literal.list;
+
+        for (int i = 0; i < l->size; i++) {
+            script_node_t *li = list_get(l, i);
+            return node_cmp(li, item);
+        }
+    }
+
+    return node_false();
+}
+
 static script_node_t *call_sleep(script_node_t *node) {
     size_t argc = node->call.argc;
 
@@ -3539,6 +3612,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     else if (!strcmp(name, "list_pop")) ret = call_list_pop(&copy_call);
     else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
     else if (!strcmp(name, "list_str")) ret = call_list_str(&copy_call);
+    else if (!strcmp(name, "list_has")) ret = call_list_has(&copy_call);
     else if (!strcmp(name, "sleep")) ret = call_sleep(&copy_call);
     else if (!strcmp(name, "sys_ticks")) ret = call_sys_ticks(&copy_call);
     else if (!strcmp(name, "argc")) ret = call_argc(&copy_call);
