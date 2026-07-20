@@ -2729,7 +2729,7 @@ static script_node_t *call_list_str(script_node_t *node) {
                 if (i > 0)
                     string_puts(str, ", ");
 
-                char sym = NULL;
+                char sym = '\0';
                 if (li->value_type == SCRIPT_STR) {
                     if (strhasc(val, '\''))
                         sym = '"';
