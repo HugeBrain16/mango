@@ -44,6 +44,53 @@ static script_node_t *parse_term(script_token_t **token);
 static script_node_t *parse_call(script_token_t **token);
 static script_node_t *parse_factor(script_token_t **token);
 
+static script_node_t *call_print(script_node_t *node);
+static script_node_t *call_println(script_node_t *node);
+static script_node_t *call_exec(script_node_t *node);
+static script_node_t *call_as_str(script_node_t *node);
+static script_node_t *call_as_int(script_node_t *node);
+static script_node_t *call_as_float(script_node_t *node);
+static script_node_t *call_type_name(script_node_t *node);
+static script_node_t *call_file_open(script_node_t *node);
+static script_node_t *call_file_close(script_node_t *node);
+static script_node_t *call_file_getc(script_node_t *node);
+static script_node_t *call_file_peek(script_node_t *node);
+static script_node_t *call_file_read(script_node_t *node);
+static script_node_t *call_file_write(script_node_t *node);
+static script_node_t *call_file_isfile(script_node_t *node);
+static script_node_t *call_file_isfolder(script_node_t *node);
+static script_node_t *call_char_at(script_node_t *node);
+static script_node_t *call_sizeof(script_node_t *node);
+static script_node_t *call_input(script_node_t *node);
+static script_node_t *call_config_has(script_node_t *node);
+static script_node_t *call_config_get(script_node_t *node);
+static script_node_t *call_list_init(script_node_t *node);
+static script_node_t *call_list_clear(script_node_t *node);
+static script_node_t *call_list_push(script_node_t *node);
+static script_node_t *call_list_get(script_node_t *node);
+static script_node_t *call_list_pop(script_node_t *node);
+static script_node_t *call_list_remove(script_node_t *node);
+static script_node_t *call_list_str(script_node_t *node);
+static script_node_t *call_sleep(script_node_t *node);
+static script_node_t *call_sys_ticks(script_node_t *node);
+static script_node_t *call_argc(script_node_t *node);
+static script_node_t *call_argv(script_node_t *node);
+static script_node_t *call_rand(script_node_t *node);
+static script_node_t *call_randrange(script_node_t *node);
+static script_node_t *call_color_setfg(script_node_t *node);
+static script_node_t *call_color_setbg(script_node_t *node);
+static script_node_t *call_color_reset(script_node_t *node);
+static script_node_t *call_sys_log(script_node_t *node);
+static script_node_t *call_exit(script_node_t *node);
+static script_node_t *call_ata_slot(script_node_t *node);
+static script_node_t *call_ata_serial(script_node_t *node);
+static script_node_t *call_ata_rev(script_node_t *node);
+static script_node_t *call_ata_model(script_node_t *node);
+static script_node_t *call_cpu_name(script_node_t *node);
+static script_node_t *call_cpu_vendor(script_node_t *node);
+static script_node_t *call_cpu_family(script_node_t *node);
+static script_node_t *call_cpu_model(script_node_t *node);
+
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
 static script_node_t *eval_index(script_stmt_t *block, script_node_t *var);
@@ -1740,6 +1787,8 @@ static script_node_t *call_as_str(script_node_t *node) {
     }
 
     script_node_t *arg = node->call.argv[0];
+    if (arg->value_type == SCRIPT_LIST)
+        return call_list_str(node);
 
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
@@ -2693,6 +2742,7 @@ static script_node_t *call_list_str(script_node_t *node) {
                 string_puts(str, val);
                 if (sym)
                     string_putc(str, sym);
+                heap_free(val);
             }
         }
         string_putc(str, ']');
