@@ -149,7 +149,8 @@ int fio_read(fio_t *fio, char *dest, size_t length) {
     if (fio->seek >= file.size)
         return 0;
 
-    while (i < length - 1 && i < file.size - fio->seek) {
+    size_t seek = fio->seek;
+    while (i < length - 1 && i < file.size - seek) {
         c = fio_getc(fio);
         dest[i++] = c;
     }
