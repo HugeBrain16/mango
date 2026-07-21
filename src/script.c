@@ -2146,16 +2146,18 @@ static script_node_t *call_file_peek(script_node_t *node) {
 static script_node_t *call_file_read(script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc != 2) {
+    if (argc != 1) {
         char msg[64];
-        strfmt(msg, "Error: Function file_read() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
+        strfmt(msg, "Error: Function file_read() requires at least 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
         free_node(node);
         return NULL;
     }
 
     script_node_t *file = node->call.argv[0];
-    script_node_t *length = node->call.argv[1];
+    script_node_t *length = NULL;
+    if (argc > 1)
+        length = node->call.argv[1];
 
     if (file->value_type != SCRIPT_FILE) {
         char msg[128];
@@ -2167,7 +2169,7 @@ static script_node_t *call_file_read(script_node_t *node) {
         return NULL;
     }
 
-    if (length->value_type != SCRIPT_INT) {
+    if (length && length->value_type != SCRIPT_INT) {
         char msg[128];
         script_node_t *type_name = node_type_name(length);
         strfmt(msg, "Error: Function file_read() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
@@ -2178,13 +2180,21 @@ static script_node_t *call_file_read(script_node_t *node) {
     }
 
     if (file->literal.file) {
+        size_t len;
+        if (!length) {
+            uint32_t target = file->literal.file->file;
+            file_node_t target_node;
+            file_node(target, &target_node);
+            len = target_node.size - file->literal.file->seek;
+        } else len = length->literal.int_value;
+
         script_node_t *value = node_null();
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_STR;
         value->lineno = file->lineno;
-        value->literal.str_value = heap_alloc(length->literal.int_value);
-        value->literal.str_size = length->literal.int_value;
-        fio_read(file->literal.file, value->literal.str_value, length->literal.int_value);
+        value->literal.str_value = heap_alloc(len);
+        value->literal.str_size = len;
+        fio_read(file->literal.file, value->literal.str_value, len);
 
         return value;
     }
