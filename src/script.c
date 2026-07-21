@@ -2863,7 +2863,7 @@ static script_node_t *call_list_has(script_node_t *node) {
     if (list->literal.list && list->literal.list->size > 0) {
         list_t *l = list->literal.list;
 
-        for (int i = 0; i < l->size; i++) {
+        for (int i = 0; i < (int)l->size; i++) {
             script_node_t *li = list_get(l, i);
 
             script_node_t *cmp = node_cmp(li, item);

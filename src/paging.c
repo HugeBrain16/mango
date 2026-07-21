@@ -25,7 +25,7 @@ void pages_init() {
 	page_map_physical(0, first_page_table);
 	page_map_physical((uint32_t)screen_buffer, screen_page_table);
 
-	char *msg = "[ INFO ] Loading page_directory...\n";
+	char *msg = "[ INFO ] Loading page directory...\n";
 	if (boot_logging) {
 		if (boot_log)
 			string_puts(boot_log, msg);
