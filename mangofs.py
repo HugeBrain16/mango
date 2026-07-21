@@ -330,13 +330,13 @@ class Disk:
 
 		self.disk.seek(sector)
 
-	def read_block(self, n):
+	def read_block(self, n, r = 508):
 		self.sector(n)
 
 		block = Block()
 		block.sector = n
 		block.next = struct.unpack("<I", self.disk.read(4))[0]
-		block.data = self.disk.read(508)
+		block.data = self.disk.read(r)
 		
 		return block
 
@@ -357,11 +357,14 @@ class Disk:
 			raise TypeError("Node is not readable!")
 
 		data = io.BytesIO()
+		written = 0
+		remaining = node.size - written
+		size = remaining if remaining < 508 else 508
 
-		block = self.read_block(node.first_block)
+		block = self.read_block(node.first_block, size)
 		while block.next:
 			data.write(block.data)
-			block = self.read_block(block.next)
+			block = self.read_block(block.next, size)
 		data.write(block.data)
 
 		data = data.getvalue()[:node.size]
