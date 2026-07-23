@@ -89,7 +89,7 @@ int file_init(uint16_t base, uint8_t drive) {
 
     if (status == 0x00 || status == 0x7F || status == 0xFF) {
         file_drive_status = FILE_DRIVE_ABSENT;
-        strfmt(msg, "[ WARNING ] ATA: Could not detect drive. (status: %x)\n", status);
+        strfmt(msg, "[ WARNING ] ATA: Could not detect drive. (status: 0x%x2)\n", status);
         log(msg);
     }
 
@@ -111,7 +111,7 @@ int file_init(uint16_t base, uint8_t drive) {
     if (file_drive_status == FILE_DRIVE_UNSET) {
         file_drive_status = FILE_DRIVE_OK;
 
-        strfmt(msg, "[ INFO ] ATA: Drive OK. (status: %x)\n", status);
+        strfmt(msg, "[ INFO ] ATA: Drive OK. (status: 0x%x2)\n", status);
         log(msg);
     }
 

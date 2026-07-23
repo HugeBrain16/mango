@@ -359,12 +359,14 @@ void strfmt(char *dest, const char *fmt, ...) {
             } else if (type == 'f') {
                 char arg[12];
                 int precision = 6;
+                int skip = 1;
 
                 if ((f + 2) < len) {
                     char p = fmt[f + 2];
 
                     if (p >= '0' && p <= '9') {
                         precision = p - '0';
+                        skip = 2;
                     }
                 }
 
@@ -372,7 +374,7 @@ void strfmt(char *dest, const char *fmt, ...) {
 
                 for (const char *p = arg; *p != '\0'; p++)
                     dest[i++] = *p;
-                f += 2;
+                f += skip;
             } else if (type == 's') {
                 const char *arg = va_arg(args, const char *);
 
@@ -385,11 +387,27 @@ void strfmt(char *dest, const char *fmt, ...) {
                 f++;
             } else if (type == 'x'){
                 char arg[9];
+                int sub = 8;
+                int skip = 1;
+
+                if ((f + 2) < len) {
+                    char s = fmt[f + 2];
+
+                    if (s >= '0' && s <= '8') {
+                        sub = s - '0';
+                        skip = 2;
+                    }
+                }
                 strhex(arg, (uint32_t) va_arg(args, int));
 
-                for (const char *p = arg; *p != '\0'; p++)
-                    dest[i++] = *p;
-                f++;
+                int j = 0;
+                for (const char *p = arg; *p != '\0'; p++) {
+                    if (j < sub) {
+                        dest[i++] = *p;
+                        j++;
+                    }
+                }
+                f += skip;
             } else if (type == '%') {
                 dest[i++] = '%';
                 f++;
