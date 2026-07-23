@@ -205,6 +205,12 @@ typedef struct {
     script_node_t *node;
 } script_eval_t;
 
+typedef script_node_t *(*script_builtin_t)(script_node_t*);
+typedef struct {
+    const char *name;
+    script_builtin_t func;
+} script_builtin_entry_t;
+
 extern int script_exit;
 extern void script_run(const char *path, int argc, char *argv[]);
 

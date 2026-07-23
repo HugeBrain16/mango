@@ -104,6 +104,66 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
 
+static const script_builtin_entry_t builtins[] = {
+    { "print", call_print },
+    { "println", call_println },
+    { "exec", call_exec },
+    { "as_str", call_as_str },
+    { "as_int", call_as_int },
+    { "as_float", call_as_float },
+    { "type_name", call_type_name },
+    { "file_open", call_file_open },
+    { "file_close", call_file_close },
+    { "file_getc", call_file_getc },
+    { "file_peek", call_file_peek },
+    { "file_read", call_file_read },
+    { "file_write", call_file_write },
+    { "file_isfile", call_file_isfile },
+    { "file_isfolder", call_file_isfolder },
+    { "file_list", call_file_list },
+    { "char_at", call_char_at },
+    { "sizeof", call_sizeof },
+    { "input", call_input },
+    { "config_has", call_config_has },
+    { "config_get", call_config_get },
+    { "list_init", call_list_init},
+    { "list_clear", call_list_clear },
+    { "list_push", call_list_push },
+    { "list_get", call_list_get },
+    { "list_pop", call_list_pop },
+    { "list_remove", call_list_remove },
+    { "list_str", call_list_str },
+    { "list_has", call_list_has },
+    { "sleep", call_sleep },
+    { "sys_ticks", call_sys_ticks },
+    { "argc", call_argc },
+    { "argv", call_argv },
+    { "rand", call_rand },
+    { "randrange", call_randrange },
+    { "color_setfg", call_color_setfg },
+    { "color_setbg", call_color_setbg },
+    { "color_reset", call_color_reset },
+    { "sys_log", call_sys_log },
+    { "exit", call_exit },
+    { "ata_slot", call_ata_slot },
+    { "ata_serial", call_ata_serial },
+    { "ata_rev", call_ata_rev },
+    { "ata_model", call_ata_model },
+    { "cpu_name", call_cpu_name },
+    { "cpu_vendor", call_cpu_vendor },
+    { "cpu_family", call_cpu_family },
+    { "cpu_model", call_cpu_model },
+};
+
+static script_builtin_t builtin_get(const char *name) {
+    for (size_t i = 0; i < sizeof(builtins) / sizeof(builtins[0]); i++) {
+        if (!strcmp(builtins[i].name, name))
+            return builtins[i].func;
+    }
+
+    return NULL;
+}
+
 static script_node_t *node_cmp(script_node_t *n1, script_node_t *n2) {
     int cmp = 0;
 
@@ -3591,54 +3651,9 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     script_node_t copy_call = *call;
     copy_call.call.argv = eval_args;
 
-    if (!strcmp(name, "print")) ret = call_print(&copy_call);
-    else if (!strcmp(name, "println")) ret = call_println(&copy_call);
-    else if (!strcmp(name, "exec")) ret = call_exec(&copy_call);
-    else if (!strcmp(name, "as_str")) ret = call_as_str(&copy_call);
-    else if (!strcmp(name, "as_int")) ret = call_as_int(&copy_call);
-    else if (!strcmp(name, "as_float")) ret = call_as_float(&copy_call);
-    else if (!strcmp(name, "type_name")) ret = call_type_name(&copy_call);
-    else if (!strcmp(name, "file_open")) ret = call_file_open(&copy_call);
-    else if (!strcmp(name, "file_close")) ret = call_file_close(&copy_call);
-    else if (!strcmp(name, "file_getc")) ret = call_file_getc(&copy_call);
-    else if (!strcmp(name, "file_peek")) ret = call_file_peek(&copy_call);
-    else if (!strcmp(name, "file_read")) ret = call_file_read(&copy_call);
-    else if (!strcmp(name, "file_write")) ret = call_file_write(&copy_call);
-    else if (!strcmp(name, "file_isfile")) ret = call_file_isfile(&copy_call);
-    else if (!strcmp(name, "file_isfolder")) ret = call_file_isfolder(&copy_call);
-    else if (!strcmp(name, "file_list")) ret = call_file_list(&copy_call);
-    else if (!strcmp(name, "char_at")) ret = call_char_at(&copy_call);
-    else if (!strcmp(name, "sizeof")) ret = call_sizeof(&copy_call);
-    else if (!strcmp(name, "input")) ret = call_input(&copy_call);
-    else if (!strcmp(name, "config_has")) ret = call_config_has(&copy_call);
-    else if (!strcmp(name, "config_get")) ret = call_config_get(&copy_call);
-    else if (!strcmp(name, "list_init")) ret = call_list_init(&copy_call);
-    else if (!strcmp(name, "list_clear")) ret = call_list_clear(&copy_call);
-    else if (!strcmp(name, "list_push")) ret = call_list_push(&copy_call);
-    else if (!strcmp(name, "list_get")) ret = call_list_get(&copy_call);
-    else if (!strcmp(name, "list_pop")) ret = call_list_pop(&copy_call);
-    else if (!strcmp(name, "list_remove")) ret = call_list_remove(&copy_call);
-    else if (!strcmp(name, "list_str")) ret = call_list_str(&copy_call);
-    else if (!strcmp(name, "list_has")) ret = call_list_has(&copy_call);
-    else if (!strcmp(name, "sleep")) ret = call_sleep(&copy_call);
-    else if (!strcmp(name, "sys_ticks")) ret = call_sys_ticks(&copy_call);
-    else if (!strcmp(name, "argc")) ret = call_argc(&copy_call);
-    else if (!strcmp(name, "argv")) ret = call_argv(&copy_call);
-    else if (!strcmp(name, "rand")) ret = call_rand(&copy_call);
-    else if (!strcmp(name, "randrange")) ret = call_randrange(&copy_call);
-    else if (!strcmp(name, "color_setfg")) ret = call_color_setfg(&copy_call);
-    else if (!strcmp(name, "color_setbg")) ret = call_color_setbg(&copy_call);
-    else if (!strcmp(name, "color_reset")) ret = call_color_reset(&copy_call);
-    else if (!strcmp(name, "sys_log")) ret = call_sys_log(&copy_call);
-    else if (!strcmp(name, "exit")) ret = call_exit(&copy_call);
-    else if (!strcmp(name, "ata_slot")) ret = call_ata_slot(&copy_call);
-    else if (!strcmp(name, "ata_serial")) ret = call_ata_serial(&copy_call);
-    else if (!strcmp(name, "ata_rev")) ret = call_ata_rev(&copy_call);
-    else if (!strcmp(name, "ata_model")) ret = call_ata_model(&copy_call);
-    else if (!strcmp(name, "cpu_name")) ret = call_cpu_name(&copy_call);
-    else if (!strcmp(name, "cpu_vendor")) ret = call_cpu_vendor(&copy_call);
-    else if (!strcmp(name, "cpu_family")) ret = call_cpu_family(&copy_call);
-    else if (!strcmp(name, "cpu_model")) ret = call_cpu_model(&copy_call);
+    script_builtin_t builtin = builtin_get(name);
+    if (builtin)
+        builtin(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
