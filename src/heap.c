@@ -144,6 +144,7 @@ void heap_free(void *ptr) {
     if (!ptr) return;
 
     block_t *block = heap_header(ptr);
+    if (block->is_free) return;
     block->is_free = 1;
 
     while (block->next && block->next->is_free) {
