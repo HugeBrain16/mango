@@ -155,6 +155,10 @@ static const script_builtin_entry_t builtins[] = {
     { "cpu_model", call_cpu_model },
 };
 
+static script_node_t *g_null = NULL;
+static script_node_t *g_true = NULL;
+static script_node_t *g_false = NULL;
+
 static script_builtin_t builtin_get(const char *name) {
     for (size_t i = 0; i < sizeof(builtins) / sizeof(builtins[0]); i++) {
         if (!strcmp(builtins[i].name, name))
@@ -195,9 +199,9 @@ static script_node_t *node_cmp(script_node_t *n1, script_node_t *n2) {
     }
 
     if (cmp)
-        return node_true();
+        return g_true;
 
-    return node_false();
+    return g_false;
 }
 
 static char *node_repr(script_node_t *node) {
@@ -1076,6 +1080,7 @@ static script_stmt_t *stmt_for(script_stmt_t *init, script_node_t *expr, script_
 
 static void free_node(script_node_t *node) {
     if (!node) return;
+    if (node == g_null || node == g_true || node == g_false) return;
 
     switch (node->node_type) {
         case SCRIPT_AST_LITERAL:
@@ -1787,7 +1792,7 @@ static script_node_t *call_exit(script_node_t *node) {
     if (argv[0]->value_type == SCRIPT_INT) {
         script_exit = argv[0]->literal.int_value;
         script_should_exit = 1;
-        return node_null();
+        return g_null;
     } else {
         char msg[64];
         script_node_t *name = node_type_name(argv[0]);
@@ -1851,7 +1856,7 @@ static script_node_t *call_print(script_node_t *node) {
         }
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_sys_log(script_node_t *node) {
@@ -1864,7 +1869,7 @@ static script_node_t *call_sys_log(script_node_t *node) {
         }
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_println(script_node_t *node) {
@@ -2118,7 +2123,7 @@ static script_node_t *call_file_close(script_node_t *node) {
     if (file->literal.file)
         fio_close(file->literal.file);
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_file_getc(script_node_t *node) {
@@ -2159,7 +2164,7 @@ static script_node_t *call_file_getc(script_node_t *node) {
         return value;
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_file_peek(script_node_t *node) {
@@ -2200,7 +2205,7 @@ static script_node_t *call_file_peek(script_node_t *node) {
         return value;
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_file_read(script_node_t *node) {
@@ -2259,7 +2264,7 @@ static script_node_t *call_file_read(script_node_t *node) {
         return value;
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_file_write(script_node_t *node) {
@@ -2299,7 +2304,7 @@ static script_node_t *call_file_write(script_node_t *node) {
     if (file->literal.file)
         fio_write(file->literal.file, string->literal.str_value, string->literal.str_size - 1);
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_file_isfile(script_node_t *node) {
@@ -2326,9 +2331,9 @@ static script_node_t *call_file_isfile(script_node_t *node) {
     }
 
     if (file_path_isfile(path->literal.str_value))
-        return node_true();
+        return g_true;
 
-    return node_false();
+    return g_false;
 }
 
 static script_node_t *call_file_isfolder(script_node_t *node) {
@@ -2355,9 +2360,9 @@ static script_node_t *call_file_isfolder(script_node_t *node) {
     }
 
     if (file_path_isfolder(path->literal.str_value))
-        return node_true();
+        return g_true;
 
-    return node_false();
+    return g_false;
 }
 
 static script_node_t *call_file_list(script_node_t *node) {
@@ -2378,7 +2383,7 @@ static script_node_t *call_file_list(script_node_t *node) {
         }
 
         if (!file_path_isfolder(path->literal.str_value))
-            return node_null();
+            return g_null;
     }
 
     script_node_t *list = call_list_init(node);
@@ -2449,7 +2454,7 @@ static script_node_t *call_char_at(script_node_t *node) {
         return value;
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_sizeof(script_node_t *node) {
@@ -2598,9 +2603,9 @@ static script_node_t *call_config_has(script_node_t *node) {
     }
 
     if (config_has(path->literal.str_value, name->literal.str_value))
-        return node_true();
+        return g_true;
 
-    return node_false();
+    return g_false;
 }
 
 static script_node_t *call_config_get(script_node_t *node) {
@@ -2697,7 +2702,7 @@ static script_node_t *call_list_clear(script_node_t *node) {
         list_clear(list->literal.list);
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_list_pop(script_node_t *node) {
@@ -2729,7 +2734,7 @@ static script_node_t *call_list_pop(script_node_t *node) {
             return value;
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_list_push(script_node_t *node) {
@@ -2759,7 +2764,7 @@ static script_node_t *call_list_push(script_node_t *node) {
     if (list->literal.list)
         list_push(list->literal.list, (void*)node_clone(value));
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_list_get(script_node_t *node) {
@@ -2802,7 +2807,7 @@ static script_node_t *call_list_get(script_node_t *node) {
             return node_clone(value);
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_list_remove(script_node_t *node) {
@@ -2842,7 +2847,7 @@ static script_node_t *call_list_remove(script_node_t *node) {
     if (list->literal.list && index->literal.int_value >= 0)
         list_remove(list->literal.list, (size_t)index->literal.int_value);
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_list_str(script_node_t *node) {
@@ -2903,7 +2908,7 @@ static script_node_t *call_list_str(script_node_t *node) {
         return res;
     }
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_list_has(script_node_t *node) {
@@ -2942,7 +2947,7 @@ static script_node_t *call_list_has(script_node_t *node) {
         }
     }
 
-    return node_false();
+    return g_false;
 }
 
 static script_node_t *call_sleep(script_node_t *node) {
@@ -2975,7 +2980,7 @@ static script_node_t *call_sleep(script_node_t *node) {
     while (pit_ticks - start < wait)
         __asm__ volatile("hlt");
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_sys_ticks(script_node_t *node) {
@@ -3026,7 +3031,7 @@ static script_node_t *call_argv(script_node_t *node) {
 
     int idx = index->literal.int_value;
     if (idx >= script_argc || idx < 0)
-        return node_null();
+        return g_null;
 
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
@@ -3123,7 +3128,7 @@ static script_node_t *call_color_setfg(script_node_t *node) {
     else
         script_printfg = term_fg;
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_color_setbg(script_node_t *node) {
@@ -3155,7 +3160,7 @@ static script_node_t *call_color_setbg(script_node_t *node) {
     else
         script_printbg = term_bg;
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *call_color_reset(script_node_t *node) {
@@ -3163,7 +3168,7 @@ static script_node_t *call_color_reset(script_node_t *node) {
 
     script_printfg = term_fg;
     script_printbg = term_bg;
-    return node_null();
+    return g_null;
 }
 
 /* ================== */
@@ -3228,57 +3233,57 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         if (node_istrue(left) && node_istrue(right)) {
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_true();
+            return g_true;
         }
 
         if (free_left) free_node(left);
         if (free_right) free_node(right);
-        return node_false();
+        return g_false;
     } else if (op == SCRIPT_TOKEN_OR) {
         if (node_istrue(left) || node_istrue(right)) {
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_true();
+            return g_true;
         }
 
         if (free_left) free_node(left);
         if (free_right) free_node(right);
-        return node_false();
+        return g_false;
     } else if (op == SCRIPT_TOKEN_ISEQUAL) {
         if (left->value_type == SCRIPT_BOOL || right->value_type == SCRIPT_BOOL) {
             if (left->literal.int_value == right->literal.int_value) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
 
         if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
             if (left->value_type == right->value_type) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
 
         if (left->value_type == SCRIPT_STR && right->value_type == SCRIPT_STR) {
             if (!strcmp(left->literal.str_value, right->literal.str_value)) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
 
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -3292,48 +3297,48 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (l == r) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
     } else if (op == SCRIPT_TOKEN_ISNTEQUAL) {
         if (left->value_type == SCRIPT_BOOL || right->value_type == SCRIPT_BOOL) {
             if (left->literal.int_value != right->literal.int_value) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
 
         if (left->value_type == SCRIPT_NULL || right->value_type == SCRIPT_NULL) {
             if (left->value_type != right->value_type) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
 
         if (left->value_type == SCRIPT_STR && right->value_type == SCRIPT_STR) {
             if (strcmp(left->literal.str_value, right->literal.str_value)) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
 
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -3347,12 +3352,12 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (l != r) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
     } else if (op == SCRIPT_TOKEN_LESSTHAN) {
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -3366,12 +3371,12 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (l < r) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
     } else if (op == SCRIPT_TOKEN_MORETHAN) {
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -3385,12 +3390,12 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (l > r) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
         
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
     } else if (op == SCRIPT_TOKEN_LESSEQUAL) {
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -3404,12 +3409,12 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (l <= r) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
         
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
     } else if (op == SCRIPT_TOKEN_MOREEQUAL) {
         if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
@@ -3423,12 +3428,12 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             if (l >= r) {
                 if (free_left) free_node(left);
                 if (free_right) free_node(right);
-                return node_true();
+                return g_true;
             }
 
             if (free_left) free_node(left);
             if (free_right) free_node(right);
-            return node_false();
+            return g_false;
         }
     }
 
@@ -3653,7 +3658,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
 
     script_builtin_t builtin = builtin_get(name);
     if (builtin)
-        builtin(&copy_call);
+        ret = builtin(&copy_call);
     else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
@@ -3706,7 +3711,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     for (size_t i = 0; i < call->call.argc; i++)
         free_node(eval_args[i]);
     heap_free(eval_args);
-    return (ret == NULL) ? node_null() : ret;
+    return (ret == NULL) ? g_null : ret;
 }
 
 static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
@@ -3855,7 +3860,7 @@ static script_node_t *eval_declare(script_stmt_t *block, script_stmt_t *stmt) {
     env_set_var(block, stmt->var.name, value);
     free_node(value);
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
@@ -3879,7 +3884,7 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
     env_set_var(block, stmt->var.name, value);
     free_node(value);
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
@@ -3910,7 +3915,7 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
     env_set_var(scope, stmt->var.name, value);
     free_node(value);
 
-    return node_null();
+    return g_null;
 }
 
 static script_node_t *eval_func(script_stmt_t *block, script_stmt_t *stmt) {
@@ -3934,7 +3939,7 @@ static script_node_t *eval_func(script_stmt_t *block, script_stmt_t *stmt) {
 
     env_set_var_from_stmt(block, name, stmt);
 
-    return node_null();
+    return g_null;
 }
 
 static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
@@ -4169,6 +4174,13 @@ static script_runtime_t *get_runtime() {
     script_runtime_t *rt = heap_alloc(sizeof(script_runtime_t));
     rt->main = stmt_block(NULL);
 
+    if (!g_null)
+        g_null = node_null();
+    if (!g_true)
+        g_true = node_true();
+    if (!g_false)
+        g_false = node_false();
+
     return rt;
 }
 
@@ -4226,4 +4238,10 @@ cleanup:
     }
 
     free_runtime(rt);
+    if (g_null)
+        heap_free(g_null);
+    if (g_true)
+        heap_free(g_true);
+    if (g_false)
+        heap_free(g_false);
 }
