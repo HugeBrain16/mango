@@ -584,7 +584,7 @@ static script_token_t *tokenize(fio_t *file) {
         char next = fio_peek(file);
         if (isdigit(c) || (c == '-' && isdigit(next))) {
             token = lex_number(file, &c, &lineno);
-        } else if (isalpha(c)) {
+        } else if (isalpha(c) || c == '_') {
             token = lex_identifier(file, &c, &lineno);
         } else if (c == '"') {
             token = lex_string(file, &c, &lineno);
@@ -3206,7 +3206,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             char msg[64];
             strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
             term_write(msg);
-            free_node(binop);
             return NULL;
         }
 
@@ -3221,7 +3220,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             char msg[64];
             strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
             term_write(msg);
-            free_node(binop);
             return NULL;
         }
 
@@ -3630,7 +3628,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     term_write(msg);
     if (free_left) free_node(left);
     if (free_right) free_node(right);
-    free_node(binop);
     free_node(node);
     return NULL;
 }
@@ -4238,10 +4235,16 @@ cleanup:
     }
 
     free_runtime(rt);
-    if (g_null)
+    if (g_null) {
         heap_free(g_null);
-    if (g_true)
+        g_null = NULL;
+    }
+    if (g_true) {
         heap_free(g_true);
-    if (g_false)
+        g_true = NULL;
+    }
+    if (g_false) {
         heap_free(g_false);
+        g_false = NULL;
+    }
 }
