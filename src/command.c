@@ -1162,6 +1162,34 @@ static int command_listpci(int argc, char *argv[]) {
     return 0;
 }
 
+static int command_meminfo(int argc, char *argv[]) {
+    char buffer[64];
+
+    size_t used = 0;
+    size_t usable = 0;
+    size_t free = heap_end - (heap_current + (sizeof(block_t) + block_tail->size));
+
+    int blocks = 1;
+    block_t *current = block_head;
+    while (current) {
+        if (current->is_free)
+            usable += current->size;
+        else
+            used += current->size;
+        blocks++;
+        current = current->next;
+    }
+    strfmt(buffer, "USED = %d (%d KB)\n", used, used >> 10);
+    term_write(buffer);
+    strfmt(buffer, "USABLE = %d (%d KB)\n", usable, usable >> 10);
+    term_write(buffer);
+    strfmt(buffer, "FREE = %d (%d KB)\n", free, free >> 10);
+    term_write(buffer);
+    strfmt(buffer, "BLOCKS = %d\n", blocks);
+    term_write(buffer);
+    return 0;
+}
+
 typedef int (*command_t)(int, char**);
 typedef struct {
     const char *name;
@@ -1201,7 +1229,8 @@ static commands_t commands[] = {
     { "reloadconfig", command_reloadconfig },
     { "viewimage", command_viewimage },
     { "playaudio", command_playaudio },
-    { "listpci", command_listpci }
+    { "listpci", command_listpci },
+    { "meminfo", command_meminfo },
 };
 
 int command_handle(char *command, int printprompt) {

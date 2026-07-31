@@ -5,18 +5,11 @@
 #define KB(x) ((x) << 10)
 #define MB(x) ((x) << 20)
 
-typedef struct block {
-    size_t size;
-    int is_free;
-    struct block *next;
-    struct block *prev;
-} block_t;
-
 static uint32_t init_page_tables[4][1024] __attribute__((aligned(4096)));
 static int table_index = 0;
-static block_t *block_head;
-static block_t *block_current;
-static block_t *block_tail;
+block_t *block_head = NULL;
+block_t *block_current = NULL;
+block_t *block_tail = NULL;
 
 static uint32_t *alloc_init_table() {
     return init_page_tables[table_index++];
