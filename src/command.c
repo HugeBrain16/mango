@@ -1162,8 +1162,51 @@ static int command_listpci(int argc, char *argv[]) {
     return 0;
 }
 
+typedef int (*command_t)(int, char**);
+typedef struct {
+    const char *name;
+    command_t func;
+} commands_t;
+
+static commands_t commands[] = {
+    { "scale", command_scale },
+    { "scaleup", command_scaleup },
+    { "scaledown", command_scaledown },
+    { "clear", command_clear },
+    { "shutdown", command_shutdown },
+    { "fetch", command_fetch },
+    { "echo", command_echo },
+    { "list", command_list },
+    { "newfile", command_newfile },
+    { "delfile", command_delfile },
+    { "edit", command_edit },
+    { "newfolder", command_newfolder },
+    { "delfolder", command_delfolder },
+    { "goto", command_goto },
+    { "goup", command_goup },
+    { "whereami" ,command_whereami },
+    { "copyfile" ,command_copyfile },
+    { "movefile" ,command_movefile },
+    { "copyfolder" ,command_copyfolder },
+    { "movefolder" ,command_movefolder },
+    { "formatdisk" ,command_formatdisk },
+    { "nodeinfo", command_nodeinfo },
+    { "printfile", command_printfile },
+    { "runscript", command_runscript },
+    { "time", command_time },
+    { "date", command_date },
+    { "datetime", command_datetime },
+    { "diskinfo", command_diskinfo },
+    { "setupsystem", command_setupsystem },
+    { "reloadconfig", command_reloadconfig },
+    { "viewimage", command_viewimage },
+    { "playaudio", command_playaudio },
+    { "listpci", command_listpci }
+};
+
 int command_handle(char *command, int printprompt) {
     int exit = 0;
+    int ran_command = 0;
 
     uint32_t old_location = file_current;
 
@@ -1204,40 +1247,14 @@ int command_handle(char *command, int printprompt) {
     for (int i = 0; i < argc; i++)
         argv[i] = args[i]->value;
 
-    if (!strcmp(cmd->value, "scale")) exit = command_scale(argc, argv);
-    else if (!strcmp(cmd->value, "scaleup")) exit = command_scaleup(argc, argv);
-    else if (!strcmp(cmd->value, "scaledown")) exit = command_scaledown(argc, argv);
-    else if (!strcmp(cmd->value, "clear")) exit = command_clear(argc, argv);
-    else if (!strcmp(cmd->value, "shutdown")) exit = command_shutdown(argc, argv);
-    else if (!strcmp(cmd->value, "fetch")) exit = command_fetch(argc, argv);
-    else if (!strcmp(cmd->value, "echo")) exit = command_echo(argc, argv);
-    else if (!strcmp(cmd->value, "list")) exit = command_list(argc, argv);
-    else if (!strcmp(cmd->value, "newfile")) exit = command_newfile(argc, argv);
-    else if (!strcmp(cmd->value, "delfile")) exit = command_delfile(argc, argv);
-    else if (!strcmp(cmd->value, "edit")) exit = command_edit(argc, argv);
-    else if (!strcmp(cmd->value, "newfolder")) exit = command_newfolder(argc, argv);
-    else if (!strcmp(cmd->value, "delfolder")) exit = command_delfolder(argc, argv);
-    else if (!strcmp(cmd->value, "goto")) exit = command_goto(argc, argv);
-    else if (!strcmp(cmd->value, "goup")) exit = command_goup(argc, argv);
-    else if (!strcmp(cmd->value, "whereami")) exit = command_whereami(argc, argv);
-    else if (!strcmp(cmd->value, "copyfile")) exit = command_copyfile(argc, argv);
-    else if (!strcmp(cmd->value, "movefile")) exit = command_movefile(argc, argv);
-    else if (!strcmp(cmd->value, "copyfolder")) exit = command_copyfolder(argc, argv);
-    else if (!strcmp(cmd->value, "movefolder")) exit = command_movefolder(argc, argv);
-    else if (!strcmp(cmd->value, "formatdisk")) exit = command_formatdisk(argc, argv);
-    else if (!strcmp(cmd->value, "nodeinfo")) exit = command_nodeinfo(argc, argv);
-    else if (!strcmp(cmd->value, "printfile")) exit = command_printfile(argc, argv);
-    else if (!strcmp(cmd->value, "runscript")) exit = command_runscript(argc, argv);
-    else if (!strcmp(cmd->value, "time")) exit = command_time(argc, argv);
-    else if (!strcmp(cmd->value, "date")) exit = command_date(argc, argv);
-    else if (!strcmp(cmd->value, "datetime")) exit = command_datetime(argc, argv);
-    else if (!strcmp(cmd->value, "diskinfo")) exit = command_diskinfo(argc, argv);
-    else if (!strcmp(cmd->value, "setupsystem")) exit = command_setupsystem(argc, argv);
-    else if (!strcmp(cmd->value, "reloadconfig")) exit = command_reloadconfig(argc, argv);
-    else if (!strcmp(cmd->value, "viewimage")) exit = command_viewimage(argc, argv);
-    else if (!strcmp(cmd->value, "playaudio")) exit = command_playaudio(argc, argv);
-    else if (!strcmp(cmd->value, "listpci")) exit = command_listpci(argc, argv);
-    else {
+    for (size_t i = 0; i < sizeof(commands) / sizeof(commands[0]); i++) {
+        if (!strcmp(cmd->value, commands[i].name)) {
+            exit = commands[i].func(argc, argv);
+            ran_command = 1;
+        }
+    }
+
+    if (!ran_command) {
         int found_script = 0;
 
         if (!config_has("/system/config/system.cfg", "disable_user_scripts")) {
