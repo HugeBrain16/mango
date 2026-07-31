@@ -1163,6 +1163,8 @@ static int command_listpci(int argc, char *argv[]) {
 }
 
 static int command_meminfo(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
     char buffer[64];
 
     size_t used = 0;
