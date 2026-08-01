@@ -201,7 +201,6 @@ int file_write(uint32_t sector, const char *data, size_t size) {
         written += to_write;
 
         file.size += to_write;
-        file_node_write(sector, &file);
 
         if (written < size) {
             if (block.next == 0) {
