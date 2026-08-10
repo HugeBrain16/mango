@@ -719,7 +719,7 @@ static void env_set_var(script_stmt_t *block, const char *name, script_node_t *v
     } else
         free_node(var->value);
 
-    var->value = node_clone(value);
+    var->value = value;
 }
 
 static void env_set_var_from_stmt(script_stmt_t *block, const char *name, script_stmt_t *value) {
@@ -3855,7 +3855,6 @@ static script_node_t *eval_declare(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_node_t *value = node_null();
     env_set_var(block, stmt->var.name, value);
-    free_node(value);
 
     return g_null;
 }
@@ -3879,7 +3878,6 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
         return NULL;
 
     env_set_var(block, stmt->var.name, value);
-    free_node(value);
 
     return g_null;
 }
@@ -3910,7 +3908,6 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_stmt_t *scope = env_find_block(block, stmt->var.name);
     env_set_var(scope, stmt->var.name, value);
-    free_node(value);
 
     return g_null;
 }
