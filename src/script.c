@@ -646,13 +646,31 @@ static void free_env(script_env_t *env) {
     heap_free(env);
 }
 
+static void env_reset(script_env_t *env) {
+    script_var_t *var = env->var_head;
+    while (var) {
+        script_var_t *next = var->next;
+        free_var(var);
+        var = next;
+    }
+    env->var_head = NULL;
+}
+
 static script_var_t *env_find_var(script_stmt_t *block, const char *name) {
     script_env_t *env = block->block.env;
 
     script_var_t *var = env->var_head;
+    script_var_t *prev = NULL;
     while (var) {
-        if (!strcmp(var->name, name))
+        if (!strcmp(var->name, name)) {
+            if (var != env->var_head) {
+                prev->next = var->next;
+                var->next = env->var_head;
+                env->var_head = var;
+            }
             return var;
+        }
+        prev = var;
         var = var->next;
     }
 
@@ -3987,6 +4005,7 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
 
 static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
     script_eval_t *eval = NULL;
+    script_stmt_t *scope = stmt_block(block);
 
     while (1) {
         script_node_t *expr = eval_expr(block, stmt->while_stmt.expr);
@@ -3996,12 +4015,12 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
         if (!is_true)
             break;
 
-        script_stmt_t *scope = stmt_block(block);
         eval = eval_statement(scope, stmt->while_stmt.body);
-        free_stmt(scope);
+        env_reset(scope->block.env);
 
         if (eval) {
             if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
+                free_stmt(scope);
                 return eval;
             } else if (eval->type == SCRIPT_EVAL_BREAK) {
                 free_eval(eval);
@@ -4018,6 +4037,8 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
         eval = NULL;
     }
 
+    free_stmt(scope);
+
     if (!eval) {
         eval = heap_alloc(sizeof(script_eval_t));
         eval->type = SCRIPT_EVAL_NONE;
@@ -4030,6 +4051,7 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
 static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
     script_eval_t *eval = NULL;
     script_stmt_t *scope = stmt_block(block);
+    script_stmt_t *scopescope = stmt_block(scope);
 
     script_eval_t *env = eval_statement(scope, stmt->for_stmt.init);
     free_eval(env);
@@ -4042,13 +4064,13 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
         if (!is_true)
             break;
 
-        script_stmt_t *scopescope = stmt_block(scope);
         eval = eval_statement(scopescope, stmt->for_stmt.body);
-        free_stmt(scopescope);
+        env_reset(scopescope->block.env);
 
         if (eval) {
             if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
                 free_stmt(scope);
+                free_stmt(scopescope);
                 return eval;
             } else if (eval->type == SCRIPT_EVAL_BREAK) {
                 free_eval(eval);
@@ -4068,6 +4090,7 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
     }
 
     free_stmt(scope);
+    free_stmt(scopescope);
 
     if (!eval) {
         eval = heap_alloc(sizeof(script_eval_t));
