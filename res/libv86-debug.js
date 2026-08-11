@@ -431,58 +431,66 @@ function $dbg_assert$$module$src$log$$($cond$$, $msg$$) {
   };
   this.update_graphical_text = function() {
     if ($offscreen_context$$) {
-      var $font_canvas$jscomp$inline_19_tm_now$$ = performance.now();
-      if (266 < $font_canvas$jscomp$inline_19_tm_now$$ - $tm_last_update$$) {
+      var $n_rows_rendered$jscomp$inline_25_tm_now$$ = performance.now();
+      if (266 < $n_rows_rendered$jscomp$inline_25_tm_now$$ - $tm_last_update$$) {
         $blink_visible$$ = !$blink_visible$$;
         $cursor_enabled$$ && ($changed_rows$$[$cursor_row$$] = 1);
-        $offscreen_extra_canvas$jscomp$inline_20_txt_row_size$jscomp$inline_14$$ = 4 * $text_mode_width$$;
+        var $font_canvas$jscomp$inline_19_txt_row_size$jscomp$inline_14$$ = 4 * $text_mode_width$$;
         for (let $row_i$jscomp$inline_15$$ = 0, $txt_i$jscomp$inline_16$$ = 0; $row_i$jscomp$inline_15$$ < $text_mode_height$$; ++$row_i$jscomp$inline_15$$) {
           if ($changed_rows$$[$row_i$jscomp$inline_15$$]) {
-            $txt_i$jscomp$inline_16$$ += $offscreen_extra_canvas$jscomp$inline_20_txt_row_size$jscomp$inline_14$$;
+            $txt_i$jscomp$inline_16$$ += $font_canvas$jscomp$inline_19_txt_row_size$jscomp$inline_14$$;
           } else {
-            for ($col_i$jscomp$inline_17_txt_row_size$jscomp$inline_21$$ = 0; $col_i$jscomp$inline_17_txt_row_size$jscomp$inline_21$$ < $text_mode_width$$; ++$col_i$jscomp$inline_17_txt_row_size$jscomp$inline_21$$, $txt_i$jscomp$inline_16$$ += 4) {
+            for (var $col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$ = 0; $col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$ < $text_mode_width$$; ++$col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$, $txt_i$jscomp$inline_16$$ += 4) {
               if ($text_mode_data$$[$txt_i$jscomp$inline_16$$ + 1] & 1) {
                 $changed_rows$$[$row_i$jscomp$inline_15$$] = 1;
-                $txt_i$jscomp$inline_16$$ += $offscreen_extra_canvas$jscomp$inline_20_txt_row_size$jscomp$inline_14$$ - 4 * $col_i$jscomp$inline_17_txt_row_size$jscomp$inline_21$$;
+                $txt_i$jscomp$inline_16$$ += $font_canvas$jscomp$inline_19_txt_row_size$jscomp$inline_14$$ - 4 * $col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$;
                 break;
               }
             }
           }
         }
-        $tm_last_update$$ = $font_canvas$jscomp$inline_19_tm_now$$;
+        $tm_last_update$$ = $n_rows_rendered$jscomp$inline_25_tm_now$$;
       }
-      $font_canvas$jscomp$inline_19_tm_now$$ = $font_context$$.canvas;
-      var $offscreen_extra_canvas$jscomp$inline_20_txt_row_size$jscomp$inline_14$$ = $offscreen_extra_context$$.canvas, $col_i$jscomp$inline_17_txt_row_size$jscomp$inline_21$$ = 4 * $text_mode_width$$;
-      const $gfx_width$jscomp$inline_22$$ = $text_mode_width$$ * $font_width$$, $row_extra_2_y$jscomp$inline_24$$ = $font_height$$;
-      let $n_rows_rendered$jscomp$inline_25$$ = 0;
-      for (let $row_i$jscomp$inline_26$$ = 0, $row_y$jscomp$inline_27$$ = 0, $txt_i$jscomp$inline_28$$ = 0; $row_i$jscomp$inline_26$$ < $text_mode_height$$; ++$row_i$jscomp$inline_26$$, $row_y$jscomp$inline_27$$ += $font_height$$) {
-        if (!$changed_rows$$[$row_i$jscomp$inline_26$$]) {
-          $txt_i$jscomp$inline_28$$ += $col_i$jscomp$inline_17_txt_row_size$jscomp$inline_21$$;
-          continue;
+      {
+        $font_canvas$jscomp$inline_19_txt_row_size$jscomp$inline_14$$ = $font_context$$.canvas;
+        $col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$ = $offscreen_extra_context$$.canvas;
+        const $txt_row_size$jscomp$inline_21$$ = 4 * $text_mode_width$$, $gfx_width$jscomp$inline_22$$ = $text_mode_width$$ * $font_width$$, $row_extra_2_y$jscomp$inline_24$$ = $font_height$$;
+        if (0 === $gfx_width$jscomp$inline_22$$) {
+          var $JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$ = 0;
+        } else {
+          $n_rows_rendered$jscomp$inline_25_tm_now$$ = 0;
+          for (let $row_i$jscomp$inline_26$$ = 0, $row_y$jscomp$inline_27$$ = 0, $txt_i$jscomp$inline_28$$ = 0; $row_i$jscomp$inline_26$$ < $text_mode_height$$; ++$row_i$jscomp$inline_26$$, $row_y$jscomp$inline_27$$ += $font_height$$) {
+            if (!$changed_rows$$[$row_i$jscomp$inline_26$$]) {
+              $txt_i$jscomp$inline_28$$ += $txt_row_size$jscomp$inline_21$$;
+              continue;
+            }
+            ++$n_rows_rendered$jscomp$inline_25_tm_now$$;
+            $offscreen_extra_context$$.clearRect(0, $row_extra_2_y$jscomp$inline_24$$, $gfx_width$jscomp$inline_22$$, $font_height$$);
+            let $fg_x$jscomp$inline_30$$, $bg_rgba$jscomp$inline_31$$, $bg_x$jscomp$inline_32$$;
+            for (let $col_x$jscomp$inline_33$$ = 0; $col_x$jscomp$inline_33$$ < $gfx_width$jscomp$inline_22$$; $col_x$jscomp$inline_33$$ += $font_width$$, $txt_i$jscomp$inline_28$$ += 4) {
+              const $chr$jscomp$inline_34$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 0];
+              var $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 1];
+              const $chr_bg_rgba$jscomp$inline_36$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 2], $chr_fg_rgba$jscomp$inline_37$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 3], $chr_font_page$jscomp$inline_38$$ = $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ & 2 ? $font_page_b$$ : $font_page_a$$;
+              $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ = (!($chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ & 1) || $blink_visible$$) && $font_is_visible$$[($chr_font_page$jscomp$inline_38$$ << 8) + $chr$jscomp$inline_34$$];
+              $bg_rgba$jscomp$inline_31$$ !== $chr_bg_rgba$jscomp$inline_36$$ && (void 0 !== $bg_rgba$jscomp$inline_31$$ && ($offscreen_context$$.fillStyle = $number_as_color$$($bg_rgba$jscomp$inline_31$$), $offscreen_context$$.fillRect($bg_x$jscomp$inline_32$$, $row_y$jscomp$inline_27$$, $col_x$jscomp$inline_33$$ - $bg_x$jscomp$inline_32$$, $font_height$$)), $bg_rgba$jscomp$inline_31$$ = $chr_bg_rgba$jscomp$inline_36$$, $bg_x$jscomp$inline_32$$ = $col_x$jscomp$inline_33$$);
+              $JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$ !== $chr_fg_rgba$jscomp$inline_37$$ && (void 0 !== $JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$ && ($offscreen_extra_context$$.fillStyle = $number_as_color$$($JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$), $offscreen_extra_context$$.fillRect($fg_x$jscomp$inline_30$$, 0, $col_x$jscomp$inline_33$$ - $fg_x$jscomp$inline_30$$, $font_height$$)), $JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$ = 
+              $chr_fg_rgba$jscomp$inline_37$$, $fg_x$jscomp$inline_30$$ = $col_x$jscomp$inline_33$$);
+              $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ && $offscreen_extra_context$$.drawImage($font_canvas$jscomp$inline_19_txt_row_size$jscomp$inline_14$$, $chr$jscomp$inline_34$$ * $font_width$$, $chr_font_page$jscomp$inline_38$$ * $font_height$$, $font_width$$, $font_height$$, $col_x$jscomp$inline_33$$, $row_extra_2_y$jscomp$inline_24$$, $font_width$$, $font_height$$);
+            }
+            $offscreen_extra_context$$.fillStyle = $number_as_color$$($JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$);
+            $offscreen_extra_context$$.fillRect($fg_x$jscomp$inline_30$$, 0, $gfx_width$jscomp$inline_22$$ - $fg_x$jscomp$inline_30$$, $font_height$$);
+            $offscreen_extra_context$$.globalCompositeOperation = "destination-in";
+            $offscreen_extra_context$$.drawImage($col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$, 0, $row_extra_2_y$jscomp$inline_24$$, $gfx_width$jscomp$inline_22$$, $font_height$$, 0, 0, $gfx_width$jscomp$inline_22$$, $font_height$$);
+            $offscreen_extra_context$$.globalCompositeOperation = "source-over";
+            $offscreen_context$$.fillStyle = $number_as_color$$($bg_rgba$jscomp$inline_31$$);
+            $offscreen_context$$.fillRect($bg_x$jscomp$inline_32$$, $row_y$jscomp$inline_27$$, $gfx_width$jscomp$inline_22$$ - $bg_x$jscomp$inline_32$$, $font_height$$);
+            $offscreen_context$$.drawImage($col_i$jscomp$inline_17_offscreen_extra_canvas$jscomp$inline_20$$, 0, 0, $gfx_width$jscomp$inline_22$$, $font_height$$, 0, $row_y$jscomp$inline_27$$, $gfx_width$jscomp$inline_22$$, $font_height$$);
+          }
+          $n_rows_rendered$jscomp$inline_25_tm_now$$ && ($blink_visible$$ && $cursor_enabled$$ && $changed_rows$$[$cursor_row$$] && ($offscreen_context$$.fillStyle = $number_as_color$$($text_mode_data$$[4 * ($cursor_row$$ * $text_mode_width$$ + $cursor_col$$) + 3]), $offscreen_context$$.fillRect($cursor_col$$ * $font_width$$, $cursor_row$$ * $font_height$$ + $cursor_start$$, $font_width$$, $cursor_end$$ - $cursor_start$$ + 1)), $changed_rows$$.fill(0));
+          $JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$ = $n_rows_rendered$jscomp$inline_25_tm_now$$;
         }
-        ++$n_rows_rendered$jscomp$inline_25$$;
-        $offscreen_extra_context$$.clearRect(0, $row_extra_2_y$jscomp$inline_24$$, $gfx_width$jscomp$inline_22$$, $font_height$$);
-        let $fg_rgba$jscomp$inline_29$$, $fg_x$jscomp$inline_30$$, $bg_rgba$jscomp$inline_31$$, $bg_x$jscomp$inline_32$$;
-        for (let $col_x$jscomp$inline_33$$ = 0; $col_x$jscomp$inline_33$$ < $gfx_width$jscomp$inline_22$$; $col_x$jscomp$inline_33$$ += $font_width$$, $txt_i$jscomp$inline_28$$ += 4) {
-          const $chr$jscomp$inline_34$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 0];
-          var $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 1];
-          const $chr_bg_rgba$jscomp$inline_36$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 2], $chr_fg_rgba$jscomp$inline_37$$ = $text_mode_data$$[$txt_i$jscomp$inline_28$$ + 3], $chr_font_page$jscomp$inline_38$$ = $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ & 2 ? $font_page_b$$ : $font_page_a$$;
-          $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ = (!($chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ & 1) || $blink_visible$$) && $font_is_visible$$[($chr_font_page$jscomp$inline_38$$ << 8) + $chr$jscomp$inline_34$$];
-          $bg_rgba$jscomp$inline_31$$ !== $chr_bg_rgba$jscomp$inline_36$$ && (void 0 !== $bg_rgba$jscomp$inline_31$$ && ($offscreen_context$$.fillStyle = $number_as_color$$($bg_rgba$jscomp$inline_31$$), $offscreen_context$$.fillRect($bg_x$jscomp$inline_32$$, $row_y$jscomp$inline_27$$, $col_x$jscomp$inline_33$$ - $bg_x$jscomp$inline_32$$, $font_height$$)), $bg_rgba$jscomp$inline_31$$ = $chr_bg_rgba$jscomp$inline_36$$, $bg_x$jscomp$inline_32$$ = $col_x$jscomp$inline_33$$);
-          $fg_rgba$jscomp$inline_29$$ !== $chr_fg_rgba$jscomp$inline_37$$ && (void 0 !== $fg_rgba$jscomp$inline_29$$ && ($offscreen_extra_context$$.fillStyle = $number_as_color$$($fg_rgba$jscomp$inline_29$$), $offscreen_extra_context$$.fillRect($fg_x$jscomp$inline_30$$, 0, $col_x$jscomp$inline_33$$ - $fg_x$jscomp$inline_30$$, $font_height$$)), $fg_rgba$jscomp$inline_29$$ = $chr_fg_rgba$jscomp$inline_37$$, $fg_x$jscomp$inline_30$$ = $col_x$jscomp$inline_33$$);
-          $chr_flags$jscomp$inline_35_chr_visible$jscomp$inline_39$$ && $offscreen_extra_context$$.drawImage($font_canvas$jscomp$inline_19_tm_now$$, $chr$jscomp$inline_34$$ * $font_width$$, $chr_font_page$jscomp$inline_38$$ * $font_height$$, $font_width$$, $font_height$$, $col_x$jscomp$inline_33$$, $row_extra_2_y$jscomp$inline_24$$, $font_width$$, $font_height$$);
-        }
-        $offscreen_extra_context$$.fillStyle = $number_as_color$$($fg_rgba$jscomp$inline_29$$);
-        $offscreen_extra_context$$.fillRect($fg_x$jscomp$inline_30$$, 0, $gfx_width$jscomp$inline_22$$ - $fg_x$jscomp$inline_30$$, $font_height$$);
-        $offscreen_extra_context$$.globalCompositeOperation = "destination-in";
-        $offscreen_extra_context$$.drawImage($offscreen_extra_canvas$jscomp$inline_20_txt_row_size$jscomp$inline_14$$, 0, $row_extra_2_y$jscomp$inline_24$$, $gfx_width$jscomp$inline_22$$, $font_height$$, 0, 0, $gfx_width$jscomp$inline_22$$, $font_height$$);
-        $offscreen_extra_context$$.globalCompositeOperation = "source-over";
-        $offscreen_context$$.fillStyle = $number_as_color$$($bg_rgba$jscomp$inline_31$$);
-        $offscreen_context$$.fillRect($bg_x$jscomp$inline_32$$, $row_y$jscomp$inline_27$$, $gfx_width$jscomp$inline_22$$ - $bg_x$jscomp$inline_32$$, $font_height$$);
-        $offscreen_context$$.drawImage($offscreen_extra_canvas$jscomp$inline_20_txt_row_size$jscomp$inline_14$$, 0, 0, $gfx_width$jscomp$inline_22$$, $font_height$$, 0, $row_y$jscomp$inline_27$$, $gfx_width$jscomp$inline_22$$, $font_height$$);
       }
-      $n_rows_rendered$jscomp$inline_25$$ && ($blink_visible$$ && $cursor_enabled$$ && $changed_rows$$[$cursor_row$$] && ($offscreen_context$$.fillStyle = $number_as_color$$($text_mode_data$$[4 * ($cursor_row$$ * $text_mode_width$$ + $cursor_col$$) + 3]), $offscreen_context$$.fillRect($cursor_col$$ * $font_width$$, $cursor_row$$ * $font_height$$ + $cursor_start$$, $font_width$$, $cursor_end$$ - $cursor_start$$ + 1)), $changed_rows$$.fill(0));
-      $n_rows_rendered$jscomp$inline_25$$ && $graphic_context$$.drawImage($offscreen_context$$.canvas, 0, 0);
+      $JSCompiler_inline_result$jscomp$0_fg_rgba$jscomp$inline_29$$ && $graphic_context$$.drawImage($offscreen_context$$.canvas, 0, 0);
     }
   };
   this.destroy = function() {
@@ -6133,6 +6141,7 @@ $V86$$module$src$browser$starter$$.prototype.continue_init = async function($emu
   $settings$$.uart1 = $options$jscomp$46$$.uart1;
   $settings$$.uart2 = $options$jscomp$46$$.uart2;
   $settings$$.uart3 = $options$jscomp$46$$.uart3;
+  $settings$$.parallel1 = $options$jscomp$46$$.parallel1;
   $settings$$.cmdline = $options$jscomp$46$$.cmdline;
   $settings$$.preserve_mac_from_state_image = $options$jscomp$46$$.preserve_mac_from_state_image;
   $settings$$.mac_address_translation = $options$jscomp$46$$.mac_address_translation;
@@ -7025,7 +7034,84 @@ $UART$$module$src$uart$$.prototype.set_modem_status_bit = function($msr_bit_new_
   this.modem_status = $msr_bit_new_modem_status$$ | (this.modem_status ^ $msr_bit_new_modem_status$$) >> 4;
   this.modem_status & 15 && this.ThrowInterrupt(0);
 };
-function $PCI$$module$src$pci$$($cpu$jscomp$16$$) {
+function $ParallelPort$$module$src$parallel$$($cpu$jscomp$16_io$jscomp$3$$, $port$jscomp$3$$, $irq$$, $lpt$$, $bus$jscomp$22$$) {
+  this.cpu = $cpu$jscomp$16_io$jscomp$3$$;
+  this.bus = $bus$jscomp$22$$;
+  this.data = 0;
+  this.status = 216;
+  this.control = 0;
+  this.status_latched = void 0;
+  this.irq = $irq$$;
+  this.lpt = $lpt$$;
+  this.data_output_event = "parallel" + this.lpt + "-data-output";
+  this.control_output_event = "parallel" + this.lpt + "-control-output";
+  this.status_input_event = "parallel" + this.lpt + "-status-input";
+  $cpu$jscomp$16_io$jscomp$3$$ = $cpu$jscomp$16_io$jscomp$3$$.io;
+  this.bus.register(this.status_input_event, this.set_status, this);
+  $cpu$jscomp$16_io$jscomp$3$$.register_read($port$jscomp$3$$ + 0, this, this.read_data, this.read_data_status);
+  $cpu$jscomp$16_io$jscomp$3$$.register_read($port$jscomp$3$$ + 1, this, this.read_status, this.read_status_control);
+  $cpu$jscomp$16_io$jscomp$3$$.register_read($port$jscomp$3$$ + 2, this, this.read_control);
+  $cpu$jscomp$16_io$jscomp$3$$.register_write($port$jscomp$3$$ + 0, this, this.write_data, this.write_data_status);
+  $cpu$jscomp$16_io$jscomp$3$$.register_write($port$jscomp$3$$ + 1, this, this.write_status, this.write_status_control);
+  $cpu$jscomp$16_io$jscomp$3$$.register_write($port$jscomp$3$$ + 2, this, this.write_control);
+}
+$ParallelPort$$module$src$parallel$$.prototype.read_data = function() {
+  return this.data;
+};
+$ParallelPort$$module$src$parallel$$.prototype.read_data_status = function() {
+  return this.read_data() | this.read_status() << 8;
+};
+$ParallelPort$$module$src$parallel$$.prototype.read_status_control = function() {
+  return this.read_status() | this.read_control() << 8;
+};
+$ParallelPort$$module$src$parallel$$.prototype.read_control = function() {
+  return this.control;
+};
+$ParallelPort$$module$src$parallel$$.prototype.write_data = function($value$jscomp$154$$) {
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$154$$ && 255 >= $value$jscomp$154$$);
+  this.data = $value$jscomp$154$$ & 255;
+  this.bus.send(this.data_output_event, this.data);
+};
+$ParallelPort$$module$src$parallel$$.prototype.write_data_status = function($value$jscomp$155$$) {
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$155$$ && 65535 >= $value$jscomp$155$$);
+  this.write_data($value$jscomp$155$$ & 255);
+  this.write_status($value$jscomp$155$$ >> 8 & 255);
+};
+$ParallelPort$$module$src$parallel$$.prototype.write_status = function($value$jscomp$156$$) {
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$156$$ && 255 >= $value$jscomp$156$$);
+};
+$ParallelPort$$module$src$parallel$$.prototype.write_status_control = function($value$jscomp$157$$) {
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$157$$ && 65535 >= $value$jscomp$157$$);
+  this.write_status($value$jscomp$157$$ & 255);
+  this.write_control($value$jscomp$157$$ >> 8 & 255);
+};
+$ParallelPort$$module$src$parallel$$.prototype.set_status = function($status_next_value$jscomp$158$$) {
+  $dbg_assert$$module$src$log$$(0 <= $status_next_value$jscomp$158$$ && 255 >= $status_next_value$jscomp$158$$);
+  $status_next_value$jscomp$158$$ &= 255;
+  const $ack_prev$$ = this.status & 64;
+  this.status = $status_next_value$jscomp$158$$;
+  !$ack_prev$$ || $status_next_value$jscomp$158$$ & 64 || (this.status_latched = $status_next_value$jscomp$158$$, this.control & 16 && (this.cpu.device_lower_irq(this.irq), this.cpu.device_raise_irq(this.irq)));
+};
+$ParallelPort$$module$src$parallel$$.prototype.read_status = function() {
+  if (void 0 !== this.status_latched) {
+    const $status$jscomp$5$$ = this.status_latched;
+    this.status_latched = void 0;
+    return $status$jscomp$5$$;
+  }
+  return this.status;
+};
+$ParallelPort$$module$src$parallel$$.prototype.write_control = function($value$jscomp$159$$) {
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$159$$ && 255 >= $value$jscomp$159$$);
+  this.control = $value$jscomp$159$$ & 31;
+  this.bus.send(this.control_output_event, this.control);
+};
+$ParallelPort$$module$src$parallel$$.prototype.get_state = function() {
+  return [this.data, this.status, this.control, this.status_latched, ];
+};
+$ParallelPort$$module$src$parallel$$.prototype.set_state = function($state$jscomp$32$$) {
+  $state$jscomp$32$$ && (this.data = $state$jscomp$32$$[0], this.status = $state$jscomp$32$$[1], this.control = $state$jscomp$32$$[2], this.status_latched = $state$jscomp$32$$[3]);
+};
+function $PCI$$module$src$pci$$($cpu$jscomp$17$$) {
   this.pci_addr = new Uint8Array(4);
   this.pci_value = new Uint8Array(4);
   this.pci_response = new Uint8Array(4);
@@ -7036,30 +7122,30 @@ function $PCI$$module$src$pci$$($cpu$jscomp$16$$) {
   this.pci_status32 = new Int32Array(this.pci_status.buffer);
   this.device_spaces = [];
   this.devices = [];
-  this.cpu = $cpu$jscomp$16$$;
+  this.cpu = $cpu$jscomp$17$$;
   for (var $i$jscomp$77$$ = 0; 256 > $i$jscomp$77$$; $i$jscomp$77$$++) {
     this.device_spaces[$i$jscomp$77$$] = void 0, this.devices[$i$jscomp$77$$] = void 0;
   }
-  this.io = $cpu$jscomp$16$$.io;
-  $cpu$jscomp$16$$.io.register_write(3324, this, function($value$jscomp$154$$) {
-    this.pci_write8(this.pci_addr32[0], $value$jscomp$154$$);
-  }, function($value$jscomp$155$$) {
-    this.pci_write16(this.pci_addr32[0], $value$jscomp$155$$);
-  }, function($value$jscomp$156$$) {
-    this.pci_write32(this.pci_addr32[0], $value$jscomp$156$$);
+  this.io = $cpu$jscomp$17$$.io;
+  $cpu$jscomp$17$$.io.register_write(3324, this, function($value$jscomp$160$$) {
+    this.pci_write8(this.pci_addr32[0], $value$jscomp$160$$);
+  }, function($value$jscomp$161$$) {
+    this.pci_write16(this.pci_addr32[0], $value$jscomp$161$$);
+  }, function($value$jscomp$162$$) {
+    this.pci_write32(this.pci_addr32[0], $value$jscomp$162$$);
   });
-  $cpu$jscomp$16$$.io.register_write(3325, this, function($value$jscomp$157$$) {
-    this.pci_write8(this.pci_addr32[0] + 1 | 0, $value$jscomp$157$$);
+  $cpu$jscomp$17$$.io.register_write(3325, this, function($value$jscomp$163$$) {
+    this.pci_write8(this.pci_addr32[0] + 1 | 0, $value$jscomp$163$$);
   });
-  $cpu$jscomp$16$$.io.register_write(3326, this, function($value$jscomp$158$$) {
-    this.pci_write8(this.pci_addr32[0] + 2 | 0, $value$jscomp$158$$);
-  }, function($value$jscomp$159$$) {
-    this.pci_write16(this.pci_addr32[0] + 2 | 0, $value$jscomp$159$$);
+  $cpu$jscomp$17$$.io.register_write(3326, this, function($value$jscomp$164$$) {
+    this.pci_write8(this.pci_addr32[0] + 2 | 0, $value$jscomp$164$$);
+  }, function($value$jscomp$165$$) {
+    this.pci_write16(this.pci_addr32[0] + 2 | 0, $value$jscomp$165$$);
   });
-  $cpu$jscomp$16$$.io.register_write(3327, this, function($value$jscomp$160$$) {
-    this.pci_write8(this.pci_addr32[0] + 3 | 0, $value$jscomp$160$$);
+  $cpu$jscomp$17$$.io.register_write(3327, this, function($value$jscomp$166$$) {
+    this.pci_write8(this.pci_addr32[0] + 3 | 0, $value$jscomp$166$$);
   });
-  $cpu$jscomp$16$$.io.register_read_consecutive(3324, this, function() {
+  $cpu$jscomp$17$$.io.register_read_consecutive(3324, this, function() {
     return this.pci_response[0];
   }, function() {
     return this.pci_response[1];
@@ -7068,7 +7154,7 @@ function $PCI$$module$src$pci$$($cpu$jscomp$16$$) {
   }, function() {
     return this.pci_response[3];
   });
-  $cpu$jscomp$16$$.io.register_read_consecutive(3320, this, function() {
+  $cpu$jscomp$17$$.io.register_read_consecutive(3320, this, function() {
     return this.pci_status[0];
   }, function() {
     return this.pci_status[1];
@@ -7077,10 +7163,10 @@ function $PCI$$module$src$pci$$($cpu$jscomp$16$$) {
   }, function() {
     return this.pci_status[3];
   });
-  $cpu$jscomp$16$$.io.register_write_consecutive(3320, this, function($out_byte$jscomp$9$$) {
+  $cpu$jscomp$17$$.io.register_write_consecutive(3320, this, function($out_byte$jscomp$9$$) {
     this.pci_addr[0] = $out_byte$jscomp$9$$ & 252;
   }, function($out_byte$jscomp$10$$) {
-    2 === (this.pci_addr[1] & 6) && 6 === ($out_byte$jscomp$10$$ & 6) ? ($dbg_log$$module$src$log$$("CPU reboot via PCI"), $cpu$jscomp$16$$.reboot_internal()) : this.pci_addr[1] = $out_byte$jscomp$10$$;
+    2 === (this.pci_addr[1] & 6) && 6 === ($out_byte$jscomp$10$$ & 6) ? ($dbg_log$$module$src$log$$("CPU reboot via PCI"), $cpu$jscomp$17$$.reboot_internal()) : this.pci_addr[1] = $out_byte$jscomp$10$$;
   }, function($out_byte$jscomp$11$$) {
     this.pci_addr[2] = $out_byte$jscomp$11$$;
   }, function($out_byte$jscomp$12$$) {
@@ -7093,24 +7179,24 @@ function $PCI$$module$src$pci$$($cpu$jscomp$16$$) {
   this.isa_bridge_space8 = new Uint8Array(this.isa_bridge_space.buffer);
 }
 $PCI$$module$src$pci$$.prototype.get_state = function() {
-  for (var $state$jscomp$32$$ = [], $i$jscomp$78$$ = 0; 256 > $i$jscomp$78$$; $i$jscomp$78$$++) {
-    $state$jscomp$32$$[$i$jscomp$78$$] = this.device_spaces[$i$jscomp$78$$];
+  for (var $state$jscomp$33$$ = [], $i$jscomp$78$$ = 0; 256 > $i$jscomp$78$$; $i$jscomp$78$$++) {
+    $state$jscomp$33$$[$i$jscomp$78$$] = this.device_spaces[$i$jscomp$78$$];
   }
-  $state$jscomp$32$$[256] = this.pci_addr;
-  $state$jscomp$32$$[257] = this.pci_value;
-  $state$jscomp$32$$[258] = this.pci_response;
-  $state$jscomp$32$$[259] = this.pci_status;
-  return $state$jscomp$32$$;
+  $state$jscomp$33$$[256] = this.pci_addr;
+  $state$jscomp$33$$[257] = this.pci_value;
+  $state$jscomp$33$$[258] = this.pci_response;
+  $state$jscomp$33$$[259] = this.pci_status;
+  return $state$jscomp$33$$;
 };
-$PCI$$module$src$pci$$.prototype.set_state = function($state$jscomp$33$$) {
+$PCI$$module$src$pci$$.prototype.set_state = function($state$jscomp$34$$) {
   for (var $i$jscomp$79$$ = 0; 256 > $i$jscomp$79$$; $i$jscomp$79$$++) {
-    var $device$jscomp$4$$ = this.devices[$i$jscomp$79$$], $space$$ = $state$jscomp$33$$[$i$jscomp$79$$];
+    var $device$jscomp$4$$ = this.devices[$i$jscomp$79$$], $space$$ = $state$jscomp$34$$[$i$jscomp$79$$];
     if ($device$jscomp$4$$ && $space$$) {
       for (var $bar_nr$$ = 0; $bar_nr$$ < $device$jscomp$4$$.pci_bars.length; $bar_nr$$++) {
-        var $value$jscomp$161$$ = $space$$[4 + $bar_nr$$];
-        if ($value$jscomp$161$$ & 1) {
+        var $value$jscomp$167$$ = $space$$[4 + $bar_nr$$];
+        if ($value$jscomp$167$$ & 1) {
           var $bar$$ = $device$jscomp$4$$.pci_bars[$bar_nr$$];
-          this.set_io_bars($bar$$, $bar$$.original_bar & 65534, $value$jscomp$161$$ & 65534);
+          this.set_io_bars($bar$$, $bar$$.original_bar & 65534, $value$jscomp$167$$ & 65534);
         }
       }
       this.device_spaces[$i$jscomp$79$$].set($space$$);
@@ -7118,10 +7204,10 @@ $PCI$$module$src$pci$$.prototype.set_state = function($state$jscomp$33$$) {
       $device$jscomp$4$$ && $dbg_log$$module$src$log$$("Warning: While restoring PCI device: Device exists in current configuration but not in snapshot (" + $device$jscomp$4$$.name + ")"), $space$$ && $dbg_log$$module$src$log$$("Warning: While restoring PCI device: Device doesn't exist in current configuration but does in snapshot (device " + $h$$module$src$lib$$($i$jscomp$79$$, 2) + ")");
     }
   }
-  this.pci_addr.set($state$jscomp$33$$[256]);
-  this.pci_value.set($state$jscomp$33$$[257]);
-  this.pci_response.set($state$jscomp$33$$[258]);
-  this.pci_status.set($state$jscomp$33$$[259]);
+  this.pci_addr.set($state$jscomp$34$$[256]);
+  this.pci_value.set($state$jscomp$34$$[257]);
+  this.pci_response.set($state$jscomp$34$$[258]);
+  this.pci_status.set($state$jscomp$34$$[259]);
 };
 $PCI$$module$src$pci$$.prototype.pci_query = function() {
   var $bdf$$ = this.pci_addr[2] << 8 | this.pci_addr[1], $addr$jscomp$24$$ = this.pci_addr[0] & 252, $dev_device$jscomp$5$$ = $bdf$$ >> 3 & 31;
@@ -7185,13 +7271,13 @@ $PCI$$module$src$pci$$.prototype.register_device = function($device$jscomp$9$$) 
   for (var $i$jscomp$80$$ = 0; $i$jscomp$80$$ < $device$jscomp$9$$.pci_bars.length; $i$jscomp$80$$++) {
     var $bar$jscomp$2$$ = $device$jscomp$9$$.pci_bars[$i$jscomp$80$$];
     if ($bar$jscomp$2$$) {
-      var $bar_base_port$jscomp$3$$ = $bar_space_device_id$$[$i$jscomp$80$$], $j$jscomp$8_type$jscomp$154$$ = $bar_base_port$jscomp$3$$ & 1;
-      $dbg_log$$module$src$log$$("device " + $device$jscomp$9$$.name + " register bar of size " + $bar$jscomp$2$$.size + " at " + $h$$module$src$lib$$($bar_base_port$jscomp$3$$), 2048);
-      $bar$jscomp$2$$.original_bar = $bar_base_port$jscomp$3$$;
+      var $bar_base_port$jscomp$4$$ = $bar_space_device_id$$[$i$jscomp$80$$], $j$jscomp$8_type$jscomp$154$$ = $bar_base_port$jscomp$4$$ & 1;
+      $dbg_log$$module$src$log$$("device " + $device$jscomp$9$$.name + " register bar of size " + $bar$jscomp$2$$.size + " at " + $h$$module$src$lib$$($bar_base_port$jscomp$4$$), 2048);
+      $bar$jscomp$2$$.original_bar = $bar_base_port$jscomp$4$$;
       $bar$jscomp$2$$.entries = [];
       if (0 !== $j$jscomp$8_type$jscomp$154$$) {
-        for ($dbg_assert$$module$src$log$$(1 === $j$jscomp$8_type$jscomp$154$$), $bar_base_port$jscomp$3$$ &= -2, $j$jscomp$8_type$jscomp$154$$ = 0; $j$jscomp$8_type$jscomp$154$$ < $bar$jscomp$2$$.size; $j$jscomp$8_type$jscomp$154$$++) {
-          $bar$jscomp$2$$.entries[$j$jscomp$8_type$jscomp$154$$] = this.io.ports[$bar_base_port$jscomp$3$$ + $j$jscomp$8_type$jscomp$154$$];
+        for ($dbg_assert$$module$src$log$$(1 === $j$jscomp$8_type$jscomp$154$$), $bar_base_port$jscomp$4$$ &= -2, $j$jscomp$8_type$jscomp$154$$ = 0; $j$jscomp$8_type$jscomp$154$$ < $bar$jscomp$2$$.size; $j$jscomp$8_type$jscomp$154$$++) {
+          $bar$jscomp$2$$.entries[$j$jscomp$8_type$jscomp$154$$] = this.io.ports[$bar_base_port$jscomp$4$$ + $j$jscomp$8_type$jscomp$154$$];
         }
       }
     }
@@ -7262,13 +7348,13 @@ function $translate_mac_address$$module$src$ne2k$$($arp_packet_ipv4_packet_packe
 function $format_mac$$module$src$ne2k$$($mac$jscomp$2$$) {
   return [$mac$jscomp$2$$[0].toString(16).padStart(2, "0"), $mac$jscomp$2$$[1].toString(16).padStart(2, "0"), $mac$jscomp$2$$[2].toString(16).padStart(2, "0"), $mac$jscomp$2$$[3].toString(16).padStart(2, "0"), $mac$jscomp$2$$[4].toString(16).padStart(2, "0"), $mac$jscomp$2$$[5].toString(16).padStart(2, "0"), ].join(":");
 }
-function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$, $preserve_mac_from_state_image$$, $mac_address_translation$$, $id$jscomp$23$$) {
-  this.cpu = $cpu$jscomp$17$$;
-  this.pci = $cpu$jscomp$17$$.devices.pci;
+function $Ne2k$$module$src$ne2k$$($cpu$jscomp$18$$, $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$, $preserve_mac_from_state_image$$, $mac_address_translation$$, $id$jscomp$23$$) {
+  this.cpu = $cpu$jscomp$18$$;
+  this.pci = $cpu$jscomp$18$$.devices.pci;
   this.id = $id$jscomp$23$$ || 0;
   this.preserve_mac_from_state_image = $preserve_mac_from_state_image$$;
   this.mac_address_translation = $mac_address_translation$$;
-  this.bus = $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$;
+  this.bus = $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$;
   this.bus.register("net" + this.id + "-receive", function($data$jscomp$172$$) {
     this.receive($data$jscomp$172$$);
   }, this);
@@ -7287,8 +7373,8 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
   this.bus.send("net" + this.id + "-mac", $format_mac$$module$src$ne2k$$(this.mac));
   this.mar = Uint8Array.of(255, 255, 255, 255, 255, 255, 255, 255);
   this.mac_address_in_state = null;
-  for ($bus$jscomp$22_i$jscomp$82_io$jscomp$3$$ = 0; 6 > $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$; $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$++) {
-    this.memory[$bus$jscomp$22_i$jscomp$82_io$jscomp$3$$ << 1] = this.memory[$bus$jscomp$22_i$jscomp$82_io$jscomp$3$$ << 1 | 1] = this.mac[$bus$jscomp$22_i$jscomp$82_io$jscomp$3$$];
+  for ($bus$jscomp$23_i$jscomp$82_io$jscomp$4$$ = 0; 6 > $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$; $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$++) {
+    this.memory[$bus$jscomp$23_i$jscomp$82_io$jscomp$4$$ << 1] = this.memory[$bus$jscomp$23_i$jscomp$82_io$jscomp$4$$ << 1 | 1] = this.mac[$bus$jscomp$23_i$jscomp$82_io$jscomp$4$$];
   }
   this.memory[28] = this.memory[29] = 87;
   this.memory[30] = this.memory[31] = 87;
@@ -7297,22 +7383,22 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
   this.pstart = 64;
   this.pstop = 128;
   this.boundary = this.curpg = 76;
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$ = $cpu$jscomp$17$$.io;
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 0, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$ = $cpu$jscomp$18$$.io;
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 0, this, function() {
     $dbg_log$$module$src$log$$("Read cmd", 1048576);
     return this.cr;
   }, function() {
     $dbg_log$$module$src$log$$("Read16 cmd", 1048576);
     return this.cr;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 0, this, function($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 0, this, function($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$) {
     this.cr = $data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$;
     $dbg_log$$module$src$log$$("Write command: " + $h$$module$src$lib$$($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$, 2) + " newpg=" + (this.cr >> 6) + " txcr=" + $h$$module$src$lib$$(this.txcr, 2), 1048576);
     this.cr & 1 || ($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$ & 24 && 0 === this.rcnt && this.do_interrupt(64), $data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$ & 4 && ($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$ = this.tpsr << 8, $data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$ = this.memory.subarray($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$, $data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$ + this.tcnt), this.mac_address_in_state && ($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$ = 
     new Uint8Array($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$), $translate_mac_address$$module$src$ne2k$$($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$, this.mac_address_in_state, this.mac)), this.bus.send("net" + this.id + "-send", $data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$), this.bus.send("eth-transmit-end", [$data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$.length]), this.cr &= -5, this.do_interrupt(2), $dbg_log$$module$src$log$$("Command: Transfer. length=" + 
     $h$$module$src$lib$$($data$jscomp$173_data_byte$jscomp$9_start$jscomp$30$$.byteLength), 1048576)));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 13, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 13, this, function() {
     var $pg$$ = this.get_page();
     if (1 === $pg$$) {
       return $dbg_log$$module$src$log$$("Read mar5", 1048576), this.mar[5];
@@ -7320,7 +7406,7 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_log$$module$src$log$$("Read counter0 pg=" + $pg$$, 1048576);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 14, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 14, this, function() {
     var $pg$jscomp$1$$ = this.get_page();
     if (1 === $pg$jscomp$1$$) {
       return $dbg_log$$module$src$log$$("Read mar6", 1048576), this.mar[6];
@@ -7331,7 +7417,7 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_log$$module$src$log$$("Read16 counter1 pg=" + this.get_page(), 1048576);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 15, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 15, this, function() {
     var $pg$jscomp$2$$ = this.get_page();
     if (1 === $pg$jscomp$2$$) {
       return $dbg_log$$module$src$log$$("Read mar7", 1048576), this.mar[7];
@@ -7339,17 +7425,17 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_log$$module$src$log$$("Read counter2 pg=" + $pg$jscomp$2$$, 1048576);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 31, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 31, this, function() {
     this.get_page();
     $dbg_log$$module$src$log$$("Read reset", 1048576);
     this.do_interrupt(128);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 31, this, function($data_byte$jscomp$10$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 31, this, function($data_byte$jscomp$10$$) {
     this.get_page();
     $dbg_log$$module$src$log$$("Write reset: " + $h$$module$src$lib$$($data_byte$jscomp$10$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 1, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 1, this, function() {
     var $pg$jscomp$5$$ = this.get_page();
     if (0 === $pg$jscomp$5$$) {
       return this.pstart;
@@ -7364,12 +7450,12 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 1, this, function($data_byte$jscomp$11$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 1, this, function($data_byte$jscomp$11$$) {
     var $pg$jscomp$6$$ = this.get_page();
     0 === $pg$jscomp$6$$ ? ($dbg_log$$module$src$log$$("start page: " + $h$$module$src$lib$$($data_byte$jscomp$11$$, 2), 1048576), this.pstart = $data_byte$jscomp$11$$) : 1 === $pg$jscomp$6$$ ? ($dbg_log$$module$src$log$$("mac[0] = " + $h$$module$src$lib$$($data_byte$jscomp$11$$), 1048576), this.mac[0] = $data_byte$jscomp$11$$) : 3 === $pg$jscomp$6$$ ? $dbg_log$$module$src$log$$("Unimplemented: Write pg3/01 (9346CR): " + $h$$module$src$lib$$($data_byte$jscomp$11$$), 1048576) : ($dbg_log$$module$src$log$$("Write pg" + 
     $pg$jscomp$6$$ + "/01: " + $h$$module$src$lib$$($data_byte$jscomp$11$$), 1048576), $dbg_assert$$module$src$log$$(!1));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 2, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 2, this, function() {
     var $pg$jscomp$7$$ = this.get_page();
     if (0 === $pg$jscomp$7$$) {
       return this.pstop;
@@ -7384,12 +7470,12 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 2, this, function($data_byte$jscomp$12$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 2, this, function($data_byte$jscomp$12$$) {
     var $pg$jscomp$8$$ = this.get_page();
     0 === $pg$jscomp$8$$ ? ($dbg_log$$module$src$log$$("stop page: " + $h$$module$src$lib$$($data_byte$jscomp$12$$, 2), 1048576), $data_byte$jscomp$12$$ > this.memory.length >> 8 && ($data_byte$jscomp$12$$ = this.memory.length >> 8, $dbg_log$$module$src$log$$("XXX: Adjusting stop page to " + $h$$module$src$lib$$($data_byte$jscomp$12$$), 1048576)), this.pstop = $data_byte$jscomp$12$$) : 1 === $pg$jscomp$8$$ ? ($dbg_log$$module$src$log$$("mac[1] = " + $h$$module$src$lib$$($data_byte$jscomp$12$$), 1048576), 
     this.mac[1] = $data_byte$jscomp$12$$) : ($dbg_log$$module$src$log$$("Write pg" + $pg$jscomp$8$$ + "/02: " + $h$$module$src$lib$$($data_byte$jscomp$12$$), 1048576), $dbg_assert$$module$src$log$$(!1));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 7, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 7, this, function() {
     var $pg$jscomp$9$$ = this.get_page();
     if (0 === $pg$jscomp$9$$) {
       return $dbg_log$$module$src$log$$("Read isr: " + $h$$module$src$lib$$(this.isr, 2), 1048576), this.isr;
@@ -7400,19 +7486,19 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 7, this, function($data_byte$jscomp$13$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 7, this, function($data_byte$jscomp$13$$) {
     var $pg$jscomp$10$$ = this.get_page();
     0 === $pg$jscomp$10$$ ? ($dbg_log$$module$src$log$$("Write isr: " + $h$$module$src$lib$$($data_byte$jscomp$13$$, 2), 1048576), this.isr &= ~$data_byte$jscomp$13$$, this.update_irq()) : 1 === $pg$jscomp$10$$ ? ($dbg_log$$module$src$log$$("Write curpg: " + $h$$module$src$lib$$($data_byte$jscomp$13$$, 2), 1048576), this.curpg = $data_byte$jscomp$13$$) : $dbg_assert$$module$src$log$$(!1);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 13, this, function($data_byte$jscomp$14$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 13, this, function($data_byte$jscomp$14$$) {
     var $pg$jscomp$11$$ = this.get_page();
     0 === $pg$jscomp$11$$ ? (this.txcr = $data_byte$jscomp$14$$, $dbg_log$$module$src$log$$("Write tx config: " + $h$$module$src$lib$$($data_byte$jscomp$14$$, 2), 1048576)) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$11$$ + "/0d " + $h$$module$src$lib$$($data_byte$jscomp$14$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 14, this, function($data_byte$jscomp$15$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 14, this, function($data_byte$jscomp$15$$) {
     var $pg$jscomp$12$$ = this.get_page();
     0 === $pg$jscomp$12$$ ? ($dbg_log$$module$src$log$$("Write data configuration: " + $h$$module$src$lib$$($data_byte$jscomp$15$$, 2), 1048576), this.dcfg = $data_byte$jscomp$15$$) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$12$$ + "/0e " + $h$$module$src$lib$$($data_byte$jscomp$15$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 10, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 10, this, function() {
     var $pg$jscomp$13$$ = this.get_page();
     if (0 === $pg$jscomp$13$$) {
       return $dbg_log$$module$src$log$$("Read pg0/0a", 1048576), 80;
@@ -7423,11 +7509,11 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1, "TODO");
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 10, this, function($data_byte$jscomp$16$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 10, this, function($data_byte$jscomp$16$$) {
     var $pg$jscomp$14$$ = this.get_page();
     0 === $pg$jscomp$14$$ ? ($dbg_log$$module$src$log$$("Write remote byte count low: " + $h$$module$src$lib$$($data_byte$jscomp$16$$, 2), 1048576), this.rcnt = this.rcnt & 65280 | $data_byte$jscomp$16$$ & 255) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$14$$ + "/0a " + $h$$module$src$lib$$($data_byte$jscomp$16$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 11, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 11, this, function() {
     var $pg$jscomp$15$$ = this.get_page();
     if (0 === $pg$jscomp$15$$) {
       return $dbg_log$$module$src$log$$("Read pg0/0b", 1048576), 67;
@@ -7438,11 +7524,11 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1, "TODO");
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 11, this, function($data_byte$jscomp$17$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 11, this, function($data_byte$jscomp$17$$) {
     var $pg$jscomp$16$$ = this.get_page();
     0 === $pg$jscomp$16$$ ? ($dbg_log$$module$src$log$$("Write remote byte count high: " + $h$$module$src$lib$$($data_byte$jscomp$17$$, 2), 1048576), this.rcnt = this.rcnt & 255 | $data_byte$jscomp$17$$ << 8 & 65280) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$16$$ + "/0b " + $h$$module$src$lib$$($data_byte$jscomp$17$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 8, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 8, this, function() {
     var $pg$jscomp$17$$ = this.get_page();
     if (0 === $pg$jscomp$17$$) {
       return $dbg_log$$module$src$log$$("Read remote start address low", 1048576), this.rsar & 255;
@@ -7454,11 +7540,11 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 8, this, function($data_byte$jscomp$18$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 8, this, function($data_byte$jscomp$18$$) {
     var $pg$jscomp$18$$ = this.get_page();
     0 === $pg$jscomp$18$$ ? ($dbg_log$$module$src$log$$("Write remote start address low: " + $h$$module$src$lib$$($data_byte$jscomp$18$$, 2), 1048576), this.rsar = this.rsar & 65280 | $data_byte$jscomp$18$$ & 255) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$18$$ + "/08 " + $h$$module$src$lib$$($data_byte$jscomp$18$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 9, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 9, this, function() {
     var $pg$jscomp$19$$ = this.get_page();
     if (0 === $pg$jscomp$19$$) {
       return $dbg_log$$module$src$log$$("Read remote start address high", 1048576), this.rsar >> 8 & 255;
@@ -7470,15 +7556,15 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 9, this, function($data_byte$jscomp$19$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 9, this, function($data_byte$jscomp$19$$) {
     var $pg$jscomp$20$$ = this.get_page();
     0 === $pg$jscomp$20$$ ? ($dbg_log$$module$src$log$$("Write remote start address low: " + $h$$module$src$lib$$($data_byte$jscomp$19$$, 2), 1048576), this.rsar = this.rsar & 255 | $data_byte$jscomp$19$$ << 8 & 65280) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$20$$ + "/09 " + $h$$module$src$lib$$($data_byte$jscomp$19$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 15, this, function($data_byte$jscomp$20$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 15, this, function($data_byte$jscomp$20$$) {
     var $pg$jscomp$21$$ = this.get_page();
     0 === $pg$jscomp$21$$ ? ($dbg_log$$module$src$log$$("Write interrupt mask register: " + $h$$module$src$lib$$($data_byte$jscomp$20$$, 2) + " isr=" + $h$$module$src$lib$$(this.isr, 2), 1048576), this.imr = $data_byte$jscomp$20$$, this.update_irq()) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$21$$ + "/0f " + $h$$module$src$lib$$($data_byte$jscomp$20$$, 2), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 3, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 3, this, function() {
     var $pg$jscomp$22$$ = this.get_page();
     if (0 === $pg$jscomp$22$$) {
       return $dbg_log$$module$src$log$$("Read boundary: " + $h$$module$src$lib$$(this.boundary, 2), 1048576), this.boundary;
@@ -7489,11 +7575,11 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     3 === $pg$jscomp$22$$ ? $dbg_log$$module$src$log$$("Unimplemented: Read pg3/03 (CONFIG0)", 1048576) : ($dbg_log$$module$src$log$$("Read pg" + $pg$jscomp$22$$ + "/03", 1048576), $dbg_assert$$module$src$log$$(!1));
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 3, this, function($data_byte$jscomp$21$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 3, this, function($data_byte$jscomp$21$$) {
     var $pg$jscomp$23$$ = this.get_page();
     0 === $pg$jscomp$23$$ ? ($dbg_log$$module$src$log$$("Write boundary: " + $h$$module$src$lib$$($data_byte$jscomp$21$$, 2), 1048576), this.boundary = $data_byte$jscomp$21$$) : 1 === $pg$jscomp$23$$ ? ($dbg_log$$module$src$log$$("mac[2] = " + $h$$module$src$lib$$($data_byte$jscomp$21$$), 1048576), this.mac[2] = $data_byte$jscomp$21$$) : ($dbg_log$$module$src$log$$("Write pg" + $pg$jscomp$23$$ + "/03: " + $h$$module$src$lib$$($data_byte$jscomp$21$$), 1048576), $dbg_assert$$module$src$log$$(!1));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 4, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 4, this, function() {
     var $pg$jscomp$24$$ = this.get_page();
     if (0 === $pg$jscomp$24$$) {
       return this.tsr;
@@ -7505,11 +7591,11 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 4, this, function($data_byte$jscomp$22$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 4, this, function($data_byte$jscomp$22$$) {
     var $pg$jscomp$25$$ = this.get_page();
     0 === $pg$jscomp$25$$ ? ($dbg_log$$module$src$log$$("Write tpsr: " + $h$$module$src$lib$$($data_byte$jscomp$22$$, 2), 1048576), this.tpsr = $data_byte$jscomp$22$$) : 1 === $pg$jscomp$25$$ ? ($dbg_log$$module$src$log$$("mac[3] = " + $h$$module$src$lib$$($data_byte$jscomp$22$$), 1048576), this.mac[3] = $data_byte$jscomp$22$$) : ($dbg_log$$module$src$log$$("Write pg" + $pg$jscomp$25$$ + "/04: " + $h$$module$src$lib$$($data_byte$jscomp$22$$), 1048576), $dbg_assert$$module$src$log$$(!1));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 5, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 5, this, function() {
     var $pg$jscomp$26$$ = this.get_page();
     if (0 === $pg$jscomp$26$$) {
       return $dbg_log$$module$src$log$$("Unimplemented: Read pg0/05 (NCR: Number of Collisions Register)", 1048576), 0;
@@ -7520,12 +7606,12 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     3 === $pg$jscomp$26$$ ? $dbg_log$$module$src$log$$("Unimplemented: Read pg3/05 (CONFIG2)", 1048576) : ($dbg_log$$module$src$log$$("Read pg" + $pg$jscomp$26$$ + "/05", 1048576), $dbg_assert$$module$src$log$$(!1));
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 5, this, function($data_byte$jscomp$23$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 5, this, function($data_byte$jscomp$23$$) {
     var $pg$jscomp$27$$ = this.get_page();
     0 === $pg$jscomp$27$$ ? ($dbg_log$$module$src$log$$("Write tcnt low: " + $h$$module$src$lib$$($data_byte$jscomp$23$$, 2), 1048576), this.tcnt = this.tcnt & -256 | $data_byte$jscomp$23$$) : 1 === $pg$jscomp$27$$ ? ($dbg_log$$module$src$log$$("mac[4] = " + $h$$module$src$lib$$($data_byte$jscomp$23$$), 1048576), this.mac[4] = $data_byte$jscomp$23$$) : 3 === $pg$jscomp$27$$ ? $dbg_log$$module$src$log$$("Unimplemented: Write pg3/05 (CONFIG2): " + $h$$module$src$lib$$($data_byte$jscomp$23$$), 1048576) : 
     ($dbg_log$$module$src$log$$("Write pg" + $pg$jscomp$27$$ + "/05: " + $h$$module$src$lib$$($data_byte$jscomp$23$$), 1048576), $dbg_assert$$module$src$log$$(!1));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 6, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 6, this, function() {
     var $pg$jscomp$28$$ = this.get_page();
     if (0 === $pg$jscomp$28$$) {
       return $dbg_assert$$module$src$log$$(!1, "TODO"), 0;
@@ -7536,12 +7622,12 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     3 === $pg$jscomp$28$$ ? $dbg_log$$module$src$log$$("Unimplemented: Read pg3/06 (CONFIG3)", 1048576) : ($dbg_log$$module$src$log$$("Read pg" + $pg$jscomp$28$$ + "/06", 1048576), $dbg_assert$$module$src$log$$(!1));
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 6, this, function($data_byte$jscomp$24$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 6, this, function($data_byte$jscomp$24$$) {
     var $pg$jscomp$29$$ = this.get_page();
     0 === $pg$jscomp$29$$ ? ($dbg_log$$module$src$log$$("Write tcnt high: " + $h$$module$src$lib$$($data_byte$jscomp$24$$, 2), 1048576), this.tcnt = this.tcnt & 255 | $data_byte$jscomp$24$$ << 8) : 1 === $pg$jscomp$29$$ ? ($dbg_log$$module$src$log$$("mac[5] = " + $h$$module$src$lib$$($data_byte$jscomp$24$$), 1048576), this.mac[5] = $data_byte$jscomp$24$$) : 3 === $pg$jscomp$29$$ ? $dbg_log$$module$src$log$$("Unimplemented: Write pg3/06 (CONFIG3): " + $h$$module$src$lib$$($data_byte$jscomp$24$$), 
     1048576) : ($dbg_log$$module$src$log$$("Write pg" + $pg$jscomp$29$$ + "/06: " + $h$$module$src$lib$$($data_byte$jscomp$24$$), 1048576), $dbg_assert$$module$src$log$$(!1));
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 12, this, function() {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 12, this, function() {
     var $pg$jscomp$30$$ = this.get_page();
     if (0 === $pg$jscomp$30$$) {
       return 9;
@@ -7553,52 +7639,52 @@ function $Ne2k$$module$src$ne2k$$($cpu$jscomp$17$$, $bus$jscomp$22_i$jscomp$82_i
     $dbg_assert$$module$src$log$$(!1);
     return 0;
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 12, this, function($data_byte$jscomp$25$$) {
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 12, this, function($data_byte$jscomp$25$$) {
     var $pg$jscomp$31$$ = this.get_page();
     0 === $pg$jscomp$31$$ ? ($dbg_log$$module$src$log$$("RX configuration reg write: " + $h$$module$src$lib$$($data_byte$jscomp$25$$, 2), 1048576), this.rxcr = $data_byte$jscomp$25$$) : $dbg_log$$module$src$log$$("Unimplemented: Write pg" + $pg$jscomp$31$$ + "/0c: " + $h$$module$src$lib$$($data_byte$jscomp$25$$), 1048576);
   });
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_read(this.port | 16, this, this.data_port_read8, this.data_port_read16, this.data_port_read32);
-  $bus$jscomp$22_i$jscomp$82_io$jscomp$3$$.register_write(this.port | 16, this, this.data_port_write16, this.data_port_write16, this.data_port_write32);
-  $cpu$jscomp$17$$.devices.pci.register_device(this);
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_read(this.port | 16, this, this.data_port_read8, this.data_port_read16, this.data_port_read32);
+  $bus$jscomp$23_i$jscomp$82_io$jscomp$4$$.register_write(this.port | 16, this, this.data_port_write16, this.data_port_write16, this.data_port_write32);
+  $cpu$jscomp$18$$.devices.pci.register_device(this);
 }
 $Ne2k$$module$src$ne2k$$.prototype.get_state = function() {
-  var $state$jscomp$34$$ = [];
-  $state$jscomp$34$$[0] = this.isr;
-  $state$jscomp$34$$[1] = this.imr;
-  $state$jscomp$34$$[2] = this.cr;
-  $state$jscomp$34$$[3] = this.dcfg;
-  $state$jscomp$34$$[4] = this.rcnt;
-  $state$jscomp$34$$[5] = this.tcnt;
-  $state$jscomp$34$$[6] = this.tpsr;
-  $state$jscomp$34$$[7] = this.rsar;
-  $state$jscomp$34$$[8] = this.pstart;
-  $state$jscomp$34$$[9] = this.curpg;
-  $state$jscomp$34$$[10] = this.boundary;
-  $state$jscomp$34$$[11] = this.pstop;
-  $state$jscomp$34$$[12] = this.rxcr;
-  $state$jscomp$34$$[13] = this.txcr;
-  $state$jscomp$34$$[14] = this.tsr;
-  $state$jscomp$34$$[15] = this.mac;
-  $state$jscomp$34$$[16] = this.memory;
-  return $state$jscomp$34$$;
+  var $state$jscomp$35$$ = [];
+  $state$jscomp$35$$[0] = this.isr;
+  $state$jscomp$35$$[1] = this.imr;
+  $state$jscomp$35$$[2] = this.cr;
+  $state$jscomp$35$$[3] = this.dcfg;
+  $state$jscomp$35$$[4] = this.rcnt;
+  $state$jscomp$35$$[5] = this.tcnt;
+  $state$jscomp$35$$[6] = this.tpsr;
+  $state$jscomp$35$$[7] = this.rsar;
+  $state$jscomp$35$$[8] = this.pstart;
+  $state$jscomp$35$$[9] = this.curpg;
+  $state$jscomp$35$$[10] = this.boundary;
+  $state$jscomp$35$$[11] = this.pstop;
+  $state$jscomp$35$$[12] = this.rxcr;
+  $state$jscomp$35$$[13] = this.txcr;
+  $state$jscomp$35$$[14] = this.tsr;
+  $state$jscomp$35$$[15] = this.mac;
+  $state$jscomp$35$$[16] = this.memory;
+  return $state$jscomp$35$$;
 };
-$Ne2k$$module$src$ne2k$$.prototype.set_state = function($state$jscomp$35$$) {
-  this.isr = $state$jscomp$35$$[0];
-  this.imr = $state$jscomp$35$$[1];
-  this.cr = $state$jscomp$35$$[2];
-  this.dcfg = $state$jscomp$35$$[3];
-  this.rcnt = $state$jscomp$35$$[4];
-  this.tcnt = $state$jscomp$35$$[5];
-  this.tpsr = $state$jscomp$35$$[6];
-  this.rsar = $state$jscomp$35$$[7];
-  this.pstart = $state$jscomp$35$$[8];
-  this.curpg = $state$jscomp$35$$[9];
-  this.boundary = $state$jscomp$35$$[10];
-  this.pstop = $state$jscomp$35$$[11];
-  this.rxcr = $state$jscomp$35$$[12];
-  this.txcr = $state$jscomp$35$$[13];
-  this.tsr = $state$jscomp$35$$[14];
-  this.preserve_mac_from_state_image ? (this.mac = $state$jscomp$35$$[15], this.memory = $state$jscomp$35$$[16]) : this.mac_address_translation && (this.mac_address_in_state = $state$jscomp$35$$[15], this.memory = $state$jscomp$35$$[16], $dbg_log$$module$src$log$$("Using mac address translation guest_os_mac=" + $format_mac$$module$src$ne2k$$(this.mac_address_in_state) + " real_mac=" + $format_mac$$module$src$ne2k$$(this.mac), 1048576));
+$Ne2k$$module$src$ne2k$$.prototype.set_state = function($state$jscomp$36$$) {
+  this.isr = $state$jscomp$36$$[0];
+  this.imr = $state$jscomp$36$$[1];
+  this.cr = $state$jscomp$36$$[2];
+  this.dcfg = $state$jscomp$36$$[3];
+  this.rcnt = $state$jscomp$36$$[4];
+  this.tcnt = $state$jscomp$36$$[5];
+  this.tpsr = $state$jscomp$36$$[6];
+  this.rsar = $state$jscomp$36$$[7];
+  this.pstart = $state$jscomp$36$$[8];
+  this.curpg = $state$jscomp$36$$[9];
+  this.boundary = $state$jscomp$36$$[10];
+  this.pstop = $state$jscomp$36$$[11];
+  this.rxcr = $state$jscomp$36$$[12];
+  this.txcr = $state$jscomp$36$$[13];
+  this.tsr = $state$jscomp$36$$[14];
+  this.preserve_mac_from_state_image ? (this.mac = $state$jscomp$36$$[15], this.memory = $state$jscomp$36$$[16]) : this.mac_address_translation && (this.mac_address_in_state = $state$jscomp$36$$[15], this.memory = $state$jscomp$36$$[16], $dbg_log$$module$src$log$$("Using mac address translation guest_os_mac=" + $format_mac$$module$src$ne2k$$(this.mac_address_in_state) + " real_mac=" + $format_mac$$module$src$ne2k$$(this.mac), 1048576));
   this.bus.send("net" + this.id + "-mac", $format_mac$$module$src$ne2k$$(this.mac));
 };
 $Ne2k$$module$src$ne2k$$.prototype.do_interrupt = function($ir_mask$$) {
@@ -7660,23 +7746,23 @@ $Ne2k$$module$src$ne2k$$.prototype.receive = function($data$jscomp$177$$) {
 $Ne2k$$module$src$ne2k$$.prototype.get_page = function() {
   return this.cr >> 6 & 3;
 };
-function $VirtioConsole$$module$src$virtio_console$$($cpu$jscomp$18$$, $bus$jscomp$23_queues$$) {
-  this.bus = $bus$jscomp$23_queues$$;
+function $VirtioConsole$$module$src$virtio_console$$($cpu$jscomp$19$$, $bus$jscomp$24_queues$$) {
+  this.bus = $bus$jscomp$24_queues$$;
   this.rows = 25;
   this.cols = 80;
   this.ports = 4;
-  $bus$jscomp$23_queues$$ = [{size_supported:16, notify_offset:0, }, {size_supported:16, notify_offset:1, }, {size_supported:16, notify_offset:2, }, {size_supported:16, notify_offset:3, }, ];
+  $bus$jscomp$24_queues$$ = [{size_supported:16, notify_offset:0, }, {size_supported:16, notify_offset:1, }, {size_supported:16, notify_offset:2, }, {size_supported:16, notify_offset:3, }, ];
   for (let $i$jscomp$83$$ = 1; $i$jscomp$83$$ < this.ports; ++$i$jscomp$83$$) {
-    $bus$jscomp$23_queues$$.push({size_supported:16, notify_offset:0}), $bus$jscomp$23_queues$$.push({size_supported:8, notify_offset:1});
+    $bus$jscomp$24_queues$$.push({size_supported:16, notify_offset:0}), $bus$jscomp$24_queues$$.push({size_supported:8, notify_offset:1});
   }
-  this.virtio = new $VirtIO$$module$src$virtio$$($cpu$jscomp$18$$, {name:"virtio-console", pci_id:96, device_id:4163, subsystem_device_id:3, common:{initial_port:47104, queues:$bus$jscomp$23_queues$$, features:[0, 1, 32, ], on_driver_ok:() => {
+  this.virtio = new $VirtIO$$module$src$virtio$$($cpu$jscomp$19$$, {name:"virtio-console", pci_id:96, device_id:4163, subsystem_device_id:3, common:{initial_port:47104, queues:$bus$jscomp$24_queues$$, features:[0, 1, 32, ], on_driver_ok:() => {
   }, }, notification:{initial_port:47360, single_handler:!1, handlers:[() => {
   }, $queue_id$jscomp$1$$ => {
-    const $queue$$ = this.virtio.queues[$queue_id$jscomp$1$$], $port$jscomp$4$$ = 3 < $queue_id$jscomp$1$$ ? $queue_id$jscomp$1$$ - 3 >> 1 : 0;
+    const $queue$$ = this.virtio.queues[$queue_id$jscomp$1$$], $port$jscomp$5$$ = 3 < $queue_id$jscomp$1$$ ? $queue_id$jscomp$1$$ - 3 >> 1 : 0;
     for (; $queue$$.has_request();) {
       const $bufchain$$ = $queue$$.pop_request(), $buffer$jscomp$43$$ = new Uint8Array($bufchain$$.length_readable);
       $bufchain$$.get_next_blob($buffer$jscomp$43$$);
-      this.bus.send("virtio-console" + $port$jscomp$4$$ + "-output-bytes", $buffer$jscomp$43$$);
+      this.bus.send("virtio-console" + $port$jscomp$5$$ + "-output-bytes", $buffer$jscomp$43$$);
       this.Ack($queue_id$jscomp$1$$, $bufchain$$);
     }
   }, $queue_id$jscomp$2$$ => {
@@ -7686,10 +7772,10 @@ function $VirtioConsole$$module$src$virtio_console$$($cpu$jscomp$18$$, $bus$jsco
       $dbg_assert$$module$src$log$$(!1, "VirtioConsole Notified for wrong queue: " + $queue_id$jscomp$3$$ + " (expected queue_id of 3)");
     } else {
       for (var $queue$jscomp$1$$ = this.virtio.queues[$queue_id$jscomp$3$$]; $queue$jscomp$1$$.has_request();) {
-        var $bufchain$jscomp$1_i$jscomp$84$$ = $queue$jscomp$1$$.pop_request(), $buffer$jscomp$44_port$jscomp$5$$ = new Uint8Array($bufchain$jscomp$1_i$jscomp$84$$.length_readable);
-        $bufchain$jscomp$1_i$jscomp$84$$.get_next_blob($buffer$jscomp$44_port$jscomp$5$$);
-        var $event$jscomp$15_parts$jscomp$5$$ = $Unmarshall$$module$lib$marshall$$(["w", "h", "h"], $buffer$jscomp$44_port$jscomp$5$$, {offset:0});
-        $buffer$jscomp$44_port$jscomp$5$$ = $event$jscomp$15_parts$jscomp$5$$[0];
+        var $bufchain$jscomp$1_i$jscomp$84$$ = $queue$jscomp$1$$.pop_request(), $buffer$jscomp$44_port$jscomp$6$$ = new Uint8Array($bufchain$jscomp$1_i$jscomp$84$$.length_readable);
+        $bufchain$jscomp$1_i$jscomp$84$$.get_next_blob($buffer$jscomp$44_port$jscomp$6$$);
+        var $event$jscomp$15_parts$jscomp$5$$ = $Unmarshall$$module$lib$marshall$$(["w", "h", "h"], $buffer$jscomp$44_port$jscomp$6$$, {offset:0});
+        $buffer$jscomp$44_port$jscomp$6$$ = $event$jscomp$15_parts$jscomp$5$$[0];
         $event$jscomp$15_parts$jscomp$5$$ = $event$jscomp$15_parts$jscomp$5$$[1];
         this.Ack($queue_id$jscomp$3$$, $bufchain$jscomp$1_i$jscomp$84$$);
         switch($event$jscomp$15_parts$jscomp$5$$) {
@@ -7700,13 +7786,13 @@ function $VirtioConsole$$module$src$virtio_console$$($cpu$jscomp$18$$, $bus$jsco
             break;
           case 3:
             this.Ack($queue_id$jscomp$3$$, $bufchain$jscomp$1_i$jscomp$84$$);
-            this.SendEvent($buffer$jscomp$44_port$jscomp$5$$, 4, 1);
-            this.SendName($buffer$jscomp$44_port$jscomp$5$$, "virtio-" + $buffer$jscomp$44_port$jscomp$5$$);
-            this.SendEvent($buffer$jscomp$44_port$jscomp$5$$, 6, 1);
+            this.SendEvent($buffer$jscomp$44_port$jscomp$6$$, 4, 1);
+            this.SendName($buffer$jscomp$44_port$jscomp$6$$, "virtio-" + $buffer$jscomp$44_port$jscomp$6$$);
+            this.SendEvent($buffer$jscomp$44_port$jscomp$6$$, 6, 1);
             break;
           case 6:
             this.Ack($queue_id$jscomp$3$$, $bufchain$jscomp$1_i$jscomp$84$$);
-            0 === $buffer$jscomp$44_port$jscomp$5$$ && this.SendWindowSize($buffer$jscomp$44_port$jscomp$5$$);
+            0 === $buffer$jscomp$44_port$jscomp$6$$ && this.SendWindowSize($buffer$jscomp$44_port$jscomp$6$$);
             break;
           default:
             $dbg_assert$$module$src$log$$(!1, " VirtioConsole received unknown event: " + $event$jscomp$15_parts$jscomp$5$$[1]);
@@ -7720,56 +7806,56 @@ function $VirtioConsole$$module$src$virtio_console$$($cpu$jscomp$18$$, $bus$jsco
   }, }, {bytes:4, name:"emerg_wr", read:() => 0, write:() => {
     $dbg_assert$$module$src$log$$(!1, "Emergency write!");
   }, }, ]}, });
-  for (let $port$jscomp$6$$ = 0; $port$jscomp$6$$ < this.ports; ++$port$jscomp$6$$) {
-    const $queue_id$jscomp$4$$ = 0 === $port$jscomp$6$$ ? 0 : 2 * $port$jscomp$6$$ + 2;
-    this.bus.register("virtio-console" + $port$jscomp$6$$ + "-input-bytes", function($data$jscomp$182$$) {
+  for (let $port$jscomp$7$$ = 0; $port$jscomp$7$$ < this.ports; ++$port$jscomp$7$$) {
+    const $queue_id$jscomp$4$$ = 0 === $port$jscomp$7$$ ? 0 : 2 * $port$jscomp$7$$ + 2;
+    this.bus.register("virtio-console" + $port$jscomp$7$$ + "-input-bytes", function($data$jscomp$182$$) {
       var $bufchain$jscomp$2_queue$jscomp$2$$ = this.virtio.queues[$queue_id$jscomp$4$$];
       $bufchain$jscomp$2_queue$jscomp$2$$.has_request() && ($bufchain$jscomp$2_queue$jscomp$2$$ = $bufchain$jscomp$2_queue$jscomp$2$$.pop_request(), this.Send($queue_id$jscomp$4$$, $bufchain$jscomp$2_queue$jscomp$2$$, new Uint8Array($data$jscomp$182$$)));
     }, this);
-    this.bus.register("virtio-console" + $port$jscomp$6$$ + "-resize", function($size$jscomp$36$$) {
-      0 === $port$jscomp$6$$ && (this.cols = $size$jscomp$36$$[0], this.rows = $size$jscomp$36$$[1]);
-      this.virtio.queues[2].is_configured() && this.virtio.queues[2].has_request() && this.SendWindowSize($port$jscomp$6$$, $size$jscomp$36$$[0], $size$jscomp$36$$[1]);
+    this.bus.register("virtio-console" + $port$jscomp$7$$ + "-resize", function($size$jscomp$36$$) {
+      0 === $port$jscomp$7$$ && (this.cols = $size$jscomp$36$$[0], this.rows = $size$jscomp$36$$[1]);
+      this.virtio.queues[2].is_configured() && this.virtio.queues[2].has_request() && this.SendWindowSize($port$jscomp$7$$, $size$jscomp$36$$[0], $size$jscomp$36$$[1]);
     }, this);
   }
 }
-$VirtioConsole$$module$src$virtio_console$$.prototype.SendWindowSize = function($port$jscomp$7$$, $cols$jscomp$3$$, $rows$jscomp$3$$) {
+$VirtioConsole$$module$src$virtio_console$$.prototype.SendWindowSize = function($port$jscomp$8$$, $cols$jscomp$3$$, $rows$jscomp$3$$) {
   $rows$jscomp$3$$ = $rows$jscomp$3$$ || this.rows;
   $cols$jscomp$3$$ = $cols$jscomp$3$$ || this.cols;
   const $bufchain$jscomp$3$$ = this.virtio.queues[2].pop_request(), $buf$jscomp$1$$ = new Uint8Array(12);
-  $Marshall$$module$lib$marshall$$(["w", "h", "h", "h", "h"], [$port$jscomp$7$$, 5, 0, $rows$jscomp$3$$, $cols$jscomp$3$$], $buf$jscomp$1$$, 0);
+  $Marshall$$module$lib$marshall$$(["w", "h", "h", "h", "h"], [$port$jscomp$8$$, 5, 0, $rows$jscomp$3$$, $cols$jscomp$3$$], $buf$jscomp$1$$, 0);
   this.Send(2, $bufchain$jscomp$3$$, $buf$jscomp$1$$);
 };
-$VirtioConsole$$module$src$virtio_console$$.prototype.SendName = function($i$jscomp$85_port$jscomp$8$$, $name$jscomp$102_namex$$) {
+$VirtioConsole$$module$src$virtio_console$$.prototype.SendName = function($i$jscomp$85_port$jscomp$9$$, $name$jscomp$102_namex$$) {
   const $bufchain$jscomp$4$$ = this.virtio.queues[2].pop_request();
   $name$jscomp$102_namex$$ = (new TextEncoder).encode($name$jscomp$102_namex$$);
   const $buf$jscomp$2$$ = new Uint8Array(8 + $name$jscomp$102_namex$$.length + 1);
-  $Marshall$$module$lib$marshall$$(["w", "h", "h"], [$i$jscomp$85_port$jscomp$8$$, 7, 1], $buf$jscomp$2$$, 0);
-  for ($i$jscomp$85_port$jscomp$8$$ = 0; $i$jscomp$85_port$jscomp$8$$ < $name$jscomp$102_namex$$.length; ++$i$jscomp$85_port$jscomp$8$$) {
-    $buf$jscomp$2$$[$i$jscomp$85_port$jscomp$8$$ + 8] = $name$jscomp$102_namex$$[$i$jscomp$85_port$jscomp$8$$];
+  $Marshall$$module$lib$marshall$$(["w", "h", "h"], [$i$jscomp$85_port$jscomp$9$$, 7, 1], $buf$jscomp$2$$, 0);
+  for ($i$jscomp$85_port$jscomp$9$$ = 0; $i$jscomp$85_port$jscomp$9$$ < $name$jscomp$102_namex$$.length; ++$i$jscomp$85_port$jscomp$9$$) {
+    $buf$jscomp$2$$[$i$jscomp$85_port$jscomp$9$$ + 8] = $name$jscomp$102_namex$$[$i$jscomp$85_port$jscomp$9$$];
   }
   $buf$jscomp$2$$[8 + $name$jscomp$102_namex$$.length] = 0;
   this.Send(2, $bufchain$jscomp$4$$, $buf$jscomp$2$$);
 };
 $VirtioConsole$$module$src$virtio_console$$.prototype.get_state = function() {
-  const $state$jscomp$36$$ = [];
-  $state$jscomp$36$$[0] = this.virtio;
-  $state$jscomp$36$$[1] = this.rows;
-  $state$jscomp$36$$[2] = this.cols;
-  $state$jscomp$36$$[3] = this.ports;
-  return $state$jscomp$36$$;
+  const $state$jscomp$37$$ = [];
+  $state$jscomp$37$$[0] = this.virtio;
+  $state$jscomp$37$$[1] = this.rows;
+  $state$jscomp$37$$[2] = this.cols;
+  $state$jscomp$37$$[3] = this.ports;
+  return $state$jscomp$37$$;
 };
-$VirtioConsole$$module$src$virtio_console$$.prototype.set_state = function($state$jscomp$37$$) {
-  this.virtio.set_state($state$jscomp$37$$[0]);
-  this.rows = $state$jscomp$37$$[1];
-  this.cols = $state$jscomp$37$$[2];
-  this.ports = $state$jscomp$37$$[3];
+$VirtioConsole$$module$src$virtio_console$$.prototype.set_state = function($state$jscomp$38$$) {
+  this.virtio.set_state($state$jscomp$38$$[0]);
+  this.rows = $state$jscomp$38$$[1];
+  this.cols = $state$jscomp$38$$[2];
+  this.ports = $state$jscomp$38$$[3];
 };
 $VirtioConsole$$module$src$virtio_console$$.prototype.reset = function() {
   this.virtio.reset();
 };
-$VirtioConsole$$module$src$virtio_console$$.prototype.SendEvent = function($port$jscomp$9$$, $event$jscomp$16$$, $value$jscomp$163$$) {
+$VirtioConsole$$module$src$virtio_console$$.prototype.SendEvent = function($port$jscomp$10$$, $event$jscomp$16$$, $value$jscomp$169$$) {
   const $bufchain$jscomp$5$$ = this.virtio.queues[2].pop_request(), $buf$jscomp$3$$ = new Uint8Array(8);
-  $Marshall$$module$lib$marshall$$(["w", "h", "h"], [$port$jscomp$9$$, $event$jscomp$16$$, $value$jscomp$163$$], $buf$jscomp$3$$, 0);
+  $Marshall$$module$lib$marshall$$(["w", "h", "h"], [$port$jscomp$10$$, $event$jscomp$16$$, $value$jscomp$169$$], $buf$jscomp$3$$, 0);
   this.Send(2, $bufchain$jscomp$5$$, $buf$jscomp$3$$);
 };
 $VirtioConsole$$module$src$virtio_console$$.prototype.Send = function($queue_id$jscomp$5$$, $bufchain$jscomp$6$$, $blob$jscomp$14$$) {
@@ -7782,9 +7868,9 @@ $VirtioConsole$$module$src$virtio_console$$.prototype.Ack = function($queue_id$j
   this.virtio.queues[$queue_id$jscomp$6$$].push_reply($bufchain$jscomp$7$$);
   this.virtio.queues[$queue_id$jscomp$6$$].flush_replies();
 };
-function $PS2$$module$src$ps2$$($cpu$jscomp$19$$, $bus$jscomp$24$$) {
-  this.cpu = $cpu$jscomp$19$$;
-  this.bus = $bus$jscomp$24$$;
+function $PS2$$module$src$ps2$$($cpu$jscomp$20$$, $bus$jscomp$25$$) {
+  this.cpu = $cpu$jscomp$20$$;
+  this.bus = $bus$jscomp$25$$;
   this.reset();
   this.bus.register("keyboard-code", function($code$jscomp$8$$) {
     this.kbd_send_code($code$jscomp$8$$);
@@ -7798,10 +7884,10 @@ function $PS2$$module$src$ps2$$($cpu$jscomp$19$$, $bus$jscomp$24$$) {
   this.bus.register("mouse-wheel", function($data$jscomp$185$$) {
     this.have_mouse && this.use_mouse && this.mouse_stream_active() && (this.wheel_movement -= $data$jscomp$185$$[0], this.wheel_movement -= 2 * $data$jscomp$185$$[1], this.wheel_movement = Math.min(7, Math.max(-8, this.wheel_movement)), this.send_mouse_packet(0, 0));
   }, this);
-  $cpu$jscomp$19$$.io.register_read(96, this, this.port60_read);
-  $cpu$jscomp$19$$.io.register_read(100, this, this.port64_read);
-  $cpu$jscomp$19$$.io.register_write(96, this, this.port60_write);
-  $cpu$jscomp$19$$.io.register_write(100, this, this.port64_write);
+  $cpu$jscomp$20$$.io.register_read(96, this, this.port60_read);
+  $cpu$jscomp$20$$.io.register_read(100, this, this.port64_read);
+  $cpu$jscomp$20$$.io.register_write(96, this, this.port60_write);
+  $cpu$jscomp$20$$.io.register_write(100, this, this.port64_write);
 }
 $PS2$$module$src$ps2$$.prototype.reset = function() {
   this.use_mouse = this.enable_mouse_stream = !1;
@@ -7825,62 +7911,62 @@ $PS2$$module$src$ps2$$.prototype.reset = function() {
   this.read_controller_output_port = this.read_command_register = this.read_output_register = !1;
 };
 $PS2$$module$src$ps2$$.prototype.get_state = function() {
-  var $state$jscomp$38$$ = [];
-  $state$jscomp$38$$[0] = this.enable_mouse_stream;
-  $state$jscomp$38$$[1] = this.use_mouse;
-  $state$jscomp$38$$[2] = this.have_mouse;
-  $state$jscomp$38$$[3] = this.mouse_delta_x;
-  $state$jscomp$38$$[4] = this.mouse_delta_y;
-  $state$jscomp$38$$[5] = this.mouse_clicks;
-  $state$jscomp$38$$[6] = this.have_keyboard;
-  $state$jscomp$38$$[7] = this.enable_keyboard_stream;
-  $state$jscomp$38$$[8] = this.next_is_mouse_command;
-  $state$jscomp$38$$[9] = this.next_read_sample;
-  $state$jscomp$38$$[10] = this.next_read_led;
-  $state$jscomp$38$$[11] = this.next_handle_scan_code_set;
-  $state$jscomp$38$$[12] = this.next_read_rate;
-  $state$jscomp$38$$[13] = this.next_read_resolution;
-  $state$jscomp$38$$[15] = this.last_port60_byte;
-  $state$jscomp$38$$[16] = this.sample_rate;
-  $state$jscomp$38$$[17] = this.resolution;
-  $state$jscomp$38$$[18] = this.scaling2;
-  $state$jscomp$38$$[20] = this.command_register;
-  $state$jscomp$38$$[21] = this.read_output_register;
-  $state$jscomp$38$$[22] = this.read_command_register;
-  $state$jscomp$38$$[23] = this.controller_output_port;
-  $state$jscomp$38$$[24] = this.read_controller_output_port;
-  $state$jscomp$38$$[25] = this.mouse_id;
-  $state$jscomp$38$$[26] = this.mouse_detect_state;
-  $state$jscomp$38$$[27] = this.mouse_reset_workaround;
-  return $state$jscomp$38$$;
+  var $state$jscomp$39$$ = [];
+  $state$jscomp$39$$[0] = this.enable_mouse_stream;
+  $state$jscomp$39$$[1] = this.use_mouse;
+  $state$jscomp$39$$[2] = this.have_mouse;
+  $state$jscomp$39$$[3] = this.mouse_delta_x;
+  $state$jscomp$39$$[4] = this.mouse_delta_y;
+  $state$jscomp$39$$[5] = this.mouse_clicks;
+  $state$jscomp$39$$[6] = this.have_keyboard;
+  $state$jscomp$39$$[7] = this.enable_keyboard_stream;
+  $state$jscomp$39$$[8] = this.next_is_mouse_command;
+  $state$jscomp$39$$[9] = this.next_read_sample;
+  $state$jscomp$39$$[10] = this.next_read_led;
+  $state$jscomp$39$$[11] = this.next_handle_scan_code_set;
+  $state$jscomp$39$$[12] = this.next_read_rate;
+  $state$jscomp$39$$[13] = this.next_read_resolution;
+  $state$jscomp$39$$[15] = this.last_port60_byte;
+  $state$jscomp$39$$[16] = this.sample_rate;
+  $state$jscomp$39$$[17] = this.resolution;
+  $state$jscomp$39$$[18] = this.scaling2;
+  $state$jscomp$39$$[20] = this.command_register;
+  $state$jscomp$39$$[21] = this.read_output_register;
+  $state$jscomp$39$$[22] = this.read_command_register;
+  $state$jscomp$39$$[23] = this.controller_output_port;
+  $state$jscomp$39$$[24] = this.read_controller_output_port;
+  $state$jscomp$39$$[25] = this.mouse_id;
+  $state$jscomp$39$$[26] = this.mouse_detect_state;
+  $state$jscomp$39$$[27] = this.mouse_reset_workaround;
+  return $state$jscomp$39$$;
 };
-$PS2$$module$src$ps2$$.prototype.set_state = function($state$jscomp$39$$) {
-  this.enable_mouse_stream = $state$jscomp$39$$[0];
-  this.use_mouse = $state$jscomp$39$$[1];
-  this.have_mouse = $state$jscomp$39$$[2];
-  this.mouse_delta_x = $state$jscomp$39$$[3];
-  this.mouse_delta_y = $state$jscomp$39$$[4];
-  this.mouse_clicks = $state$jscomp$39$$[5];
-  this.have_keyboard = $state$jscomp$39$$[6];
-  this.enable_keyboard_stream = $state$jscomp$39$$[7];
-  this.next_is_mouse_command = $state$jscomp$39$$[8];
-  this.next_read_sample = $state$jscomp$39$$[9];
-  this.next_read_led = $state$jscomp$39$$[10];
-  this.next_handle_scan_code_set = $state$jscomp$39$$[11];
-  this.next_read_rate = $state$jscomp$39$$[12];
-  this.next_read_resolution = $state$jscomp$39$$[13];
-  this.last_port60_byte = $state$jscomp$39$$[15];
-  this.sample_rate = $state$jscomp$39$$[16];
-  this.resolution = $state$jscomp$39$$[17];
-  this.scaling2 = $state$jscomp$39$$[18];
-  this.command_register = $state$jscomp$39$$[20];
-  this.read_output_register = $state$jscomp$39$$[21];
-  this.read_command_register = $state$jscomp$39$$[22];
-  this.controller_output_port = $state$jscomp$39$$[23];
-  this.read_controller_output_port = $state$jscomp$39$$[24];
-  this.mouse_id = $state$jscomp$39$$[25] || 0;
-  this.mouse_detect_state = $state$jscomp$39$$[26] || 0;
-  this.mouse_reset_workaround = $state$jscomp$39$$[27] || !1;
+$PS2$$module$src$ps2$$.prototype.set_state = function($state$jscomp$40$$) {
+  this.enable_mouse_stream = $state$jscomp$40$$[0];
+  this.use_mouse = $state$jscomp$40$$[1];
+  this.have_mouse = $state$jscomp$40$$[2];
+  this.mouse_delta_x = $state$jscomp$40$$[3];
+  this.mouse_delta_y = $state$jscomp$40$$[4];
+  this.mouse_clicks = $state$jscomp$40$$[5];
+  this.have_keyboard = $state$jscomp$40$$[6];
+  this.enable_keyboard_stream = $state$jscomp$40$$[7];
+  this.next_is_mouse_command = $state$jscomp$40$$[8];
+  this.next_read_sample = $state$jscomp$40$$[9];
+  this.next_read_led = $state$jscomp$40$$[10];
+  this.next_handle_scan_code_set = $state$jscomp$40$$[11];
+  this.next_read_rate = $state$jscomp$40$$[12];
+  this.next_read_resolution = $state$jscomp$40$$[13];
+  this.last_port60_byte = $state$jscomp$40$$[15];
+  this.sample_rate = $state$jscomp$40$$[16];
+  this.resolution = $state$jscomp$40$$[17];
+  this.scaling2 = $state$jscomp$40$$[18];
+  this.command_register = $state$jscomp$40$$[20];
+  this.read_output_register = $state$jscomp$40$$[21];
+  this.read_command_register = $state$jscomp$40$$[22];
+  this.controller_output_port = $state$jscomp$40$$[23];
+  this.read_controller_output_port = $state$jscomp$40$$[24];
+  this.mouse_id = $state$jscomp$40$$[25] || 0;
+  this.mouse_detect_state = $state$jscomp$40$$[26] || 0;
+  this.mouse_reset_workaround = $state$jscomp$40$$[27] || !1;
   this.next_byte_is_aux = this.next_byte_is_ready = !1;
   this.kbd_buffer.clear();
   this.mouse_buffer.clear();
@@ -8185,11 +8271,11 @@ $PS2$$module$src$ps2$$.prototype.port64_write = function($write_byte$jscomp$1$$)
       $dbg_log$$module$src$log$$("port 64: Unimplemented command byte: " + $h$$module$src$lib$$($write_byte$jscomp$1$$), 64);
   }
 };
-function $VMwareMouse$$module$src$vmware$$($cpu$jscomp$20$$, $bus$jscomp$25$$) {
+function $VMwareMouse$$module$src$vmware$$($cpu$jscomp$21$$, $bus$jscomp$26$$) {
   function $nop$$() {
   }
-  this.cpu = $cpu$jscomp$20$$;
-  this.bus = $bus$jscomp$25$$;
+  this.cpu = $cpu$jscomp$21$$;
+  this.bus = $bus$jscomp$26$$;
   this.absolute = this.enabled = !1;
   this.queue = [];
   this.buttons = 0;
@@ -8225,12 +8311,12 @@ function $VMwareMouse$$module$src$vmware$$($cpu$jscomp$20$$, $bus$jscomp$25$$) {
   this.bus.register("mouse-wheel", function($data$jscomp$189$$) {
     this.host_pointer_locked ? this.push_relative(0, 0, -$data$jscomp$189$$[0] | 0, !1) : this.push_absolute(-$data$jscomp$189$$[0] | 0, !1);
   }, this);
-  $cpu$jscomp$20$$.io.register_read(22104, this, function() {
+  $cpu$jscomp$21$$.io.register_read(22104, this, function() {
     return 255;
   }, function() {
     return 65535;
   }, this.port_read32);
-  $cpu$jscomp$20$$.io.register_write(22104, this, $nop$$, $nop$$, $nop$$);
+  $cpu$jscomp$21$$.io.register_write(22104, this, $nop$$, $nop$$, $nop$$);
 }
 $VMwareMouse$$module$src$vmware$$.prototype.push_absolute = function($wheel$$, $move_only$$) {
   !this.enabled || !this.absolute || 0 > this.last_x || ($move_only$$ && this.tail_is_move && 4 <= this.queue.length && !(this.queue[this.queue.length - 4] & 65536) ? (this.queue[this.queue.length - 3] = this.last_x, this.queue[this.queue.length - 2] = this.last_y) : this.push_packet(this.buttons, this.last_x, this.last_y, $wheel$$, $move_only$$));
@@ -8238,8 +8324,8 @@ $VMwareMouse$$module$src$vmware$$.prototype.push_absolute = function($wheel$$, $
 $VMwareMouse$$module$src$vmware$$.prototype.push_relative = function($dx$jscomp$6$$, $dy$jscomp$6$$, $wheel$jscomp$1$$, $move_only$jscomp$1$$) {
   this.enabled && ($move_only$jscomp$1$$ && this.tail_is_move && 4 <= this.queue.length && this.queue[this.queue.length - 4] & 65536 ? (this.queue[this.queue.length - 3] += $dx$jscomp$6$$, this.queue[this.queue.length - 2] += $dy$jscomp$6$$) : this.push_packet(this.buttons | 65536, $dx$jscomp$6$$, $dy$jscomp$6$$, $wheel$jscomp$1$$, $move_only$jscomp$1$$));
 };
-$VMwareMouse$$module$src$vmware$$.prototype.push_packet = function($status$jscomp$5$$, $x$jscomp$120$$, $y$jscomp$79$$, $wheel$jscomp$2$$, $move_only$jscomp$2$$) {
-  1024 < this.queue.length + 4 ? (this.enabled = !1, this.queue.length = 0, $dbg_log$$module$src$log$$("vmware mouse: queue overflow, disabling", 1)) : (this.queue.push($status$jscomp$5$$, $x$jscomp$120$$, $y$jscomp$79$$, $wheel$jscomp$2$$), this.tail_is_move = $move_only$jscomp$2$$);
+$VMwareMouse$$module$src$vmware$$.prototype.push_packet = function($status$jscomp$6$$, $x$jscomp$120$$, $y$jscomp$79$$, $wheel$jscomp$2$$, $move_only$jscomp$2$$) {
+  1024 < this.queue.length + 4 ? (this.enabled = !1, this.queue.length = 0, $dbg_log$$module$src$log$$("vmware mouse: queue overflow, disabling", 1)) : (this.queue.push($status$jscomp$6$$, $x$jscomp$120$$, $y$jscomp$79$$, $wheel$jscomp$2$$), this.tail_is_move = $move_only$jscomp$2$$);
 };
 $VMwareMouse$$module$src$vmware$$.prototype.port_read32 = function() {
   const $reg32$$ = this.cpu.reg32;
@@ -8293,9 +8379,9 @@ $VMwareMouse$$module$src$vmware$$.prototype.port_read32 = function() {
 $VMwareMouse$$module$src$vmware$$.prototype.get_state = function() {
   return [this.enabled, this.absolute];
 };
-$VMwareMouse$$module$src$vmware$$.prototype.set_state = function($state$jscomp$40$$) {
-  this.enabled = $state$jscomp$40$$[0];
-  this.absolute = $state$jscomp$40$$[1];
+$VMwareMouse$$module$src$vmware$$.prototype.set_state = function($state$jscomp$41$$) {
+  this.enabled = $state$jscomp$41$$[0];
+  this.absolute = $state$jscomp$41$$[1];
   this.bus.send("vmware-absolute-mouse", this.absolute);
 };
 const $types$$module$src$elf$$ = DataView.prototype, $U8$$module$src$elf$$ = {size:1, get:$types$$module$src$elf$$.getUint8, set:$types$$module$src$elf$$.setUint8, }, $U16$$module$src$elf$$ = {size:2, get:$types$$module$src$elf$$.getUint16, set:$types$$module$src$elf$$.setUint16, }, $U32$$module$src$elf$$ = {size:4, get:$types$$module$src$elf$$.getUint32, set:$types$$module$src$elf$$.setUint32, }, $Header$$module$src$elf$$ = $create_struct$$module$src$elf$$([{magic:$U32$$module$src$elf$$, }, {class:$U8$$module$src$elf$$, 
@@ -8317,11 +8403,11 @@ function $create_struct$$module$src$elf$$($struct$jscomp$2$$) {
     return {name:$keys$jscomp$1_name$jscomp$103$$, type:$entry$jscomp$11_type$jscomp$155$$, size:$entry$jscomp$11_type$jscomp$155$$.size, get:$entry$jscomp$11_type$jscomp$155$$.get, set:$entry$jscomp$11_type$jscomp$155$$.set, };
   });
 }
-function $read_struct$$module$src$elf$$($view$jscomp$30$$, $Struct_value$jscomp$164$$) {
+function $read_struct$$module$src$elf$$($view$jscomp$30$$, $Struct_value$jscomp$170$$) {
   const $result$jscomp$17$$ = {};
   let $offset$jscomp$69$$ = 0;
-  for (const $entry$jscomp$12$$ of $Struct_value$jscomp$164$$) {
-    $Struct_value$jscomp$164$$ = $entry$jscomp$12$$.get.call($view$jscomp$30$$, $offset$jscomp$69$$, !0), console.assert(void 0 === $result$jscomp$17$$[$entry$jscomp$12$$.name]), $result$jscomp$17$$[$entry$jscomp$12$$.name] = $Struct_value$jscomp$164$$, $offset$jscomp$69$$ += $entry$jscomp$12$$.size;
+  for (const $entry$jscomp$12$$ of $Struct_value$jscomp$170$$) {
+    $Struct_value$jscomp$170$$ = $entry$jscomp$12$$.get.call($view$jscomp$30$$, $offset$jscomp$69$$, !0), console.assert(void 0 === $result$jscomp$17$$[$entry$jscomp$12$$.name]), $result$jscomp$17$$[$entry$jscomp$12$$.name] = $Struct_value$jscomp$170$$, $offset$jscomp$69$$ += $entry$jscomp$12$$.size;
   }
   return [$result$jscomp$17$$, $offset$jscomp$69$$];
 }
@@ -8336,10 +8422,10 @@ function $read_structs$$module$src$elf$$($view$jscomp$31$$, $Struct$jscomp$1$$, 
   return [$result$jscomp$18$$, $offset$jscomp$70$$];
 }
 ;const $CMOS_FDD_TYPE_MEDIUM$$module$src$floppy$$ = {[0]:0, [1]:525, [2]:525, [3]:350, [4]:350, [5]:350, };
-function $FloppyController$$module$src$floppy$$($cpu$jscomp$21$$, $fda_image$$, $fdb_image$$, $fdc_config$$) {
-  this.io = $cpu$jscomp$21$$.io;
-  this.cpu = $cpu$jscomp$21$$;
-  this.dma = $cpu$jscomp$21$$.devices.dma;
+function $FloppyController$$module$src$floppy$$($cpu$jscomp$22$$, $fda_image$$, $fdb_image$$, $fdc_config$$) {
+  this.io = $cpu$jscomp$22$$.io;
+  this.cpu = $cpu$jscomp$22$$;
+  this.dma = $cpu$jscomp$22$$.devices.dma;
   this.cmd_table = this.build_cmd_lookup_table();
   this.sra = 0;
   this.srb = 192;
@@ -8712,40 +8798,40 @@ $FloppyController$$module$src$floppy$$.prototype.seek_next_sect = function() {
   return $ret$jscomp$11$$;
 };
 $FloppyController$$module$src$floppy$$.prototype.get_state = function() {
-  const $state$jscomp$41$$ = [];
-  $state$jscomp$41$$[19] = this.sra;
-  $state$jscomp$41$$[20] = this.srb;
-  $state$jscomp$41$$[21] = this.dor;
-  $state$jscomp$41$$[22] = this.tdr;
-  $state$jscomp$41$$[23] = this.msr;
-  $state$jscomp$41$$[24] = this.dsr;
-  $state$jscomp$41$$[25] = this.cmd_phase;
-  $state$jscomp$41$$[26] = this.cmd_code;
-  $state$jscomp$41$$[27] = this.cmd_flags;
-  $state$jscomp$41$$[28] = this.cmd_buffer;
-  $state$jscomp$41$$[29] = this.cmd_cursor;
-  $state$jscomp$41$$[30] = this.cmd_remaining;
-  $state$jscomp$41$$[31] = this.response_data;
-  $state$jscomp$41$$[32] = this.response_cursor;
-  $state$jscomp$41$$[33] = this.response_length;
-  $state$jscomp$41$$[34] = this.status0;
-  $state$jscomp$41$$[35] = this.status1;
-  $state$jscomp$41$$[36] = this.curr_drive_no;
-  $state$jscomp$41$$[37] = this.reset_sense_int_count;
-  $state$jscomp$41$$[38] = this.locked;
-  $state$jscomp$41$$[39] = this.step_rate_interval;
-  $state$jscomp$41$$[40] = this.head_load_time;
-  $state$jscomp$41$$[41] = this.fdc_config;
-  $state$jscomp$41$$[42] = this.precomp_trk;
-  $state$jscomp$41$$[43] = this.eot;
-  $state$jscomp$41$$[44] = this.drives[0].get_state();
-  $state$jscomp$41$$[45] = this.drives[1].get_state();
-  return $state$jscomp$41$$;
+  const $state$jscomp$42$$ = [];
+  $state$jscomp$42$$[19] = this.sra;
+  $state$jscomp$42$$[20] = this.srb;
+  $state$jscomp$42$$[21] = this.dor;
+  $state$jscomp$42$$[22] = this.tdr;
+  $state$jscomp$42$$[23] = this.msr;
+  $state$jscomp$42$$[24] = this.dsr;
+  $state$jscomp$42$$[25] = this.cmd_phase;
+  $state$jscomp$42$$[26] = this.cmd_code;
+  $state$jscomp$42$$[27] = this.cmd_flags;
+  $state$jscomp$42$$[28] = this.cmd_buffer;
+  $state$jscomp$42$$[29] = this.cmd_cursor;
+  $state$jscomp$42$$[30] = this.cmd_remaining;
+  $state$jscomp$42$$[31] = this.response_data;
+  $state$jscomp$42$$[32] = this.response_cursor;
+  $state$jscomp$42$$[33] = this.response_length;
+  $state$jscomp$42$$[34] = this.status0;
+  $state$jscomp$42$$[35] = this.status1;
+  $state$jscomp$42$$[36] = this.curr_drive_no;
+  $state$jscomp$42$$[37] = this.reset_sense_int_count;
+  $state$jscomp$42$$[38] = this.locked;
+  $state$jscomp$42$$[39] = this.step_rate_interval;
+  $state$jscomp$42$$[40] = this.head_load_time;
+  $state$jscomp$42$$[41] = this.fdc_config;
+  $state$jscomp$42$$[42] = this.precomp_trk;
+  $state$jscomp$42$$[43] = this.eot;
+  $state$jscomp$42$$[44] = this.drives[0].get_state();
+  $state$jscomp$42$$[45] = this.drives[1].get_state();
+  return $state$jscomp$42$$;
 };
-$FloppyController$$module$src$floppy$$.prototype.set_state = function($state$jscomp$42$$) {
-  "undefined" !== typeof $state$jscomp$42$$[19] && (this.sra = $state$jscomp$42$$[19], this.srb = $state$jscomp$42$$[20], this.dor = $state$jscomp$42$$[21], this.tdr = $state$jscomp$42$$[22], this.msr = $state$jscomp$42$$[23], this.dsr = $state$jscomp$42$$[24], this.cmd_phase = $state$jscomp$42$$[25], this.cmd_code = $state$jscomp$42$$[26], this.cmd_flags = $state$jscomp$42$$[27], this.cmd_buffer.set($state$jscomp$42$$[28]), this.cmd_cursor = $state$jscomp$42$$[29], this.cmd_remaining = $state$jscomp$42$$[30], 
-  this.response_data.set($state$jscomp$42$$[31]), this.response_cursor = $state$jscomp$42$$[32], this.response_length = $state$jscomp$42$$[33], this.status0 = $state$jscomp$42$$[34], this.status1 = $state$jscomp$42$$[35], this.curr_drive_no = $state$jscomp$42$$[36], this.reset_sense_int_count = $state$jscomp$42$$[37], this.locked = $state$jscomp$42$$[38], this.step_rate_interval = $state$jscomp$42$$[39], this.head_load_time = $state$jscomp$42$$[40], this.fdc_config = $state$jscomp$42$$[41], this.precomp_trk = 
-  $state$jscomp$42$$[42], this.eot = $state$jscomp$42$$[43], this.drives[0].set_state($state$jscomp$42$$[44]), this.drives[1].set_state($state$jscomp$42$$[45]));
+$FloppyController$$module$src$floppy$$.prototype.set_state = function($state$jscomp$43$$) {
+  "undefined" !== typeof $state$jscomp$43$$[19] && (this.sra = $state$jscomp$43$$[19], this.srb = $state$jscomp$43$$[20], this.dor = $state$jscomp$43$$[21], this.tdr = $state$jscomp$43$$[22], this.msr = $state$jscomp$43$$[23], this.dsr = $state$jscomp$43$$[24], this.cmd_phase = $state$jscomp$43$$[25], this.cmd_code = $state$jscomp$43$$[26], this.cmd_flags = $state$jscomp$43$$[27], this.cmd_buffer.set($state$jscomp$43$$[28]), this.cmd_cursor = $state$jscomp$43$$[29], this.cmd_remaining = $state$jscomp$43$$[30], 
+  this.response_data.set($state$jscomp$43$$[31]), this.response_cursor = $state$jscomp$43$$[32], this.response_length = $state$jscomp$43$$[33], this.status0 = $state$jscomp$43$$[34], this.status1 = $state$jscomp$43$$[35], this.curr_drive_no = $state$jscomp$43$$[36], this.reset_sense_int_count = $state$jscomp$43$$[37], this.locked = $state$jscomp$43$$[38], this.step_rate_interval = $state$jscomp$43$$[39], this.head_load_time = $state$jscomp$43$$[40], this.fdc_config = $state$jscomp$43$$[41], this.precomp_trk = 
+  $state$jscomp$43$$[42], this.eot = $state$jscomp$43$$[43], this.drives[0].set_state($state$jscomp$43$$[44]), this.drives[1].set_state($state$jscomp$43$$[45]));
 };
 const $DISK_FORMATS$$module$src$floppy$$ = [{drive_type:4, sectors:18, tracks:80, heads:2}, {drive_type:4, sectors:20, tracks:80, heads:2}, {drive_type:4, sectors:21, tracks:80, heads:2}, {drive_type:4, sectors:21, tracks:82, heads:2}, {drive_type:4, sectors:21, tracks:83, heads:2}, {drive_type:4, sectors:22, tracks:80, heads:2}, {drive_type:4, sectors:23, tracks:80, heads:2}, {drive_type:4, sectors:24, tracks:80, heads:2}, {drive_type:5, sectors:36, tracks:80, heads:2}, {drive_type:5, sectors:39, 
 tracks:80, heads:2}, {drive_type:5, sectors:40, tracks:80, heads:2}, {drive_type:5, sectors:44, tracks:80, heads:2}, {drive_type:5, sectors:48, tracks:80, heads:2}, {drive_type:4, sectors:8, tracks:80, heads:2}, {drive_type:4, sectors:9, tracks:80, heads:2}, {drive_type:4, sectors:10, tracks:80, heads:2}, {drive_type:4, sectors:10, tracks:82, heads:2}, {drive_type:4, sectors:10, tracks:83, heads:2}, {drive_type:4, sectors:13, tracks:80, heads:2}, {drive_type:4, sectors:14, tracks:80, heads:2}, {drive_type:2, 
@@ -8829,75 +8915,75 @@ $FloppyDrive$$module$src$floppy$$.prototype.seek = function($head$jscomp$2$$, $t
   return $result$jscomp$19$$;
 };
 $FloppyDrive$$module$src$floppy$$.prototype.get_state = function() {
-  const $state$jscomp$43$$ = [];
-  $state$jscomp$43$$[0] = this.drive_type;
-  $state$jscomp$43$$[1] = this.max_track;
-  $state$jscomp$43$$[2] = this.max_head;
-  $state$jscomp$43$$[3] = this.max_sect;
-  $state$jscomp$43$$[4] = this.curr_track;
-  $state$jscomp$43$$[5] = this.curr_head;
-  $state$jscomp$43$$[6] = this.curr_sect;
-  $state$jscomp$43$$[7] = this.perpendicular;
-  $state$jscomp$43$$[8] = this.read_only;
-  $state$jscomp$43$$[9] = this.media_changed;
-  $state$jscomp$43$$[10] = this.buffer ? this.buffer.get_state() : null;
-  return $state$jscomp$43$$;
+  const $state$jscomp$44$$ = [];
+  $state$jscomp$44$$[0] = this.drive_type;
+  $state$jscomp$44$$[1] = this.max_track;
+  $state$jscomp$44$$[2] = this.max_head;
+  $state$jscomp$44$$[3] = this.max_sect;
+  $state$jscomp$44$$[4] = this.curr_track;
+  $state$jscomp$44$$[5] = this.curr_head;
+  $state$jscomp$44$$[6] = this.curr_sect;
+  $state$jscomp$44$$[7] = this.perpendicular;
+  $state$jscomp$44$$[8] = this.read_only;
+  $state$jscomp$44$$[9] = this.media_changed;
+  $state$jscomp$44$$[10] = this.buffer ? this.buffer.get_state() : null;
+  return $state$jscomp$44$$;
 };
-$FloppyDrive$$module$src$floppy$$.prototype.set_state = function($state$jscomp$44$$) {
-  this.drive_type = $state$jscomp$44$$[0];
-  this.max_track = $state$jscomp$44$$[1];
-  this.max_head = $state$jscomp$44$$[2];
-  this.max_sect = $state$jscomp$44$$[3];
-  this.curr_track = $state$jscomp$44$$[4];
-  this.curr_head = $state$jscomp$44$$[5];
-  this.curr_sect = $state$jscomp$44$$[6];
-  this.perpendicular = $state$jscomp$44$$[7];
-  this.read_only = $state$jscomp$44$$[8];
-  this.media_changed = $state$jscomp$44$$[9];
-  $state$jscomp$44$$[10] ? (this.buffer || (this.buffer = new $SyncBuffer$$module$src$buffer$$(new ArrayBuffer(0))), this.buffer.set_state($state$jscomp$44$$[10])) : this.buffer = null;
+$FloppyDrive$$module$src$floppy$$.prototype.set_state = function($state$jscomp$45$$) {
+  this.drive_type = $state$jscomp$45$$[0];
+  this.max_track = $state$jscomp$45$$[1];
+  this.max_head = $state$jscomp$45$$[2];
+  this.max_sect = $state$jscomp$45$$[3];
+  this.curr_track = $state$jscomp$45$$[4];
+  this.curr_head = $state$jscomp$45$$[5];
+  this.curr_sect = $state$jscomp$45$$[6];
+  this.perpendicular = $state$jscomp$45$$[7];
+  this.read_only = $state$jscomp$45$$[8];
+  this.media_changed = $state$jscomp$45$$[9];
+  $state$jscomp$45$$[10] ? (this.buffer || (this.buffer = new $SyncBuffer$$module$src$buffer$$(new ArrayBuffer(0))), this.buffer.set_state($state$jscomp$45$$[10])) : this.buffer = null;
 };
 const $ATA_CMD_NAME$$module$src$ide$$ = {[8]:"DEVICE RESET", [144]:"EXECUTE DEVICE DIAGNOSTIC", [231]:"FLUSH CACHE", [234]:"FLUSH CACHE EXT", [218]:"GET MEDIA STATUS", [236]:"IDENTIFY DEVICE", [161]:"IDENTIFY PACKET DEVICE", [225]:"IDLE IMMEDIATE", [145]:"INITIALIZE DEVICE PARAMETERS", [222]:"MEDIA LOCK", [0]:"NOP", [160]:"PACKET", [200]:"READ DMA", [37]:"READ DMA EXT", [41]:"READ MULTIPLE", [196]:"READ MULTIPLE EXT", [248]:"READ NATIVE MAX ADDRESS", [39]:"READ NATIVE MAX ADDRESS EXT", [32]:"READ SECTORS", 
 [36]:"READ SECTORS EXT", [64]:"READ VERIFY SECTORS", [245]:"SECURITY FREEZE LOCK", [239]:"SET FEATURES", [249]:"SET MAX", [198]:"SET MULTIPLE MODE", [224]:"STANDBY IMMEDIATE", [202]:"WRITE DMA", [53]:"WRITE DMA EXT", [57]:"WRITE MULTIPLE", [197]:"WRITE MULTIPLE EXT", [48]:"WRITE SECTORS", [52]:"WRITE SECTORS EXT", [16]:"<UNKNOWN 10h>", [240]:"<VENDOR-SPECIFIC F0h>", }, $ATAPI_CMD$$module$src$ide$$ = {[70]:{name:"GET CONFIGURATION", flags:0}, [74]:{name:"GET EVENT STATUS NOTIFICATION", flags:0}, [18]:{name:"INQUIRY", 
 flags:0}, [189]:{name:"MECHANISM STATUS", flags:0}, [26]:{name:"MODE SENSE (6)", flags:0}, [90]:{name:"MODE SENSE (10)", flags:0}, [69]:{name:"PAUSE", flags:1}, [30]:{name:"PREVENT ALLOW MEDIUM REMOVAL", flags:0}, [40]:{name:"READ (10)", flags:1}, [168]:{name:"READ (12)", flags:1}, [37]:{name:"READ CAPACITY", flags:1}, [190]:{name:"READ CD", flags:1}, [81]:{name:"READ DISK INFORMATION", flags:1}, [66]:{name:"READ SUBCHANNEL", flags:1}, [67]:{name:"READ TOC PMA ATIP", flags:1}, [82]:{name:"READ TRACK INFORMATION", 
 flags:1}, [3]:{name:"REQUEST SENSE", flags:0}, [27]:{name:"START STOP UNIT", flags:0}, [0]:{name:"TEST UNIT READY", flags:1}, };
-function $IDEController$$module$src$ide$$($cpu$jscomp$22$$, $bus$jscomp$26_has_primary$$, $command_base0_ide_config$$) {
-  this.cpu = $cpu$jscomp$22$$;
-  this.bus = $bus$jscomp$26_has_primary$$;
+function $IDEController$$module$src$ide$$($cpu$jscomp$23$$, $bus$jscomp$27_has_primary$$, $command_base0_ide_config$$) {
+  this.cpu = $cpu$jscomp$23$$;
+  this.bus = $bus$jscomp$27_has_primary$$;
   this.secondary = this.primary = void 0;
-  $bus$jscomp$26_has_primary$$ = $command_base0_ide_config$$ && $command_base0_ide_config$$[0][0];
+  $bus$jscomp$27_has_primary$$ = $command_base0_ide_config$$ && $command_base0_ide_config$$[0][0];
   const $has_secondary$$ = $command_base0_ide_config$$ && $command_base0_ide_config$$[1][0];
-  if ($bus$jscomp$26_has_primary$$ || $has_secondary$$) {
-    $bus$jscomp$26_has_primary$$ && (this.primary = new $IDEChannel$$module$src$ide$$(this, 0, $command_base0_ide_config$$[0], 496, 1014, 14));
+  if ($bus$jscomp$27_has_primary$$ || $has_secondary$$) {
+    $bus$jscomp$27_has_primary$$ && (this.primary = new $IDEChannel$$module$src$ide$$(this, 0, $command_base0_ide_config$$[0], 496, 1014, 14));
     $has_secondary$$ && (this.secondary = new $IDEChannel$$module$src$ide$$(this, 1, $command_base0_ide_config$$[1], 368, 886, 15));
-    $command_base0_ide_config$$ = $bus$jscomp$26_has_primary$$ ? this.primary.command_base : 0;
-    const $control_base0$$ = $bus$jscomp$26_has_primary$$ ? this.primary.control_base : 0, $command_base1$$ = $has_secondary$$ ? this.secondary.command_base : 0, $control_base1$$ = $has_secondary$$ ? this.secondary.control_base : 0;
+    $command_base0_ide_config$$ = $bus$jscomp$27_has_primary$$ ? this.primary.command_base : 0;
+    const $control_base0$$ = $bus$jscomp$27_has_primary$$ ? this.primary.control_base : 0, $command_base1$$ = $has_secondary$$ ? this.secondary.command_base : 0, $control_base1$$ = $has_secondary$$ ? this.secondary.control_base : 0;
     this.name = "ide";
     this.pci_id = 240;
     this.pci_space = [134, 128, 16, 112, 5, 0, 160, 2, 0, 128, 1, 1, 0, 0, 0, 0, $command_base0_ide_config$$ & 255 | 1, $command_base0_ide_config$$ >> 8, 0, 0, $control_base0$$ & 255 | 1, $control_base0$$ >> 8, 0, 0, $command_base1$$ & 255 | 1, $command_base1$$ >> 8, 0, 0, $control_base1$$ & 255 | 1, $control_base1$$ >> 8, 0, 0, 1, 180, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 67, 16, 212, 130, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ];
-    this.pci_bars = [$bus$jscomp$26_has_primary$$ ? {size:8} : void 0, $bus$jscomp$26_has_primary$$ ? {size:1} : void 0, $has_secondary$$ ? {size:8} : void 0, $has_secondary$$ ? {size:1} : void 0, {size:16}];
-    $cpu$jscomp$22$$.devices.pci.register_device(this);
+    this.pci_bars = [$bus$jscomp$27_has_primary$$ ? {size:8} : void 0, $bus$jscomp$27_has_primary$$ ? {size:1} : void 0, $has_secondary$$ ? {size:8} : void 0, $has_secondary$$ ? {size:1} : void 0, {size:16}];
+    $cpu$jscomp$23$$.devices.pci.register_device(this);
   }
   Object.seal(this);
 }
 $IDEController$$module$src$ide$$.prototype.get_state = function() {
-  const $state$jscomp$45$$ = [];
-  $state$jscomp$45$$[0] = this.primary;
-  $state$jscomp$45$$[1] = this.secondary;
-  return $state$jscomp$45$$;
+  const $state$jscomp$46$$ = [];
+  $state$jscomp$46$$[0] = this.primary;
+  $state$jscomp$46$$[1] = this.secondary;
+  return $state$jscomp$46$$;
 };
-$IDEController$$module$src$ide$$.prototype.set_state = function($state$jscomp$46$$) {
-  this.primary && this.primary.set_state($state$jscomp$46$$[0]);
-  this.secondary && this.secondary.set_state($state$jscomp$46$$[1]);
+$IDEController$$module$src$ide$$.prototype.set_state = function($state$jscomp$47$$) {
+  this.primary && this.primary.set_state($state$jscomp$47$$[0]);
+  this.secondary && this.secondary.set_state($state$jscomp$47$$[1]);
 };
-function $IDEChannel$$module$src$ide$$($controller_cpu$jscomp$23$$, $bus_master_base_channel_nr$$, $channel_config_slave_cfg$$, $command_base_master_cfg$$, $control_base$$, $irq$jscomp$2$$) {
-  this.controller = $controller_cpu$jscomp$23$$;
+function $IDEChannel$$module$src$ide$$($controller_cpu$jscomp$24$$, $bus_master_base_channel_nr$$, $channel_config_slave_cfg$$, $command_base_master_cfg$$, $control_base$$, $irq$jscomp$3$$) {
+  this.controller = $controller_cpu$jscomp$24$$;
   this.channel_nr = $bus_master_base_channel_nr$$;
-  this.cpu = $controller_cpu$jscomp$23$$.cpu;
-  this.bus = $controller_cpu$jscomp$23$$.bus;
+  this.cpu = $controller_cpu$jscomp$24$$.cpu;
+  this.bus = $controller_cpu$jscomp$24$$.bus;
   this.command_base = $command_base_master_cfg$$;
   this.control_base = $control_base$$;
-  this.irq = $irq$jscomp$2$$;
+  this.irq = $irq$jscomp$3$$;
   this.name = "ide" + $bus_master_base_channel_nr$$;
   $command_base_master_cfg$$ = $channel_config_slave_cfg$$ ? $channel_config_slave_cfg$$[0] : void 0;
   $channel_config_slave_cfg$$ = $channel_config_slave_cfg$$ ? $channel_config_slave_cfg$$[1] : void 0;
@@ -8906,65 +8992,65 @@ function $IDEChannel$$module$src$ide$$($controller_cpu$jscomp$23$$, $bus_master_
   this.current_interface = this.master;
   this.device_control_reg = 2;
   this.dma_command = this.dma_status = this.prdt_addr = 0;
-  $controller_cpu$jscomp$23$$ = $controller_cpu$jscomp$23$$.cpu;
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 0, this, function() {
+  $controller_cpu$jscomp$24$$ = $controller_cpu$jscomp$24$$.cpu;
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 0, this, function() {
     return this.current_interface.read_data(1);
   }, function() {
     return this.current_interface.read_data(2);
   }, function() {
     return this.current_interface.read_data(4);
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 1, this, function() {
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 1, this, function() {
     return this.current_interface.error_reg & 255;
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 2, this, function() {
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 2, this, function() {
     return this.current_interface.sector_count_reg & 255;
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 3, this, function() {
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 3, this, function() {
     return this.current_interface.lba_low_reg & 255;
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 4, this, function() {
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 4, this, function() {
     return this.current_interface.lba_mid_reg & 255;
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 5, this, function() {
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 5, this, function() {
     return this.current_interface.lba_high_reg & 255;
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 6, this, function() {
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 6, this, function() {
     return this.current_interface.device_reg & 255;
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.command_base | 7, this, function() {
-    const $status$jscomp$6$$ = this.read_status();
+  $controller_cpu$jscomp$24$$.io.register_read(this.command_base | 7, this, function() {
+    const $status$jscomp$7$$ = this.read_status();
     this.cpu.device_lower_irq(this.irq);
-    return $status$jscomp$6$$;
+    return $status$jscomp$7$$;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 0, this, function($data$jscomp$190$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 0, this, function($data$jscomp$190$$) {
     this.current_interface.write_data_port8($data$jscomp$190$$);
   }, function($data$jscomp$191$$) {
     this.current_interface.write_data_port16($data$jscomp$191$$);
   }, function($data$jscomp$192$$) {
     this.current_interface.write_data_port32($data$jscomp$192$$);
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 1, this, function($data$jscomp$193$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 1, this, function($data$jscomp$193$$) {
     this.master.features_reg = (this.master.features_reg << 8 | $data$jscomp$193$$) & 65535;
     this.slave.features_reg = (this.slave.features_reg << 8 | $data$jscomp$193$$) & 65535;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 2, this, function($data$jscomp$194$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 2, this, function($data$jscomp$194$$) {
     this.master.sector_count_reg = (this.master.sector_count_reg << 8 | $data$jscomp$194$$) & 65535;
     this.slave.sector_count_reg = (this.slave.sector_count_reg << 8 | $data$jscomp$194$$) & 65535;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 3, this, function($data$jscomp$195$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 3, this, function($data$jscomp$195$$) {
     this.master.lba_low_reg = (this.master.lba_low_reg << 8 | $data$jscomp$195$$) & 65535;
     this.slave.lba_low_reg = (this.slave.lba_low_reg << 8 | $data$jscomp$195$$) & 65535;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 4, this, function($data$jscomp$196$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 4, this, function($data$jscomp$196$$) {
     this.master.lba_mid_reg = (this.master.lba_mid_reg << 8 | $data$jscomp$196$$) & 65535;
     this.slave.lba_mid_reg = (this.slave.lba_mid_reg << 8 | $data$jscomp$196$$) & 65535;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 5, this, function($data$jscomp$197$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 5, this, function($data$jscomp$197$$) {
     this.master.lba_high_reg = (this.master.lba_high_reg << 8 | $data$jscomp$197$$) & 65535;
     this.slave.lba_high_reg = (this.slave.lba_high_reg << 8 | $data$jscomp$197$$) & 65535;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 6, this, function($data$jscomp$198$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 6, this, function($data$jscomp$198$$) {
     const $select_slave$$ = $data$jscomp$198$$ & 16;
     if ($select_slave$$ && this.current_interface === this.master || !$select_slave$$ && this.current_interface === this.slave) {
       $select_slave$$ ? ($dbg_log$$module$src$log$$(`${this.current_interface.name}: select slave device (${this.channel_nr ? "secondary" : "primary"})`, 32768), this.current_interface = this.slave) : ($dbg_log$$module$src$log$$(`${this.current_interface.name}: select master device (${this.channel_nr ? "secondary" : "primary"})`, 32768), this.current_interface = this.master);
@@ -8976,20 +9062,20 @@ function $IDEChannel$$module$src$ide$$($controller_cpu$jscomp$23$$, $bus_master_
     this.master.head = $data$jscomp$198$$ & 15;
     this.slave.head = $data$jscomp$198$$ & 15;
   });
-  $controller_cpu$jscomp$23$$.io.register_write(this.command_base | 7, this, function($data$jscomp$199$$) {
+  $controller_cpu$jscomp$24$$.io.register_write(this.command_base | 7, this, function($data$jscomp$199$$) {
     this.current_interface.status_reg &= -34;
     this.current_interface.ata_command($data$jscomp$199$$);
     this.cpu.device_lower_irq(this.irq);
   });
-  $controller_cpu$jscomp$23$$.io.register_read(this.control_base | 0, this, this.read_status);
-  $controller_cpu$jscomp$23$$.io.register_write(this.control_base | 0, this, this.write_control);
+  $controller_cpu$jscomp$24$$.io.register_read(this.control_base | 0, this, this.read_status);
+  $controller_cpu$jscomp$24$$.io.register_write(this.control_base | 0, this, this.write_control);
   $bus_master_base_channel_nr$$ = 46080 + 8 * $bus_master_base_channel_nr$$;
-  $controller_cpu$jscomp$23$$.io.register_read($bus_master_base_channel_nr$$ | 0, this, this.dma_read_command8, void 0, this.dma_read_command);
-  $controller_cpu$jscomp$23$$.io.register_write($bus_master_base_channel_nr$$ | 0, this, this.dma_write_command8, void 0, this.dma_write_command);
-  $controller_cpu$jscomp$23$$.io.register_read($bus_master_base_channel_nr$$ | 2, this, this.dma_read_status);
-  $controller_cpu$jscomp$23$$.io.register_write($bus_master_base_channel_nr$$ | 2, this, this.dma_write_status);
-  $controller_cpu$jscomp$23$$.io.register_read($bus_master_base_channel_nr$$ | 4, this, void 0, void 0, this.dma_read_addr);
-  $controller_cpu$jscomp$23$$.io.register_write($bus_master_base_channel_nr$$ | 4, this, void 0, void 0, this.dma_set_addr);
+  $controller_cpu$jscomp$24$$.io.register_read($bus_master_base_channel_nr$$ | 0, this, this.dma_read_command8, void 0, this.dma_read_command);
+  $controller_cpu$jscomp$24$$.io.register_write($bus_master_base_channel_nr$$ | 0, this, this.dma_write_command8, void 0, this.dma_write_command);
+  $controller_cpu$jscomp$24$$.io.register_read($bus_master_base_channel_nr$$ | 2, this, this.dma_read_status);
+  $controller_cpu$jscomp$24$$.io.register_write($bus_master_base_channel_nr$$ | 2, this, this.dma_write_status);
+  $controller_cpu$jscomp$24$$.io.register_read($bus_master_base_channel_nr$$ | 4, this, void 0, void 0, this.dma_read_addr);
+  $controller_cpu$jscomp$24$$.io.register_write($bus_master_base_channel_nr$$ | 4, this, void 0, void 0, this.dma_set_addr);
   Object.seal(this);
 }
 $IDEChannel$$module$src$ide$$.prototype.read_status = function() {
@@ -9008,8 +9094,8 @@ $IDEChannel$$module$src$ide$$.prototype.dma_set_addr = function($data$jscomp$201
 $IDEChannel$$module$src$ide$$.prototype.dma_read_status = function() {
   return this.dma_status;
 };
-$IDEChannel$$module$src$ide$$.prototype.dma_write_status = function($value$jscomp$165$$) {
-  this.dma_status &= ~($value$jscomp$165$$ & 6);
+$IDEChannel$$module$src$ide$$.prototype.dma_write_status = function($value$jscomp$171$$) {
+  this.dma_status &= ~($value$jscomp$171$$ & 6);
 };
 $IDEChannel$$module$src$ide$$.prototype.dma_read_command = function() {
   return this.dma_read_command8() | this.dma_read_status() << 16;
@@ -9017,15 +9103,15 @@ $IDEChannel$$module$src$ide$$.prototype.dma_read_command = function() {
 $IDEChannel$$module$src$ide$$.prototype.dma_read_command8 = function() {
   return this.dma_command;
 };
-$IDEChannel$$module$src$ide$$.prototype.dma_write_command = function($value$jscomp$166$$) {
-  this.dma_write_command8($value$jscomp$166$$ & 255);
-  this.dma_write_status($value$jscomp$166$$ >> 16 & 255);
+$IDEChannel$$module$src$ide$$.prototype.dma_write_command = function($value$jscomp$172$$) {
+  this.dma_write_command8($value$jscomp$172$$ & 255);
+  this.dma_write_status($value$jscomp$172$$ >> 16 & 255);
 };
-$IDEChannel$$module$src$ide$$.prototype.dma_write_command8 = function($value$jscomp$167$$) {
+$IDEChannel$$module$src$ide$$.prototype.dma_write_command8 = function($value$jscomp$173$$) {
   const $old_command$$ = this.dma_command;
-  this.dma_command = $value$jscomp$167$$ & 9;
-  if (($old_command$$ & 1) !== ($value$jscomp$167$$ & 1)) {
-    if (0 === ($value$jscomp$167$$ & 1)) {
+  this.dma_command = $value$jscomp$173$$ & 9;
+  if (($old_command$$ & 1) !== ($value$jscomp$173$$ & 1)) {
+    if (0 === ($value$jscomp$173$$ & 1)) {
       this.dma_status &= -2;
     } else {
       switch(this.dma_status |= 1, this.current_interface.current_command) {
@@ -9050,32 +9136,32 @@ $IDEChannel$$module$src$ide$$.prototype.push_irq = function() {
   0 === (this.device_control_reg & 2) && (this.dma_status |= 4, this.cpu.device_raise_irq(this.irq));
 };
 $IDEChannel$$module$src$ide$$.prototype.get_state = function() {
-  var $state$jscomp$47$$ = [];
-  $state$jscomp$47$$[0] = this.master;
-  $state$jscomp$47$$[1] = this.slave;
-  $state$jscomp$47$$[2] = this.command_base;
-  $state$jscomp$47$$[3] = this.irq;
-  $state$jscomp$47$$[5] = this.control_base;
-  $state$jscomp$47$$[7] = this.name;
-  $state$jscomp$47$$[8] = this.device_control_reg;
-  $state$jscomp$47$$[9] = this.prdt_addr;
-  $state$jscomp$47$$[10] = this.dma_status;
-  $state$jscomp$47$$[11] = this.current_interface === this.master;
-  $state$jscomp$47$$[12] = this.dma_command;
-  return $state$jscomp$47$$;
+  var $state$jscomp$48$$ = [];
+  $state$jscomp$48$$[0] = this.master;
+  $state$jscomp$48$$[1] = this.slave;
+  $state$jscomp$48$$[2] = this.command_base;
+  $state$jscomp$48$$[3] = this.irq;
+  $state$jscomp$48$$[5] = this.control_base;
+  $state$jscomp$48$$[7] = this.name;
+  $state$jscomp$48$$[8] = this.device_control_reg;
+  $state$jscomp$48$$[9] = this.prdt_addr;
+  $state$jscomp$48$$[10] = this.dma_status;
+  $state$jscomp$48$$[11] = this.current_interface === this.master;
+  $state$jscomp$48$$[12] = this.dma_command;
+  return $state$jscomp$48$$;
 };
-$IDEChannel$$module$src$ide$$.prototype.set_state = function($state$jscomp$48$$) {
-  this.master.set_state($state$jscomp$48$$[0]);
-  this.slave.set_state($state$jscomp$48$$[1]);
-  this.command_base = $state$jscomp$48$$[2];
-  this.irq = $state$jscomp$48$$[3];
-  this.control_base = $state$jscomp$48$$[5];
-  this.name = $state$jscomp$48$$[7];
-  this.device_control_reg = $state$jscomp$48$$[8];
-  this.prdt_addr = $state$jscomp$48$$[9];
-  this.dma_status = $state$jscomp$48$$[10];
-  this.current_interface = $state$jscomp$48$$[11] ? this.master : this.slave;
-  this.dma_command = $state$jscomp$48$$[12];
+$IDEChannel$$module$src$ide$$.prototype.set_state = function($state$jscomp$49$$) {
+  this.master.set_state($state$jscomp$49$$[0]);
+  this.slave.set_state($state$jscomp$49$$[1]);
+  this.command_base = $state$jscomp$49$$[2];
+  this.irq = $state$jscomp$49$$[3];
+  this.control_base = $state$jscomp$49$$[5];
+  this.name = $state$jscomp$49$$[7];
+  this.device_control_reg = $state$jscomp$49$$[8];
+  this.prdt_addr = $state$jscomp$49$$[9];
+  this.dma_status = $state$jscomp$49$$[10];
+  this.current_interface = $state$jscomp$49$$[11] ? this.master : this.slave;
+  this.dma_command = $state$jscomp$49$$[12];
 };
 function $IDEInterface$$module$src$ide$$($channel$jscomp$31$$, $interface_nr$$, $buffer$jscomp$49$$, $is_cd$$) {
   this.channel = $channel$jscomp$31$$;
@@ -9730,82 +9816,82 @@ $IDEInterface$$module$src$ide$$.prototype.cancel_io_operations = function() {
   this.in_progress_io_ids.clear();
 };
 $IDEInterface$$module$src$ide$$.prototype.get_state = function() {
-  var $state$jscomp$49$$ = [];
-  $state$jscomp$49$$[0] = this.sector_count_reg;
-  $state$jscomp$49$$[1] = this.cylinder_count;
-  $state$jscomp$49$$[2] = this.lba_high_reg;
-  $state$jscomp$49$$[3] = this.lba_mid_reg;
-  $state$jscomp$49$$[4] = this.data_pointer;
-  $state$jscomp$49$$[5] = 0;
-  $state$jscomp$49$$[6] = 0;
-  $state$jscomp$49$$[7] = 0;
-  $state$jscomp$49$$[8] = 0;
-  $state$jscomp$49$$[9] = this.device_reg;
-  $state$jscomp$49$$[10] = this.error_reg;
-  $state$jscomp$49$$[11] = this.head;
-  $state$jscomp$49$$[12] = this.head_count;
-  $state$jscomp$49$$[13] = this.is_atapi;
-  $state$jscomp$49$$[14] = this.is_lba;
-  $state$jscomp$49$$[15] = this.features_reg;
-  $state$jscomp$49$$[16] = this.data;
-  $state$jscomp$49$$[17] = this.data_length;
-  $state$jscomp$49$$[18] = this.lba_low_reg;
-  $state$jscomp$49$$[19] = this.sector_count;
-  $state$jscomp$49$$[20] = this.sector_size;
-  $state$jscomp$49$$[21] = this.sectors_per_drq;
-  $state$jscomp$49$$[22] = this.sectors_per_track;
-  $state$jscomp$49$$[23] = this.status_reg;
-  $state$jscomp$49$$[24] = this.write_dest;
-  $state$jscomp$49$$[25] = this.current_command;
-  $state$jscomp$49$$[26] = this.data_end;
-  $state$jscomp$49$$[27] = this.current_atapi_command;
-  $state$jscomp$49$$[28] = this.buffer;
-  return $state$jscomp$49$$;
+  var $state$jscomp$50$$ = [];
+  $state$jscomp$50$$[0] = this.sector_count_reg;
+  $state$jscomp$50$$[1] = this.cylinder_count;
+  $state$jscomp$50$$[2] = this.lba_high_reg;
+  $state$jscomp$50$$[3] = this.lba_mid_reg;
+  $state$jscomp$50$$[4] = this.data_pointer;
+  $state$jscomp$50$$[5] = 0;
+  $state$jscomp$50$$[6] = 0;
+  $state$jscomp$50$$[7] = 0;
+  $state$jscomp$50$$[8] = 0;
+  $state$jscomp$50$$[9] = this.device_reg;
+  $state$jscomp$50$$[10] = this.error_reg;
+  $state$jscomp$50$$[11] = this.head;
+  $state$jscomp$50$$[12] = this.head_count;
+  $state$jscomp$50$$[13] = this.is_atapi;
+  $state$jscomp$50$$[14] = this.is_lba;
+  $state$jscomp$50$$[15] = this.features_reg;
+  $state$jscomp$50$$[16] = this.data;
+  $state$jscomp$50$$[17] = this.data_length;
+  $state$jscomp$50$$[18] = this.lba_low_reg;
+  $state$jscomp$50$$[19] = this.sector_count;
+  $state$jscomp$50$$[20] = this.sector_size;
+  $state$jscomp$50$$[21] = this.sectors_per_drq;
+  $state$jscomp$50$$[22] = this.sectors_per_track;
+  $state$jscomp$50$$[23] = this.status_reg;
+  $state$jscomp$50$$[24] = this.write_dest;
+  $state$jscomp$50$$[25] = this.current_command;
+  $state$jscomp$50$$[26] = this.data_end;
+  $state$jscomp$50$$[27] = this.current_atapi_command;
+  $state$jscomp$50$$[28] = this.buffer;
+  return $state$jscomp$50$$;
 };
-$IDEInterface$$module$src$ide$$.prototype.set_state = function($state$jscomp$50$$) {
-  this.sector_count_reg = $state$jscomp$50$$[0];
-  this.cylinder_count = $state$jscomp$50$$[1];
-  this.lba_high_reg = $state$jscomp$50$$[2];
-  this.lba_mid_reg = $state$jscomp$50$$[3];
-  this.data_pointer = $state$jscomp$50$$[4];
-  this.device_reg = $state$jscomp$50$$[9];
-  this.error_reg = $state$jscomp$50$$[10];
-  this.head = $state$jscomp$50$$[11];
-  this.head_count = $state$jscomp$50$$[12];
-  this.is_atapi = $state$jscomp$50$$[13];
-  this.is_lba = $state$jscomp$50$$[14];
-  this.features_reg = $state$jscomp$50$$[15];
-  this.data = $state$jscomp$50$$[16];
-  this.data_length = $state$jscomp$50$$[17];
-  this.lba_low_reg = $state$jscomp$50$$[18];
-  this.sector_count = $state$jscomp$50$$[19];
-  this.sector_size = $state$jscomp$50$$[20];
-  this.sectors_per_drq = $state$jscomp$50$$[21];
-  this.sectors_per_track = $state$jscomp$50$$[22];
-  this.status_reg = $state$jscomp$50$$[23];
-  this.write_dest = $state$jscomp$50$$[24];
-  this.current_command = $state$jscomp$50$$[25];
-  this.data_end = $state$jscomp$50$$[26];
-  this.current_atapi_command = $state$jscomp$50$$[27];
+$IDEInterface$$module$src$ide$$.prototype.set_state = function($state$jscomp$51$$) {
+  this.sector_count_reg = $state$jscomp$51$$[0];
+  this.cylinder_count = $state$jscomp$51$$[1];
+  this.lba_high_reg = $state$jscomp$51$$[2];
+  this.lba_mid_reg = $state$jscomp$51$$[3];
+  this.data_pointer = $state$jscomp$51$$[4];
+  this.device_reg = $state$jscomp$51$$[9];
+  this.error_reg = $state$jscomp$51$$[10];
+  this.head = $state$jscomp$51$$[11];
+  this.head_count = $state$jscomp$51$$[12];
+  this.is_atapi = $state$jscomp$51$$[13];
+  this.is_lba = $state$jscomp$51$$[14];
+  this.features_reg = $state$jscomp$51$$[15];
+  this.data = $state$jscomp$51$$[16];
+  this.data_length = $state$jscomp$51$$[17];
+  this.lba_low_reg = $state$jscomp$51$$[18];
+  this.sector_count = $state$jscomp$51$$[19];
+  this.sector_size = $state$jscomp$51$$[20];
+  this.sectors_per_drq = $state$jscomp$51$$[21];
+  this.sectors_per_track = $state$jscomp$51$$[22];
+  this.status_reg = $state$jscomp$51$$[23];
+  this.write_dest = $state$jscomp$51$$[24];
+  this.current_command = $state$jscomp$51$$[25];
+  this.data_end = $state$jscomp$51$$[26];
+  this.current_atapi_command = $state$jscomp$51$$[27];
   this.data16 = new Uint16Array(this.data.buffer);
   this.data32 = new Int32Array(this.data.buffer);
-  this.buffer && this.buffer.set_state($state$jscomp$50$$[28]);
+  this.buffer && this.buffer.set_state($state$jscomp$51$$[28]);
   this.drive_connected = this.is_atapi || this.buffer;
   this.medium_changed = !1;
 };
-function $VirtioNet$$module$src$virtio_net$$($cpu$jscomp$24$$, $bus$jscomp$27_queues$jscomp$1$$, $i$jscomp$90_preserve_mac_from_state_image$jscomp$1$$, $mtu$jscomp$1$$ = 1500) {
-  this.bus = $bus$jscomp$27_queues$jscomp$1$$;
-  this.id = $cpu$jscomp$24$$.devices.net ? 1 : 0;
+function $VirtioNet$$module$src$virtio_net$$($cpu$jscomp$25$$, $bus$jscomp$28_queues$jscomp$1$$, $i$jscomp$90_preserve_mac_from_state_image$jscomp$1$$, $mtu$jscomp$1$$ = 1500) {
+  this.bus = $bus$jscomp$28_queues$jscomp$1$$;
+  this.id = $cpu$jscomp$25$$.devices.net ? 1 : 0;
   this.status = this.pairs = 1;
   this.preserve_mac_from_state_image = $i$jscomp$90_preserve_mac_from_state_image$jscomp$1$$;
   this.mac = new Uint8Array([0, 34, 21, 255 * Math.random() | 0, 255 * Math.random() | 0, 255 * Math.random() | 0, ]);
   this.bus.send("net" + this.id + "-mac", $format_mac$$module$src$ne2k$$(this.mac));
-  $bus$jscomp$27_queues$jscomp$1$$ = [];
+  $bus$jscomp$28_queues$jscomp$1$$ = [];
   for ($i$jscomp$90_preserve_mac_from_state_image$jscomp$1$$ = 0; $i$jscomp$90_preserve_mac_from_state_image$jscomp$1$$ < this.pairs; ++$i$jscomp$90_preserve_mac_from_state_image$jscomp$1$$) {
-    $bus$jscomp$27_queues$jscomp$1$$.push({size_supported:1024, notify_offset:0}), $bus$jscomp$27_queues$jscomp$1$$.push({size_supported:1024, notify_offset:1});
+    $bus$jscomp$28_queues$jscomp$1$$.push({size_supported:1024, notify_offset:0}), $bus$jscomp$28_queues$jscomp$1$$.push({size_supported:1024, notify_offset:1});
   }
-  $bus$jscomp$27_queues$jscomp$1$$.push({size_supported:16, notify_offset:2, });
-  this.virtio = new $VirtIO$$module$src$virtio$$($cpu$jscomp$24$$, {name:"virtio-net", pci_id:80, device_id:4161, subsystem_device_id:1, common:{initial_port:51200, queues:$bus$jscomp$27_queues$jscomp$1$$, features:[5, 16, 22, 3, 17, 23, 32, ], on_driver_ok:() => {
+  $bus$jscomp$28_queues$jscomp$1$$.push({size_supported:16, notify_offset:2, });
+  this.virtio = new $VirtIO$$module$src$virtio$$($cpu$jscomp$25$$, {name:"virtio-net", pci_id:80, device_id:4161, subsystem_device_id:1, common:{initial_port:51200, queues:$bus$jscomp$28_queues$jscomp$1$$, features:[5, 16, 22, 3, 17, 23, 32, ], on_driver_ok:() => {
   }, }, notification:{initial_port:51456, single_handler:!1, handlers:[() => {
   }, $queue_id$jscomp$8$$ => {
     const $queue$jscomp$4$$ = this.virtio.queues[$queue_id$jscomp$8$$];
@@ -9861,16 +9947,16 @@ function $VirtioNet$$module$src$virtio_net$$($cpu$jscomp$24$$, $bus$jscomp$27_qu
   }, this);
 }
 $VirtioNet$$module$src$virtio_net$$.prototype.get_state = function() {
-  const $state$jscomp$51$$ = [];
-  $state$jscomp$51$$[0] = this.virtio;
-  $state$jscomp$51$$[1] = this.id;
-  $state$jscomp$51$$[2] = this.mac;
-  return $state$jscomp$51$$;
+  const $state$jscomp$52$$ = [];
+  $state$jscomp$52$$[0] = this.virtio;
+  $state$jscomp$52$$[1] = this.id;
+  $state$jscomp$52$$[2] = this.mac;
+  return $state$jscomp$52$$;
 };
-$VirtioNet$$module$src$virtio_net$$.prototype.set_state = function($state$jscomp$52$$) {
-  this.virtio.set_state($state$jscomp$52$$[0]);
-  this.id = $state$jscomp$52$$[1];
-  this.preserve_mac_from_state_image && (this.mac = $state$jscomp$52$$[2], this.bus.send("net" + this.id + "-mac", $format_mac$$module$src$ne2k$$(this.mac)));
+$VirtioNet$$module$src$virtio_net$$.prototype.set_state = function($state$jscomp$53$$) {
+  this.virtio.set_state($state$jscomp$53$$[0]);
+  this.id = $state$jscomp$53$$[1];
+  this.preserve_mac_from_state_image && (this.mac = $state$jscomp$53$$[2], this.bus.send("net" + this.id + "-mac", $format_mac$$module$src$ne2k$$(this.mac)));
 };
 $VirtioNet$$module$src$virtio_net$$.prototype.reset = function() {
   this.virtio.reset();
@@ -9885,9 +9971,9 @@ $VirtioNet$$module$src$virtio_net$$.prototype.Ack = function($queue_id$jscomp$11
   this.virtio.queues[$queue_id$jscomp$11$$].flush_replies();
 };
 const $VGA_HOST_MEMORY_SPACE_START$$module$src$vga$$ = Uint32Array.from([655360, 655360, 720896, 753664, ]), $VGA_HOST_MEMORY_SPACE_SIZE$$module$src$vga$$ = Uint32Array.from([131072, 65536, 32768, 32768, ]);
-function $VGAScreen$$module$src$vga$$($cpu$jscomp$25$$, $bus$jscomp$28_io$jscomp$4$$, $screen$jscomp$4_vga_offset$$, $vga_memory_size$$) {
-  this.cpu = $cpu$jscomp$25$$;
-  this.bus = $bus$jscomp$28_io$jscomp$4$$;
+function $VGAScreen$$module$src$vga$$($cpu$jscomp$26$$, $bus$jscomp$29_io$jscomp$5$$, $screen$jscomp$4_vga_offset$$, $vga_memory_size$$) {
+  this.cpu = $cpu$jscomp$26$$;
+  this.bus = $bus$jscomp$29_io$jscomp$5$$;
   this.screen = $screen$jscomp$4_vga_offset$$;
   this.vga_memory_size = $vga_memory_size$$;
   this.cursor_address = 0;
@@ -9931,47 +10017,47 @@ function $VGAScreen$$module$src$vga$$($cpu$jscomp$25$$, $bus$jscomp$28_io$jscomp
   this.max_scan_line = this.color_dont_care = this.color_compare = this.miscellaneous_graphics_register = this.planar_setreset_enable = this.planar_setreset = 0;
   this.port_3DA_value = this.miscellaneous_output_register = 255;
   this.font_page_ab_enabled = !1;
-  $bus$jscomp$28_io$jscomp$4$$ = $cpu$jscomp$25$$.io;
-  $bus$jscomp$28_io$jscomp$4$$.register_write(960, this, this.port3C0_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(960, this, this.port3C0_read, this.port3C0_read16);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(961, this, this.port3C1_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(962, this, this.port3C2_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_write_consecutive(964, this, this.port3C4_write, this.port3C5_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(964, this, this.port3C4_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(965, this, this.port3C5_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write_consecutive(974, this, this.port3CE_write, this.port3CF_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(974, this, this.port3CE_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(975, this, this.port3CF_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(966, this, this.port3C6_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(966, this, this.port3C6_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(967, this, this.port3C7_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(967, this, this.port3C7_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(968, this, this.port3C8_write, this.port3C8_write16);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(968, this, this.port3C8_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(969, this, this.port3C9_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(969, this, this.port3C9_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(972, this, this.port3CC_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(980, this, this.port3D4_write, this.port3D4_write16);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(981, this, this.port3D5_write, this.port3D5_write16);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(980, this, this.port3D4_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(981, this, this.port3D5_read, this.port3D5_read16);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(948, this, this.port3D4_write, this.port3D4_write16);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(949, this, this.port3D5_write, this.port3D5_write16);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(948, this, this.port3D4_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(949, this, this.port3D5_read, this.port3D5_read16);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(970, this, function() {
+  $bus$jscomp$29_io$jscomp$5$$ = $cpu$jscomp$26$$.io;
+  $bus$jscomp$29_io$jscomp$5$$.register_write(960, this, this.port3C0_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(960, this, this.port3C0_read, this.port3C0_read16);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(961, this, this.port3C1_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(962, this, this.port3C2_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_write_consecutive(964, this, this.port3C4_write, this.port3C5_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(964, this, this.port3C4_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(965, this, this.port3C5_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write_consecutive(974, this, this.port3CE_write, this.port3CF_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(974, this, this.port3CE_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(975, this, this.port3CF_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(966, this, this.port3C6_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(966, this, this.port3C6_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(967, this, this.port3C7_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(967, this, this.port3C7_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(968, this, this.port3C8_write, this.port3C8_write16);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(968, this, this.port3C8_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(969, this, this.port3C9_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(969, this, this.port3C9_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(972, this, this.port3CC_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(980, this, this.port3D4_write, this.port3D4_write16);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(981, this, this.port3D5_write, this.port3D5_write16);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(980, this, this.port3D4_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(981, this, this.port3D5_read, this.port3D5_read16);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(948, this, this.port3D4_write, this.port3D4_write16);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(949, this, this.port3D5_write, this.port3D5_write16);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(948, this, this.port3D4_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(949, this, this.port3D5_read, this.port3D5_read16);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(970, this, function() {
     $dbg_log$$module$src$log$$("3CA read", 256);
     return 0;
   });
-  $bus$jscomp$28_io$jscomp$4$$.register_read(986, this, this.port3DA_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(954, this, this.port3DA_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(986, this, this.port3DA_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(954, this, this.port3DA_read);
   this.dispi_enable_value = this.dispi_index = 0;
-  $bus$jscomp$28_io$jscomp$4$$.register_write(462, this, void 0, this.port1CE_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(462, this, void 0, this.port1CE_read);
-  $bus$jscomp$28_io$jscomp$4$$.register_write(463, this, void 0, this.port1CF_write);
-  $bus$jscomp$28_io$jscomp$4$$.register_read(463, this, void 0, this.port1CF_read);
-  $screen$jscomp$4_vga_offset$$ = $cpu$jscomp$25$$.svga_allocate_memory(this.vga_memory_size) >>> 0;
-  this.svga_memory = $view$$module$src$lib$$(Uint8Array, $cpu$jscomp$25$$.wasm_memory, $screen$jscomp$4_vga_offset$$, this.vga_memory_size);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(462, this, void 0, this.port1CE_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(462, this, void 0, this.port1CE_read);
+  $bus$jscomp$29_io$jscomp$5$$.register_write(463, this, void 0, this.port1CF_write);
+  $bus$jscomp$29_io$jscomp$5$$.register_read(463, this, void 0, this.port1CF_read);
+  $screen$jscomp$4_vga_offset$$ = $cpu$jscomp$26$$.svga_allocate_memory(this.vga_memory_size) >>> 0;
+  this.svga_memory = $view$$module$src$lib$$(Uint8Array, $cpu$jscomp$26$$.wasm_memory, $screen$jscomp$4_vga_offset$$, this.vga_memory_size);
   this.diff_addr_min = this.vga_memory_size;
   this.diff_addr_max = 0;
   this.diff_plot_min = this.vga_memory_size;
@@ -9983,142 +10069,142 @@ function $VGAScreen$$module$src$vga$$($cpu$jscomp$25$$, $bus$jscomp$28_io$jscomp
   this.plane2 = new Uint8Array(this.vga_memory.buffer, 131072, 65536);
   this.plane3 = new Uint8Array(this.vga_memory.buffer, 196608, 65536);
   this.pixel_buffer = new Uint8Array(524288);
-  $bus$jscomp$28_io$jscomp$4$$.mmap_register(655360, 131072, $addr$jscomp$29$$ => this.vga_memory_read($addr$jscomp$29$$), ($addr$jscomp$30$$, $value$jscomp$168$$) => this.vga_memory_write($addr$jscomp$30$$, $value$jscomp$168$$), );
-  $cpu$jscomp$25$$.devices.pci.register_device(this);
+  $bus$jscomp$29_io$jscomp$5$$.mmap_register(655360, 131072, $addr$jscomp$29$$ => this.vga_memory_read($addr$jscomp$29$$), ($addr$jscomp$30$$, $value$jscomp$174$$) => this.vga_memory_write($addr$jscomp$30$$, $value$jscomp$174$$), );
+  $cpu$jscomp$26$$.devices.pci.register_device(this);
 }
 $VGAScreen$$module$src$vga$$.prototype.get_state = function() {
-  var $state$jscomp$53$$ = [];
-  $state$jscomp$53$$[0] = this.vga_memory_size;
-  $state$jscomp$53$$[1] = this.cursor_address;
-  $state$jscomp$53$$[2] = this.cursor_scanline_start;
-  $state$jscomp$53$$[3] = this.cursor_scanline_end;
-  $state$jscomp$53$$[4] = this.max_cols;
-  $state$jscomp$53$$[5] = this.max_rows;
-  $state$jscomp$53$$[6] = this.vga_memory;
-  $state$jscomp$53$$[7] = this.dac_state;
-  $state$jscomp$53$$[8] = this.start_address;
-  $state$jscomp$53$$[9] = this.graphical_mode;
-  $state$jscomp$53$$[10] = this.vga256_palette;
-  $state$jscomp$53$$[11] = this.latch_dword;
-  $state$jscomp$53$$[12] = this.color_compare;
-  $state$jscomp$53$$[13] = this.color_dont_care;
-  $state$jscomp$53$$[14] = this.miscellaneous_graphics_register;
-  $state$jscomp$53$$[15] = this.svga_width;
-  $state$jscomp$53$$[16] = this.svga_height;
-  $state$jscomp$53$$[17] = this.crtc_mode;
-  $state$jscomp$53$$[18] = this.svga_enabled;
-  $state$jscomp$53$$[19] = this.svga_bpp;
-  $state$jscomp$53$$[20] = this.svga_bank_offset;
-  $state$jscomp$53$$[21] = this.svga_offset;
-  $state$jscomp$53$$[22] = this.index_crtc;
-  $state$jscomp$53$$[23] = this.dac_color_index_write;
-  $state$jscomp$53$$[24] = this.dac_color_index_read;
-  $state$jscomp$53$$[25] = this.dac_map;
-  $state$jscomp$53$$[26] = this.sequencer_index;
-  $state$jscomp$53$$[27] = this.plane_write_bm;
-  $state$jscomp$53$$[28] = this.sequencer_memory_mode;
-  $state$jscomp$53$$[29] = this.graphics_index;
-  $state$jscomp$53$$[30] = this.plane_read;
-  $state$jscomp$53$$[31] = this.planar_mode;
-  $state$jscomp$53$$[32] = this.planar_rotate_reg;
-  $state$jscomp$53$$[33] = this.planar_bitmap;
-  $state$jscomp$53$$[34] = this.max_scan_line;
-  $state$jscomp$53$$[35] = this.miscellaneous_output_register;
-  $state$jscomp$53$$[36] = this.port_3DA_value;
-  $state$jscomp$53$$[37] = this.dispi_index;
-  $state$jscomp$53$$[38] = this.dispi_enable_value;
-  $state$jscomp$53$$[39] = this.svga_memory;
-  $state$jscomp$53$$[41] = this.attribute_controller_index;
-  $state$jscomp$53$$[42] = this.offset_register;
-  $state$jscomp$53$$[43] = this.planar_setreset;
-  $state$jscomp$53$$[44] = this.planar_setreset_enable;
-  $state$jscomp$53$$[45] = this.start_address_latched;
-  $state$jscomp$53$$[46] = this.crtc;
-  $state$jscomp$53$$[47] = this.horizontal_display_enable_end;
-  $state$jscomp$53$$[48] = this.horizontal_blank_start;
-  $state$jscomp$53$$[49] = this.vertical_display_enable_end;
-  $state$jscomp$53$$[50] = this.vertical_blank_start;
-  $state$jscomp$53$$[51] = this.underline_location_register;
-  $state$jscomp$53$$[52] = this.preset_row_scan;
-  $state$jscomp$53$$[53] = this.offset_register;
-  $state$jscomp$53$$[54] = this.palette_source;
-  $state$jscomp$53$$[55] = this.attribute_mode;
-  $state$jscomp$53$$[56] = this.color_plane_enable;
-  $state$jscomp$53$$[57] = this.horizontal_panning;
-  $state$jscomp$53$$[58] = this.color_select;
-  $state$jscomp$53$$[59] = this.clocking_mode;
-  $state$jscomp$53$$[60] = this.line_compare;
-  $state$jscomp$53$$[61] = this.pixel_buffer;
-  $state$jscomp$53$$[62] = this.dac_mask;
-  $state$jscomp$53$$[63] = this.character_map_select;
-  $state$jscomp$53$$[64] = this.font_page_ab_enabled;
-  return $state$jscomp$53$$;
+  var $state$jscomp$54$$ = [];
+  $state$jscomp$54$$[0] = this.vga_memory_size;
+  $state$jscomp$54$$[1] = this.cursor_address;
+  $state$jscomp$54$$[2] = this.cursor_scanline_start;
+  $state$jscomp$54$$[3] = this.cursor_scanline_end;
+  $state$jscomp$54$$[4] = this.max_cols;
+  $state$jscomp$54$$[5] = this.max_rows;
+  $state$jscomp$54$$[6] = this.vga_memory;
+  $state$jscomp$54$$[7] = this.dac_state;
+  $state$jscomp$54$$[8] = this.start_address;
+  $state$jscomp$54$$[9] = this.graphical_mode;
+  $state$jscomp$54$$[10] = this.vga256_palette;
+  $state$jscomp$54$$[11] = this.latch_dword;
+  $state$jscomp$54$$[12] = this.color_compare;
+  $state$jscomp$54$$[13] = this.color_dont_care;
+  $state$jscomp$54$$[14] = this.miscellaneous_graphics_register;
+  $state$jscomp$54$$[15] = this.svga_width;
+  $state$jscomp$54$$[16] = this.svga_height;
+  $state$jscomp$54$$[17] = this.crtc_mode;
+  $state$jscomp$54$$[18] = this.svga_enabled;
+  $state$jscomp$54$$[19] = this.svga_bpp;
+  $state$jscomp$54$$[20] = this.svga_bank_offset;
+  $state$jscomp$54$$[21] = this.svga_offset;
+  $state$jscomp$54$$[22] = this.index_crtc;
+  $state$jscomp$54$$[23] = this.dac_color_index_write;
+  $state$jscomp$54$$[24] = this.dac_color_index_read;
+  $state$jscomp$54$$[25] = this.dac_map;
+  $state$jscomp$54$$[26] = this.sequencer_index;
+  $state$jscomp$54$$[27] = this.plane_write_bm;
+  $state$jscomp$54$$[28] = this.sequencer_memory_mode;
+  $state$jscomp$54$$[29] = this.graphics_index;
+  $state$jscomp$54$$[30] = this.plane_read;
+  $state$jscomp$54$$[31] = this.planar_mode;
+  $state$jscomp$54$$[32] = this.planar_rotate_reg;
+  $state$jscomp$54$$[33] = this.planar_bitmap;
+  $state$jscomp$54$$[34] = this.max_scan_line;
+  $state$jscomp$54$$[35] = this.miscellaneous_output_register;
+  $state$jscomp$54$$[36] = this.port_3DA_value;
+  $state$jscomp$54$$[37] = this.dispi_index;
+  $state$jscomp$54$$[38] = this.dispi_enable_value;
+  $state$jscomp$54$$[39] = this.svga_memory;
+  $state$jscomp$54$$[41] = this.attribute_controller_index;
+  $state$jscomp$54$$[42] = this.offset_register;
+  $state$jscomp$54$$[43] = this.planar_setreset;
+  $state$jscomp$54$$[44] = this.planar_setreset_enable;
+  $state$jscomp$54$$[45] = this.start_address_latched;
+  $state$jscomp$54$$[46] = this.crtc;
+  $state$jscomp$54$$[47] = this.horizontal_display_enable_end;
+  $state$jscomp$54$$[48] = this.horizontal_blank_start;
+  $state$jscomp$54$$[49] = this.vertical_display_enable_end;
+  $state$jscomp$54$$[50] = this.vertical_blank_start;
+  $state$jscomp$54$$[51] = this.underline_location_register;
+  $state$jscomp$54$$[52] = this.preset_row_scan;
+  $state$jscomp$54$$[53] = this.offset_register;
+  $state$jscomp$54$$[54] = this.palette_source;
+  $state$jscomp$54$$[55] = this.attribute_mode;
+  $state$jscomp$54$$[56] = this.color_plane_enable;
+  $state$jscomp$54$$[57] = this.horizontal_panning;
+  $state$jscomp$54$$[58] = this.color_select;
+  $state$jscomp$54$$[59] = this.clocking_mode;
+  $state$jscomp$54$$[60] = this.line_compare;
+  $state$jscomp$54$$[61] = this.pixel_buffer;
+  $state$jscomp$54$$[62] = this.dac_mask;
+  $state$jscomp$54$$[63] = this.character_map_select;
+  $state$jscomp$54$$[64] = this.font_page_ab_enabled;
+  return $state$jscomp$54$$;
 };
-$VGAScreen$$module$src$vga$$.prototype.set_state = function($state$jscomp$54$$) {
-  this.vga_memory_size = $state$jscomp$54$$[0];
-  this.cursor_address = $state$jscomp$54$$[1];
-  this.cursor_scanline_start = $state$jscomp$54$$[2];
-  this.cursor_scanline_end = $state$jscomp$54$$[3];
-  this.max_cols = $state$jscomp$54$$[4];
-  this.max_rows = $state$jscomp$54$$[5];
-  $state$jscomp$54$$[6] && this.vga_memory.set($state$jscomp$54$$[6]);
-  this.dac_state = $state$jscomp$54$$[7];
-  this.start_address = $state$jscomp$54$$[8];
-  this.graphical_mode = $state$jscomp$54$$[9];
-  this.vga256_palette = $state$jscomp$54$$[10];
-  this.latch_dword = $state$jscomp$54$$[11];
-  this.color_compare = $state$jscomp$54$$[12];
-  this.color_dont_care = $state$jscomp$54$$[13];
-  this.miscellaneous_graphics_register = $state$jscomp$54$$[14];
-  this.svga_width = $state$jscomp$54$$[15];
-  this.svga_height = $state$jscomp$54$$[16];
-  this.crtc_mode = $state$jscomp$54$$[17];
-  this.svga_enabled = $state$jscomp$54$$[18];
-  this.svga_bpp = $state$jscomp$54$$[19];
-  this.svga_bank_offset = $state$jscomp$54$$[20];
-  this.svga_offset = $state$jscomp$54$$[21];
-  this.index_crtc = $state$jscomp$54$$[22];
-  this.dac_color_index_write = $state$jscomp$54$$[23];
-  this.dac_color_index_read = $state$jscomp$54$$[24];
-  this.dac_map = $state$jscomp$54$$[25];
-  this.sequencer_index = $state$jscomp$54$$[26];
-  this.plane_write_bm = $state$jscomp$54$$[27];
-  this.sequencer_memory_mode = $state$jscomp$54$$[28];
-  this.graphics_index = $state$jscomp$54$$[29];
-  this.plane_read = $state$jscomp$54$$[30];
-  this.planar_mode = $state$jscomp$54$$[31];
-  this.planar_rotate_reg = $state$jscomp$54$$[32];
-  this.planar_bitmap = $state$jscomp$54$$[33];
-  this.max_scan_line = $state$jscomp$54$$[34];
-  this.miscellaneous_output_register = $state$jscomp$54$$[35];
-  this.port_3DA_value = $state$jscomp$54$$[36];
-  this.dispi_index = $state$jscomp$54$$[37];
-  this.dispi_enable_value = $state$jscomp$54$$[38];
-  this.svga_memory.set($state$jscomp$54$$[39]);
-  this.attribute_controller_index = $state$jscomp$54$$[41];
-  this.offset_register = $state$jscomp$54$$[42];
-  this.planar_setreset = $state$jscomp$54$$[43];
-  this.planar_setreset_enable = $state$jscomp$54$$[44];
-  this.start_address_latched = $state$jscomp$54$$[45];
-  this.crtc.set($state$jscomp$54$$[46]);
-  this.horizontal_display_enable_end = $state$jscomp$54$$[47];
-  this.horizontal_blank_start = $state$jscomp$54$$[48];
-  this.vertical_display_enable_end = $state$jscomp$54$$[49];
-  this.vertical_blank_start = $state$jscomp$54$$[50];
-  this.underline_location_register = $state$jscomp$54$$[51];
-  this.preset_row_scan = $state$jscomp$54$$[52];
-  this.offset_register = $state$jscomp$54$$[53];
-  this.palette_source = $state$jscomp$54$$[54];
-  this.attribute_mode = $state$jscomp$54$$[55];
-  this.color_plane_enable = $state$jscomp$54$$[56];
-  this.horizontal_panning = $state$jscomp$54$$[57];
-  this.color_select = $state$jscomp$54$$[58];
-  this.clocking_mode = $state$jscomp$54$$[59];
-  this.line_compare = $state$jscomp$54$$[60];
-  $state$jscomp$54$$[61] && this.pixel_buffer.set($state$jscomp$54$$[61]);
-  this.dac_mask = void 0 === $state$jscomp$54$$[62] ? 255 : $state$jscomp$54$$[62];
-  this.character_map_select = void 0 === $state$jscomp$54$$[63] ? 0 : $state$jscomp$54$$[63];
-  this.font_page_ab_enabled = void 0 === $state$jscomp$54$$[64] ? 0 : $state$jscomp$54$$[64];
+$VGAScreen$$module$src$vga$$.prototype.set_state = function($state$jscomp$55$$) {
+  this.vga_memory_size = $state$jscomp$55$$[0];
+  this.cursor_address = $state$jscomp$55$$[1];
+  this.cursor_scanline_start = $state$jscomp$55$$[2];
+  this.cursor_scanline_end = $state$jscomp$55$$[3];
+  this.max_cols = $state$jscomp$55$$[4];
+  this.max_rows = $state$jscomp$55$$[5];
+  $state$jscomp$55$$[6] && this.vga_memory.set($state$jscomp$55$$[6]);
+  this.dac_state = $state$jscomp$55$$[7];
+  this.start_address = $state$jscomp$55$$[8];
+  this.graphical_mode = $state$jscomp$55$$[9];
+  this.vga256_palette = $state$jscomp$55$$[10];
+  this.latch_dword = $state$jscomp$55$$[11];
+  this.color_compare = $state$jscomp$55$$[12];
+  this.color_dont_care = $state$jscomp$55$$[13];
+  this.miscellaneous_graphics_register = $state$jscomp$55$$[14];
+  this.svga_width = $state$jscomp$55$$[15];
+  this.svga_height = $state$jscomp$55$$[16];
+  this.crtc_mode = $state$jscomp$55$$[17];
+  this.svga_enabled = $state$jscomp$55$$[18];
+  this.svga_bpp = $state$jscomp$55$$[19];
+  this.svga_bank_offset = $state$jscomp$55$$[20];
+  this.svga_offset = $state$jscomp$55$$[21];
+  this.index_crtc = $state$jscomp$55$$[22];
+  this.dac_color_index_write = $state$jscomp$55$$[23];
+  this.dac_color_index_read = $state$jscomp$55$$[24];
+  this.dac_map = $state$jscomp$55$$[25];
+  this.sequencer_index = $state$jscomp$55$$[26];
+  this.plane_write_bm = $state$jscomp$55$$[27];
+  this.sequencer_memory_mode = $state$jscomp$55$$[28];
+  this.graphics_index = $state$jscomp$55$$[29];
+  this.plane_read = $state$jscomp$55$$[30];
+  this.planar_mode = $state$jscomp$55$$[31];
+  this.planar_rotate_reg = $state$jscomp$55$$[32];
+  this.planar_bitmap = $state$jscomp$55$$[33];
+  this.max_scan_line = $state$jscomp$55$$[34];
+  this.miscellaneous_output_register = $state$jscomp$55$$[35];
+  this.port_3DA_value = $state$jscomp$55$$[36];
+  this.dispi_index = $state$jscomp$55$$[37];
+  this.dispi_enable_value = $state$jscomp$55$$[38];
+  this.svga_memory.set($state$jscomp$55$$[39]);
+  this.attribute_controller_index = $state$jscomp$55$$[41];
+  this.offset_register = $state$jscomp$55$$[42];
+  this.planar_setreset = $state$jscomp$55$$[43];
+  this.planar_setreset_enable = $state$jscomp$55$$[44];
+  this.start_address_latched = $state$jscomp$55$$[45];
+  this.crtc.set($state$jscomp$55$$[46]);
+  this.horizontal_display_enable_end = $state$jscomp$55$$[47];
+  this.horizontal_blank_start = $state$jscomp$55$$[48];
+  this.vertical_display_enable_end = $state$jscomp$55$$[49];
+  this.vertical_blank_start = $state$jscomp$55$$[50];
+  this.underline_location_register = $state$jscomp$55$$[51];
+  this.preset_row_scan = $state$jscomp$55$$[52];
+  this.offset_register = $state$jscomp$55$$[53];
+  this.palette_source = $state$jscomp$55$$[54];
+  this.attribute_mode = $state$jscomp$55$$[55];
+  this.color_plane_enable = $state$jscomp$55$$[56];
+  this.horizontal_panning = $state$jscomp$55$$[57];
+  this.color_select = $state$jscomp$55$$[58];
+  this.clocking_mode = $state$jscomp$55$$[59];
+  this.line_compare = $state$jscomp$55$$[60];
+  $state$jscomp$55$$[61] && this.pixel_buffer.set($state$jscomp$55$$[61]);
+  this.dac_mask = void 0 === $state$jscomp$55$$[62] ? 255 : $state$jscomp$55$$[62];
+  this.character_map_select = void 0 === $state$jscomp$55$$[63] ? 0 : $state$jscomp$55$$[63];
+  this.font_page_ab_enabled = void 0 === $state$jscomp$55$$[64] ? 0 : $state$jscomp$55$$[64];
   this.screen.set_mode(this.graphical_mode);
   this.screen_height = this.screen_width = 0;
   this.graphical_mode ? this.svga_enabled ? (this.set_size_graphical(this.svga_width, this.svga_height, this.svga_width, this.svga_height, this.svga_bpp), this.update_layers()) : (this.update_vga_size(), this.update_layers(), this.complete_replot()) : (this.screen.clear_text_state(), this.set_font_bitmap(!0), this.set_size_text(this.max_cols, this.max_rows), this.set_font_page(), this.update_cursor_scanline(), this.update_cursor());
@@ -10145,22 +10231,22 @@ $VGAScreen$$module$src$vga$$.prototype.vga_memory_read = function($addr$jscomp$3
   this.graphical_mode ? this.sequencer_memory_mode & 8 ? ($memory_space_select_plane_reading$$ = $addr$jscomp$31$$ & 3, $addr$jscomp$31$$ &= -4) : this.planar_mode & 16 && ($memory_space_select_plane_reading$$ = $addr$jscomp$31$$ & 1, $addr$jscomp$31$$ &= -2) : $memory_space_select_plane_reading$$ &= 3;
   return this.vga_memory[$memory_space_select_plane_reading$$ << 16 | $addr$jscomp$31$$];
 };
-$VGAScreen$$module$src$vga$$.prototype.vga_memory_write = function($addr$jscomp$32$$, $value$jscomp$169$$) {
+$VGAScreen$$module$src$vga$$.prototype.vga_memory_write = function($addr$jscomp$32$$, $value$jscomp$175$$) {
   if (this.svga_enabled) {
-    this.cpu.write8(($addr$jscomp$32$$ - 655360 | this.svga_bank_offset) + 3758096384 | 0, $value$jscomp$169$$);
+    this.cpu.write8(($addr$jscomp$32$$ - 655360 | this.svga_bank_offset) + 3758096384 | 0, $value$jscomp$175$$);
   } else {
     var $memory_space_select$jscomp$1$$ = this.miscellaneous_graphics_register >> 2 & 3;
     $addr$jscomp$32$$ -= $VGA_HOST_MEMORY_SPACE_START$$module$src$vga$$[$memory_space_select$jscomp$1$$];
-    0 > $addr$jscomp$32$$ || $addr$jscomp$32$$ >= $VGA_HOST_MEMORY_SPACE_SIZE$$module$src$vga$$[$memory_space_select$jscomp$1$$] ? $dbg_log$$module$src$log$$("vga write outside memory space: addr:" + $h$$module$src$lib$$($addr$jscomp$32$$ >>> 0) + ", value:" + $h$$module$src$lib$$($value$jscomp$169$$), 256) : this.graphical_mode ? this.vga_memory_write_graphical($addr$jscomp$32$$, $value$jscomp$169$$) : this.plane_write_bm & 3 ? this.vga_memory_write_text_mode($addr$jscomp$32$$, $value$jscomp$169$$) : 
-    this.plane_write_bm & 4 && (this.plane2[$addr$jscomp$32$$] = $value$jscomp$169$$);
+    0 > $addr$jscomp$32$$ || $addr$jscomp$32$$ >= $VGA_HOST_MEMORY_SPACE_SIZE$$module$src$vga$$[$memory_space_select$jscomp$1$$] ? $dbg_log$$module$src$log$$("vga write outside memory space: addr:" + $h$$module$src$lib$$($addr$jscomp$32$$ >>> 0) + ", value:" + $h$$module$src$lib$$($value$jscomp$175$$), 256) : this.graphical_mode ? this.vga_memory_write_graphical($addr$jscomp$32$$, $value$jscomp$175$$) : this.plane_write_bm & 3 ? this.vga_memory_write_text_mode($addr$jscomp$32$$, $value$jscomp$175$$) : 
+    this.plane_write_bm & 4 && (this.plane2[$addr$jscomp$32$$] = $value$jscomp$175$$);
   }
 };
-$VGAScreen$$module$src$vga$$.prototype.vga_memory_write_graphical = function($addr$jscomp$33_pixel_addr$$, $plane_select_value$jscomp$170$$) {
+$VGAScreen$$module$src$vga$$.prototype.vga_memory_write_graphical = function($addr$jscomp$33_pixel_addr$$, $plane_select_value$jscomp$176$$) {
   var $write_mode$$ = this.planar_mode & 3, $bitmask$$ = this.apply_feed(this.planar_bitmap), $setreset_dword$$ = this.apply_expand(this.planar_setreset), $setreset_enable_dword$$ = this.apply_expand(this.planar_setreset_enable);
   switch($write_mode$$) {
     case 0:
-      $plane_select_value$jscomp$170$$ = this.apply_rotate($plane_select_value$jscomp$170$$);
-      var $plane_dword$$ = this.apply_feed($plane_select_value$jscomp$170$$);
+      $plane_select_value$jscomp$176$$ = this.apply_rotate($plane_select_value$jscomp$176$$);
+      var $plane_dword$$ = this.apply_feed($plane_select_value$jscomp$176$$);
       $plane_dword$$ = this.apply_setreset($plane_dword$$, $setreset_enable_dword$$);
       $plane_dword$$ = this.apply_logical($plane_dword$$, this.latch_dword);
       $plane_dword$$ = this.apply_bitmask($plane_dword$$, $bitmask$$);
@@ -10169,28 +10255,28 @@ $VGAScreen$$module$src$vga$$.prototype.vga_memory_write_graphical = function($ad
       $plane_dword$$ = this.latch_dword;
       break;
     case 2:
-      $plane_dword$$ = this.apply_expand($plane_select_value$jscomp$170$$);
+      $plane_dword$$ = this.apply_expand($plane_select_value$jscomp$176$$);
       $plane_dword$$ = this.apply_logical($plane_dword$$, this.latch_dword);
       $plane_dword$$ = this.apply_bitmask($plane_dword$$, $bitmask$$);
       break;
     case 3:
-      $plane_select_value$jscomp$170$$ = this.apply_rotate($plane_select_value$jscomp$170$$), $bitmask$$ &= this.apply_feed($plane_select_value$jscomp$170$$), $plane_dword$$ = this.apply_bitmask($setreset_dword$$, $bitmask$$);
+      $plane_select_value$jscomp$176$$ = this.apply_rotate($plane_select_value$jscomp$176$$), $bitmask$$ &= this.apply_feed($plane_select_value$jscomp$176$$), $plane_dword$$ = this.apply_bitmask($setreset_dword$$, $bitmask$$);
   }
-  $plane_select_value$jscomp$170$$ = 15;
+  $plane_select_value$jscomp$176$$ = 15;
   switch(this.sequencer_memory_mode & 12) {
     case 0:
-      $plane_select_value$jscomp$170$$ = 5 << ($addr$jscomp$33_pixel_addr$$ & 1);
+      $plane_select_value$jscomp$176$$ = 5 << ($addr$jscomp$33_pixel_addr$$ & 1);
       $addr$jscomp$33_pixel_addr$$ &= -2;
       break;
     case 8:
     case 12:
-      $plane_select_value$jscomp$170$$ = 1 << ($addr$jscomp$33_pixel_addr$$ & 3), $addr$jscomp$33_pixel_addr$$ &= -4;
+      $plane_select_value$jscomp$176$$ = 1 << ($addr$jscomp$33_pixel_addr$$ & 3), $addr$jscomp$33_pixel_addr$$ &= -4;
   }
-  $plane_select_value$jscomp$170$$ &= this.plane_write_bm;
-  $plane_select_value$jscomp$170$$ & 1 && (this.plane0[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 0 & 255);
-  $plane_select_value$jscomp$170$$ & 2 && (this.plane1[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 8 & 255);
-  $plane_select_value$jscomp$170$$ & 4 && (this.plane2[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 16 & 255);
-  $plane_select_value$jscomp$170$$ & 8 && (this.plane3[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 24 & 255);
+  $plane_select_value$jscomp$176$$ &= this.plane_write_bm;
+  $plane_select_value$jscomp$176$$ & 1 && (this.plane0[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 0 & 255);
+  $plane_select_value$jscomp$176$$ & 2 && (this.plane1[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 8 & 255);
+  $plane_select_value$jscomp$176$$ & 4 && (this.plane2[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 16 & 255);
+  $plane_select_value$jscomp$176$$ & 8 && (this.plane3[$addr$jscomp$33_pixel_addr$$] = $plane_dword$$ >> 24 & 255);
   $addr$jscomp$33_pixel_addr$$ = this.vga_addr_to_pixel($addr$jscomp$33_pixel_addr$$);
   this.partial_replot($addr$jscomp$33_pixel_addr$$, $addr$jscomp$33_pixel_addr$$ + 7);
 };
@@ -10235,8 +10321,8 @@ $VGAScreen$$module$src$vga$$.prototype.text_mode_redraw = function() {
     $addr$jscomp$34$$ += $row_offset$$;
   }
 };
-$VGAScreen$$module$src$vga$$.prototype.vga_memory_write_text_mode = function($addr$jscomp$35_flags$jscomp$14$$, $chr$jscomp$15_value$jscomp$171$$) {
-  this.vga_memory[$addr$jscomp$35_flags$jscomp$14$$] = $chr$jscomp$15_value$jscomp$171$$;
+$VGAScreen$$module$src$vga$$.prototype.vga_memory_write_text_mode = function($addr$jscomp$35_flags$jscomp$14$$, $chr$jscomp$15_value$jscomp$177$$) {
+  this.vga_memory[$addr$jscomp$35_flags$jscomp$14$$] = $chr$jscomp$15_value$jscomp$177$$;
   var $col$jscomp$7_max_cols$$ = Math.max(this.max_cols, 2 * this.offset_register);
   let $row$jscomp$11$$;
   if ($addr$jscomp$35_flags$jscomp$14$$ >> 1 >= this.start_address) {
@@ -10248,13 +10334,13 @@ $VGAScreen$$module$src$vga$$.prototype.vga_memory_write_text_mode = function($ad
   }
   $dbg_assert$$module$src$log$$(0 <= $row$jscomp$11$$ && 0 <= $col$jscomp$7_max_cols$$);
   if (!($col$jscomp$7_max_cols$$ >= this.max_cols || $row$jscomp$11$$ >= this.max_rows)) {
-    $addr$jscomp$35_flags$jscomp$14$$ & 1 ? ($color$jscomp$4_memory_start_memory_start$jscomp$1$$ = $chr$jscomp$15_value$jscomp$171$$, $chr$jscomp$15_value$jscomp$171$$ = this.vga_memory[$addr$jscomp$35_flags$jscomp$14$$ & -2]) : $color$jscomp$4_memory_start_memory_start$jscomp$1$$ = this.vga_memory[$addr$jscomp$35_flags$jscomp$14$$ | 1];
+    $addr$jscomp$35_flags$jscomp$14$$ & 1 ? ($color$jscomp$4_memory_start_memory_start$jscomp$1$$ = $chr$jscomp$15_value$jscomp$177$$, $chr$jscomp$15_value$jscomp$177$$ = this.vga_memory[$addr$jscomp$35_flags$jscomp$14$$ & -2]) : $color$jscomp$4_memory_start_memory_start$jscomp$1$$ = this.vga_memory[$addr$jscomp$35_flags$jscomp$14$$ | 1];
     var $bg_color_mask$jscomp$1_blink_enabled$jscomp$1$$ = this.attribute_mode & 8;
     $addr$jscomp$35_flags$jscomp$14$$ = ($bg_color_mask$jscomp$1_blink_enabled$jscomp$1$$ && $color$jscomp$4_memory_start_memory_start$jscomp$1$$ & 128 ? this.screen.FLAG_BLINKING : 0) | (!this.font_page_ab_enabled || $color$jscomp$4_memory_start_memory_start$jscomp$1$$ & 8 ? 0 : this.screen.FLAG_FONT_PAGE_B);
     var $fg_color_mask$jscomp$1$$ = this.font_page_ab_enabled ? 7 : 15;
     $bg_color_mask$jscomp$1_blink_enabled$jscomp$1$$ = $bg_color_mask$jscomp$1_blink_enabled$jscomp$1$$ ? 7 : 15;
-    this.bus.send("screen-put-char", [$row$jscomp$11$$, $col$jscomp$7_max_cols$$, $chr$jscomp$15_value$jscomp$171$$]);
-    this.screen.put_char($row$jscomp$11$$, $col$jscomp$7_max_cols$$, $chr$jscomp$15_value$jscomp$171$$, $addr$jscomp$35_flags$jscomp$14$$, this.vga256_palette[this.dac_mask & this.dac_map[$color$jscomp$4_memory_start_memory_start$jscomp$1$$ >> 4 & $bg_color_mask$jscomp$1_blink_enabled$jscomp$1$$]], this.vga256_palette[this.dac_mask & this.dac_map[$color$jscomp$4_memory_start_memory_start$jscomp$1$$ & $fg_color_mask$jscomp$1$$]]);
+    this.bus.send("screen-put-char", [$row$jscomp$11$$, $col$jscomp$7_max_cols$$, $chr$jscomp$15_value$jscomp$177$$]);
+    this.screen.put_char($row$jscomp$11$$, $col$jscomp$7_max_cols$$, $chr$jscomp$15_value$jscomp$177$$, $addr$jscomp$35_flags$jscomp$14$$, this.vga256_palette[this.dac_mask & this.dac_map[$color$jscomp$4_memory_start_memory_start$jscomp$1$$ >> 4 & $bg_color_mask$jscomp$1_blink_enabled$jscomp$1$$]], this.vga256_palette[this.dac_mask & this.dac_map[$color$jscomp$4_memory_start_memory_start$jscomp$1$$ & $fg_color_mask$jscomp$1$$]]);
   }
 };
 $VGAScreen$$module$src$vga$$.prototype.update_cursor = function() {
@@ -10417,42 +10503,42 @@ $VGAScreen$$module$src$vga$$.prototype.update_cursor_scanline = function() {
   $end$jscomp$25_max$jscomp$4$$ = Math.min($end$jscomp$25_max$jscomp$4$$, this.cursor_scanline_end & 31);
   this.screen.update_cursor_scanline($start$jscomp$40$$, $end$jscomp$25_max$jscomp$4$$, !(this.cursor_scanline_start & 32) && $start$jscomp$40$$ < $end$jscomp$25_max$jscomp$4$$);
 };
-$VGAScreen$$module$src$vga$$.prototype.port3C0_write = function($value$jscomp$172$$) {
+$VGAScreen$$module$src$vga$$.prototype.port3C0_write = function($value$jscomp$178$$) {
   if (-1 === this.attribute_controller_index) {
-    $dbg_log$$module$src$log$$("attribute controller index register: " + $h$$module$src$lib$$($value$jscomp$172$$), 256), this.attribute_controller_index = $value$jscomp$172$$ & 31, $dbg_log$$module$src$log$$("attribute actual index: " + $h$$module$src$lib$$(this.attribute_controller_index), 256), this.palette_source !== ($value$jscomp$172$$ & 32) && (this.palette_source = $value$jscomp$172$$ & 32, this.update_layers());
+    $dbg_log$$module$src$log$$("attribute controller index register: " + $h$$module$src$lib$$($value$jscomp$178$$), 256), this.attribute_controller_index = $value$jscomp$178$$ & 31, $dbg_log$$module$src$log$$("attribute actual index: " + $h$$module$src$lib$$(this.attribute_controller_index), 256), this.palette_source !== ($value$jscomp$178$$ & 32) && (this.palette_source = $value$jscomp$178$$ & 32, this.update_layers());
   } else {
     if (16 > this.attribute_controller_index) {
-      $dbg_log$$module$src$log$$("internal palette: " + $h$$module$src$lib$$(this.attribute_controller_index) + " -> " + $h$$module$src$lib$$($value$jscomp$172$$), 256), this.dac_map[this.attribute_controller_index] = $value$jscomp$172$$, this.attribute_mode & 64 || this.complete_redraw();
+      $dbg_log$$module$src$log$$("internal palette: " + $h$$module$src$lib$$(this.attribute_controller_index) + " -> " + $h$$module$src$lib$$($value$jscomp$178$$), 256), this.dac_map[this.attribute_controller_index] = $value$jscomp$178$$, this.attribute_mode & 64 || this.complete_redraw();
     } else {
       switch(this.attribute_controller_index) {
         case 16:
-          $dbg_log$$module$src$log$$("3C0 / attribute mode control: " + $h$$module$src$lib$$($value$jscomp$172$$), 256);
-          if (this.attribute_mode !== $value$jscomp$172$$) {
+          $dbg_log$$module$src$log$$("3C0 / attribute mode control: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+          if (this.attribute_mode !== $value$jscomp$178$$) {
             var $previous_mode$$ = this.attribute_mode;
-            this.attribute_mode = $value$jscomp$172$$;
+            this.attribute_mode = $value$jscomp$178$$;
             !this.svga_enabled || this.dispi_enable_value & 1 || (this.svga_enabled = !1, this.svga_bank_offset = 0);
-            const $is_graphical$jscomp$2$$ = 0 !== ($value$jscomp$172$$ & 1);
+            const $is_graphical$jscomp$2$$ = 0 !== ($value$jscomp$178$$ & 1);
             this.svga_enabled || this.graphical_mode === $is_graphical$jscomp$2$$ || (this.graphical_mode = $is_graphical$jscomp$2$$, this.screen.set_mode(this.graphical_mode));
-            ($previous_mode$$ ^ $value$jscomp$172$$) & 64 && this.complete_replot();
+            ($previous_mode$$ ^ $value$jscomp$178$$) & 64 && this.complete_replot();
             this.update_vga_size();
             this.complete_redraw();
             this.set_font_bitmap(!1);
           }
           break;
         case 18:
-          $dbg_log$$module$src$log$$("3C0 / color plane enable: " + $h$$module$src$lib$$($value$jscomp$172$$), 256);
-          this.color_plane_enable !== $value$jscomp$172$$ && (this.color_plane_enable = $value$jscomp$172$$, this.complete_redraw());
+          $dbg_log$$module$src$log$$("3C0 / color plane enable: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+          this.color_plane_enable !== $value$jscomp$178$$ && (this.color_plane_enable = $value$jscomp$178$$, this.complete_redraw());
           break;
         case 19:
-          $dbg_log$$module$src$log$$("3C0 / horizontal panning: " + $h$$module$src$lib$$($value$jscomp$172$$), 256);
-          this.horizontal_panning !== $value$jscomp$172$$ && (this.horizontal_panning = $value$jscomp$172$$ & 15, this.update_layers());
+          $dbg_log$$module$src$log$$("3C0 / horizontal panning: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+          this.horizontal_panning !== $value$jscomp$178$$ && (this.horizontal_panning = $value$jscomp$178$$ & 15, this.update_layers());
           break;
         case 20:
-          $dbg_log$$module$src$log$$("3C0 / color select: " + $h$$module$src$lib$$($value$jscomp$172$$), 256);
-          this.color_select !== $value$jscomp$172$$ && (this.color_select = $value$jscomp$172$$, this.complete_redraw());
+          $dbg_log$$module$src$log$$("3C0 / color select: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+          this.color_select !== $value$jscomp$178$$ && (this.color_select = $value$jscomp$178$$, this.complete_redraw());
           break;
         default:
-          $dbg_log$$module$src$log$$("3C0 / attribute controller write " + $h$$module$src$lib$$(this.attribute_controller_index) + ": " + $h$$module$src$lib$$($value$jscomp$172$$), 256);
+          $dbg_log$$module$src$log$$("3C0 / attribute controller write " + $h$$module$src$lib$$(this.attribute_controller_index) + ": " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
       }
     }
     this.attribute_controller_index = -1;
@@ -10484,43 +10570,43 @@ $VGAScreen$$module$src$vga$$.prototype.port3C1_read = function() {
   }
   return 255;
 };
-$VGAScreen$$module$src$vga$$.prototype.port3C2_write = function($value$jscomp$173$$) {
-  $dbg_log$$module$src$log$$("3C2 / miscellaneous output register = " + $h$$module$src$lib$$($value$jscomp$173$$), 256);
-  this.miscellaneous_output_register = $value$jscomp$173$$;
+$VGAScreen$$module$src$vga$$.prototype.port3C2_write = function($value$jscomp$179$$) {
+  $dbg_log$$module$src$log$$("3C2 / miscellaneous output register = " + $h$$module$src$lib$$($value$jscomp$179$$), 256);
+  this.miscellaneous_output_register = $value$jscomp$179$$;
 };
-$VGAScreen$$module$src$vga$$.prototype.port3C4_write = function($value$jscomp$174$$) {
-  this.sequencer_index = $value$jscomp$174$$;
+$VGAScreen$$module$src$vga$$.prototype.port3C4_write = function($value$jscomp$180$$) {
+  this.sequencer_index = $value$jscomp$180$$;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C4_read = function() {
   return this.sequencer_index;
 };
-$VGAScreen$$module$src$vga$$.prototype.port3C5_write = function($value$jscomp$175$$) {
+$VGAScreen$$module$src$vga$$.prototype.port3C5_write = function($value$jscomp$181$$) {
   switch(this.sequencer_index) {
     case 1:
-      $dbg_log$$module$src$log$$("clocking mode: " + $h$$module$src$lib$$($value$jscomp$175$$), 256);
+      $dbg_log$$module$src$log$$("clocking mode: " + $h$$module$src$lib$$($value$jscomp$181$$), 256);
       var $previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ = this.clocking_mode;
-      this.clocking_mode = $value$jscomp$175$$;
-      ($previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ ^ $value$jscomp$175$$) & 32 && this.update_layers();
+      this.clocking_mode = $value$jscomp$181$$;
+      ($previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ ^ $value$jscomp$181$$) & 32 && this.update_layers();
       this.set_font_bitmap(!1);
       break;
     case 2:
-      $dbg_log$$module$src$log$$("plane write mask: " + $h$$module$src$lib$$($value$jscomp$175$$), 256);
+      $dbg_log$$module$src$log$$("plane write mask: " + $h$$module$src$lib$$($value$jscomp$181$$), 256);
       $previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ = this.plane_write_bm;
-      this.plane_write_bm = $value$jscomp$175$$;
+      this.plane_write_bm = $value$jscomp$181$$;
       this.graphical_mode || !($previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ & 4) || this.plane_write_bm & 4 || this.set_font_bitmap(!0);
       break;
     case 3:
-      $dbg_log$$module$src$log$$("character map select: " + $h$$module$src$lib$$($value$jscomp$175$$), 256);
+      $dbg_log$$module$src$log$$("character map select: " + $h$$module$src$lib$$($value$jscomp$181$$), 256);
       $previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ = this.character_map_select;
-      this.character_map_select = $value$jscomp$175$$;
-      this.graphical_mode || $previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ === $value$jscomp$175$$ || this.set_font_page();
+      this.character_map_select = $value$jscomp$181$$;
+      this.graphical_mode || $previous_character_map_select_previous_clocking_mode_previous_plane_write_bm$$ === $value$jscomp$181$$ || this.set_font_page();
       break;
     case 4:
-      $dbg_log$$module$src$log$$("sequencer memory mode: " + $h$$module$src$lib$$($value$jscomp$175$$), 256);
-      this.sequencer_memory_mode = $value$jscomp$175$$;
+      $dbg_log$$module$src$log$$("sequencer memory mode: " + $h$$module$src$lib$$($value$jscomp$181$$), 256);
+      this.sequencer_memory_mode = $value$jscomp$181$$;
       break;
     default:
-      $dbg_log$$module$src$log$$("3C5 / sequencer write " + $h$$module$src$lib$$(this.sequencer_index) + ": " + $h$$module$src$lib$$($value$jscomp$175$$), 256);
+      $dbg_log$$module$src$log$$("3C5 / sequencer write " + $h$$module$src$lib$$(this.sequencer_index) + ": " + $h$$module$src$lib$$($value$jscomp$181$$), 256);
   }
 };
 $VGAScreen$$module$src$vga$$.prototype.port3C5_read = function() {
@@ -10585,54 +10671,54 @@ $VGAScreen$$module$src$vga$$.prototype.port3CC_read = function() {
   $dbg_log$$module$src$log$$("3CC read", 256);
   return this.miscellaneous_output_register;
 };
-$VGAScreen$$module$src$vga$$.prototype.port3CE_write = function($value$jscomp$176$$) {
-  this.graphics_index = $value$jscomp$176$$;
+$VGAScreen$$module$src$vga$$.prototype.port3CE_write = function($value$jscomp$182$$) {
+  this.graphics_index = $value$jscomp$182$$;
 };
 $VGAScreen$$module$src$vga$$.prototype.port3CE_read = function() {
   return this.graphics_index;
 };
-$VGAScreen$$module$src$vga$$.prototype.port3CF_write = function($value$jscomp$177$$) {
+$VGAScreen$$module$src$vga$$.prototype.port3CF_write = function($value$jscomp$183$$) {
   switch(this.graphics_index) {
     case 0:
-      this.planar_setreset = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("plane set/reset: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.planar_setreset = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("plane set/reset: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     case 1:
-      this.planar_setreset_enable = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("plane set/reset enable: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.planar_setreset_enable = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("plane set/reset enable: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     case 2:
-      this.color_compare = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("color compare: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.color_compare = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("color compare: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     case 3:
-      this.planar_rotate_reg = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("plane rotate: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.planar_rotate_reg = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("plane rotate: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     case 4:
-      this.plane_read = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("plane read: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.plane_read = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("plane read: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     case 5:
       var $previous_planar_mode$$ = this.planar_mode;
-      this.planar_mode = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("planar mode: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
-      ($previous_planar_mode$$ ^ $value$jscomp$177$$) & 96 && this.complete_replot();
+      this.planar_mode = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("planar mode: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
+      ($previous_planar_mode$$ ^ $value$jscomp$183$$) & 96 && this.complete_replot();
       break;
     case 6:
-      $dbg_log$$module$src$log$$("miscellaneous graphics register: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
-      this.miscellaneous_graphics_register !== $value$jscomp$177$$ && (this.miscellaneous_graphics_register = $value$jscomp$177$$, this.update_vga_size());
+      $dbg_log$$module$src$log$$("miscellaneous graphics register: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
+      this.miscellaneous_graphics_register !== $value$jscomp$183$$ && (this.miscellaneous_graphics_register = $value$jscomp$183$$, this.update_vga_size());
       break;
     case 7:
-      this.color_dont_care = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("color don't care: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.color_dont_care = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("color don't care: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     case 8:
-      this.planar_bitmap = $value$jscomp$177$$;
-      $dbg_log$$module$src$log$$("planar bitmap: " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      this.planar_bitmap = $value$jscomp$183$$;
+      $dbg_log$$module$src$log$$("planar bitmap: " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
       break;
     default:
-      $dbg_log$$module$src$log$$("3CF / graphics write " + $h$$module$src$lib$$(this.graphics_index) + ": " + $h$$module$src$lib$$($value$jscomp$177$$), 256);
+      $dbg_log$$module$src$log$$("3CF / graphics write " + $h$$module$src$lib$$(this.graphics_index) + ": " + $h$$module$src$lib$$($value$jscomp$183$$), 256);
   }
 };
 $VGAScreen$$module$src$vga$$.prototype.port3CF_read = function() {
@@ -10671,99 +10757,99 @@ $VGAScreen$$module$src$vga$$.prototype.port3D4_read = function() {
   $dbg_log$$module$src$log$$("3D4 read / crtc index: " + this.index_crtc, 256);
   return this.index_crtc;
 };
-$VGAScreen$$module$src$vga$$.prototype.port3D5_write = function($value$jscomp$178$$) {
+$VGAScreen$$module$src$vga$$.prototype.port3D5_write = function($value$jscomp$184$$) {
   switch(this.index_crtc) {
     case 1:
-      $dbg_log$$module$src$log$$("3D5 / hdisp enable end write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.horizontal_display_enable_end !== $value$jscomp$178$$ && (this.horizontal_display_enable_end = $value$jscomp$178$$, this.update_vga_size());
+      $dbg_log$$module$src$log$$("3D5 / hdisp enable end write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.horizontal_display_enable_end !== $value$jscomp$184$$ && (this.horizontal_display_enable_end = $value$jscomp$184$$, this.update_vga_size());
       break;
     case 2:
-      this.horizontal_blank_start !== $value$jscomp$178$$ && (this.horizontal_blank_start = $value$jscomp$178$$, this.update_vga_size());
+      this.horizontal_blank_start !== $value$jscomp$184$$ && (this.horizontal_blank_start = $value$jscomp$184$$, this.update_vga_size());
       break;
     case 7:
-      $dbg_log$$module$src$log$$("3D5 / overflow register write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+      $dbg_log$$module$src$log$$("3D5 / overflow register write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
       var $previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.vertical_display_enable_end;
       this.vertical_display_enable_end &= 255;
-      this.vertical_display_enable_end = this.vertical_display_enable_end | $value$jscomp$178$$ << 3 & 512 | $value$jscomp$178$$ << 7 & 256;
+      this.vertical_display_enable_end = this.vertical_display_enable_end | $value$jscomp$184$$ << 3 & 512 | $value$jscomp$184$$ << 7 & 256;
       $previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ !== this.vertical_display_enable_end && this.update_vga_size();
-      this.line_compare = this.line_compare & 767 | $value$jscomp$178$$ << 4 & 256;
+      this.line_compare = this.line_compare & 767 | $value$jscomp$184$$ << 4 & 256;
       $previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.vertical_blank_start;
-      this.vertical_blank_start = this.vertical_blank_start & 767 | $value$jscomp$178$$ << 5 & 256;
+      this.vertical_blank_start = this.vertical_blank_start & 767 | $value$jscomp$184$$ << 5 & 256;
       $previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ !== this.vertical_blank_start && this.update_vga_size();
       this.update_layers();
       break;
     case 8:
-      $dbg_log$$module$src$log$$("3D5 / preset row scan write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.preset_row_scan = $value$jscomp$178$$;
+      $dbg_log$$module$src$log$$("3D5 / preset row scan write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.preset_row_scan = $value$jscomp$184$$;
       this.update_layers();
       break;
     case 9:
-      $dbg_log$$module$src$log$$("3D5 / max scan line write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+      $dbg_log$$module$src$log$$("3D5 / max scan line write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
       var $previous_max_scan_line$$ = this.max_scan_line;
-      this.max_scan_line = $value$jscomp$178$$;
-      this.line_compare = this.line_compare & 511 | $value$jscomp$178$$ << 3 & 512;
+      this.max_scan_line = $value$jscomp$184$$;
+      this.line_compare = this.line_compare & 511 | $value$jscomp$184$$ << 3 & 512;
       $previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.vertical_blank_start;
-      this.vertical_blank_start = this.vertical_blank_start & 511 | $value$jscomp$178$$ << 4 & 512;
+      this.vertical_blank_start = this.vertical_blank_start & 511 | $value$jscomp$184$$ << 4 & 512;
       (($previous_max_scan_line$$ ^ this.max_scan_line) & 159 || $previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ !== this.vertical_blank_start) && this.update_vga_size();
       this.update_cursor_scanline();
       this.update_layers();
       this.set_font_bitmap(!1);
       break;
     case 10:
-      $dbg_log$$module$src$log$$("3D5 / cursor scanline start write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.cursor_scanline_start = $value$jscomp$178$$;
+      $dbg_log$$module$src$log$$("3D5 / cursor scanline start write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.cursor_scanline_start = $value$jscomp$184$$;
       this.update_cursor_scanline();
       break;
     case 11:
-      $dbg_log$$module$src$log$$("3D5 / cursor scanline end write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.cursor_scanline_end = $value$jscomp$178$$;
+      $dbg_log$$module$src$log$$("3D5 / cursor scanline end write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.cursor_scanline_end = $value$jscomp$184$$;
       this.update_cursor_scanline();
       break;
     case 12:
-      (this.start_address >> 8 & 255) !== $value$jscomp$178$$ && (this.start_address = this.start_address & 255 | $value$jscomp$178$$ << 8, this.update_layers(), ~this.crtc_mode & 3 && this.complete_replot());
-      $dbg_log$$module$src$log$$("3D5 / start addr hi write: " + $h$$module$src$lib$$($value$jscomp$178$$) + " -> " + $h$$module$src$lib$$(this.start_address, 4), 256);
+      (this.start_address >> 8 & 255) !== $value$jscomp$184$$ && (this.start_address = this.start_address & 255 | $value$jscomp$184$$ << 8, this.update_layers(), ~this.crtc_mode & 3 && this.complete_replot());
+      $dbg_log$$module$src$log$$("3D5 / start addr hi write: " + $h$$module$src$lib$$($value$jscomp$184$$) + " -> " + $h$$module$src$lib$$(this.start_address, 4), 256);
       break;
     case 13:
-      (this.start_address & 255) !== $value$jscomp$178$$ && (this.start_address = this.start_address & 65280 | $value$jscomp$178$$, this.update_layers(), ~this.crtc_mode & 3 && this.complete_replot());
-      $dbg_log$$module$src$log$$("3D5 / start addr lo write: " + $h$$module$src$lib$$($value$jscomp$178$$) + " -> " + $h$$module$src$lib$$(this.start_address, 4), 256);
+      (this.start_address & 255) !== $value$jscomp$184$$ && (this.start_address = this.start_address & 65280 | $value$jscomp$184$$, this.update_layers(), ~this.crtc_mode & 3 && this.complete_replot());
+      $dbg_log$$module$src$log$$("3D5 / start addr lo write: " + $h$$module$src$lib$$($value$jscomp$184$$) + " -> " + $h$$module$src$lib$$(this.start_address, 4), 256);
       break;
     case 14:
-      $dbg_log$$module$src$log$$("3D5 / cursor address hi write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.cursor_address = this.cursor_address & 255 | $value$jscomp$178$$ << 8;
+      $dbg_log$$module$src$log$$("3D5 / cursor address hi write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.cursor_address = this.cursor_address & 255 | $value$jscomp$184$$ << 8;
       this.update_cursor();
       break;
     case 15:
-      $dbg_log$$module$src$log$$("3D5 / cursor address lo write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.cursor_address = this.cursor_address & 65280 | $value$jscomp$178$$;
+      $dbg_log$$module$src$log$$("3D5 / cursor address lo write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.cursor_address = this.cursor_address & 65280 | $value$jscomp$184$$;
       this.update_cursor();
       break;
     case 18:
-      $dbg_log$$module$src$log$$("3D5 / vdisp enable end write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      (this.vertical_display_enable_end & 255) !== $value$jscomp$178$$ && (this.vertical_display_enable_end = this.vertical_display_enable_end & 768 | $value$jscomp$178$$, this.update_vga_size());
+      $dbg_log$$module$src$log$$("3D5 / vdisp enable end write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      (this.vertical_display_enable_end & 255) !== $value$jscomp$184$$ && (this.vertical_display_enable_end = this.vertical_display_enable_end & 768 | $value$jscomp$184$$, this.update_vga_size());
       break;
     case 19:
-      $dbg_log$$module$src$log$$("3D5 / offset register write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.offset_register !== $value$jscomp$178$$ && (this.offset_register = $value$jscomp$178$$, this.update_vga_size(), ~this.crtc_mode & 3 && this.complete_replot());
+      $dbg_log$$module$src$log$$("3D5 / offset register write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.offset_register !== $value$jscomp$184$$ && (this.offset_register = $value$jscomp$184$$, this.update_vga_size(), ~this.crtc_mode & 3 && this.complete_replot());
       break;
     case 20:
-      $dbg_log$$module$src$log$$("3D5 / underline location write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.underline_location_register !== $value$jscomp$178$$ && ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.underline_location_register, this.underline_location_register = $value$jscomp$178$$, this.update_vga_size(), ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ ^ $value$jscomp$178$$) & 64 && this.complete_replot());
+      $dbg_log$$module$src$log$$("3D5 / underline location write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.underline_location_register !== $value$jscomp$184$$ && ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.underline_location_register, this.underline_location_register = $value$jscomp$184$$, this.update_vga_size(), ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ ^ $value$jscomp$184$$) & 64 && this.complete_replot());
       break;
     case 21:
-      $dbg_log$$module$src$log$$("3D5 / vertical blank start write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      (this.vertical_blank_start & 255) !== $value$jscomp$178$$ && (this.vertical_blank_start = this.vertical_blank_start & 768 | $value$jscomp$178$$, this.update_vga_size());
+      $dbg_log$$module$src$log$$("3D5 / vertical blank start write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      (this.vertical_blank_start & 255) !== $value$jscomp$184$$ && (this.vertical_blank_start = this.vertical_blank_start & 768 | $value$jscomp$184$$, this.update_vga_size());
       break;
     case 23:
-      $dbg_log$$module$src$log$$("3D5 / crtc mode write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.crtc_mode !== $value$jscomp$178$$ && ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.crtc_mode, this.crtc_mode = $value$jscomp$178$$, this.update_vga_size(), ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ ^ $value$jscomp$178$$) & 67 && this.complete_replot());
+      $dbg_log$$module$src$log$$("3D5 / crtc mode write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.crtc_mode !== $value$jscomp$184$$ && ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ = this.crtc_mode, this.crtc_mode = $value$jscomp$184$$, this.update_vga_size(), ($previous_mode$jscomp$1_previous_underline_previous_vertical_blank_start_previous_vertical_display_enable_end$$ ^ $value$jscomp$184$$) & 67 && this.complete_replot());
       break;
     case 24:
-      $dbg_log$$module$src$log$$("3D5 / line compare write: " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
-      this.line_compare = this.line_compare & 768 | $value$jscomp$178$$;
+      $dbg_log$$module$src$log$$("3D5 / line compare write: " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
+      this.line_compare = this.line_compare & 768 | $value$jscomp$184$$;
       this.update_layers();
       break;
     default:
-      this.index_crtc < this.crtc.length && (this.crtc[this.index_crtc] = $value$jscomp$178$$), $dbg_log$$module$src$log$$("3D5 / CRTC write " + $h$$module$src$lib$$(this.index_crtc) + ": " + $h$$module$src$lib$$($value$jscomp$178$$), 256);
+      this.index_crtc < this.crtc.length && (this.crtc[this.index_crtc] = $value$jscomp$184$$), $dbg_log$$module$src$log$$("3D5 / CRTC write " + $h$$module$src$lib$$(this.index_crtc) + ": " + $h$$module$src$lib$$($value$jscomp$184$$), 256);
   }
 };
 $VGAScreen$$module$src$vga$$.prototype.port3D5_write16 = function($register$jscomp$17$$) {
@@ -10816,50 +10902,50 @@ $VGAScreen$$module$src$vga$$.prototype.port3D5_read16 = function() {
 };
 $VGAScreen$$module$src$vga$$.prototype.port3DA_read = function() {
   $dbg_log$$module$src$log$$("3DA read - status 1 and clear attr index", 256);
-  var $value$jscomp$179$$ = this.port_3DA_value;
+  var $value$jscomp$185$$ = this.port_3DA_value;
   this.graphical_mode ? (this.port_3DA_value ^= 1, this.port_3DA_value &= 1) : (this.port_3DA_value & 1 && (this.port_3DA_value ^= 8), this.port_3DA_value ^= 1);
   this.attribute_controller_index = -1;
-  return $value$jscomp$179$$;
+  return $value$jscomp$185$$;
 };
 $VGAScreen$$module$src$vga$$.prototype.port1CE_read = function() {
   return this.dispi_index;
 };
-$VGAScreen$$module$src$vga$$.prototype.port1CE_write = function($value$jscomp$180$$) {
-  this.dispi_index = $value$jscomp$180$$;
+$VGAScreen$$module$src$vga$$.prototype.port1CE_write = function($value$jscomp$186$$) {
+  this.dispi_index = $value$jscomp$186$$;
 };
-$VGAScreen$$module$src$vga$$.prototype.port1CF_write = function($is_graphical$jscomp$3_value$jscomp$181$$) {
-  $dbg_log$$module$src$log$$("1CF / dispi write " + $h$$module$src$lib$$(this.dispi_index) + ": " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$181$$), 256);
+$VGAScreen$$module$src$vga$$.prototype.port1CF_write = function($is_graphical$jscomp$3_value$jscomp$187$$) {
+  $dbg_log$$module$src$log$$("1CF / dispi write " + $h$$module$src$lib$$(this.dispi_index) + ": " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$187$$), 256);
   const $was_enabled$$ = this.svga_enabled;
   switch(this.dispi_index) {
     case 0:
-      45248 <= $is_graphical$jscomp$3_value$jscomp$181$$ && 45253 >= $is_graphical$jscomp$3_value$jscomp$181$$ ? this.svga_version = $is_graphical$jscomp$3_value$jscomp$181$$ : $dbg_log$$module$src$log$$("Invalid version value: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$181$$), 256);
+      45248 <= $is_graphical$jscomp$3_value$jscomp$187$$ && 45253 >= $is_graphical$jscomp$3_value$jscomp$187$$ ? this.svga_version = $is_graphical$jscomp$3_value$jscomp$187$$ : $dbg_log$$module$src$log$$("Invalid version value: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$187$$), 256);
       break;
     case 1:
-      this.svga_width = $is_graphical$jscomp$3_value$jscomp$181$$;
+      this.svga_width = $is_graphical$jscomp$3_value$jscomp$187$$;
       2560 < this.svga_width && ($dbg_log$$module$src$log$$("svga_width reduced from " + this.svga_width + " to 2560", 256), this.svga_width = 2560);
       break;
     case 2:
-      this.svga_height = $is_graphical$jscomp$3_value$jscomp$181$$;
+      this.svga_height = $is_graphical$jscomp$3_value$jscomp$187$$;
       1600 < this.svga_height && ($dbg_log$$module$src$log$$("svga_height reduced from " + this.svga_height + " to 1600", 256), this.svga_height = 1600);
       break;
     case 3:
-      this.svga_bpp = $is_graphical$jscomp$3_value$jscomp$181$$;
+      this.svga_bpp = $is_graphical$jscomp$3_value$jscomp$187$$;
       break;
     case 4:
-      this.dispi_enable_value = $is_graphical$jscomp$3_value$jscomp$181$$;
-      !($is_graphical$jscomp$3_value$jscomp$181$$ & 1) && this.svga_enabled && this.cpu.flags[0] & 131072 || (this.svga_enabled = 1 === ($is_graphical$jscomp$3_value$jscomp$181$$ & 1)) && 0 === ($is_graphical$jscomp$3_value$jscomp$181$$ & 128) && this.svga_memory.fill(0);
+      this.dispi_enable_value = $is_graphical$jscomp$3_value$jscomp$187$$;
+      !($is_graphical$jscomp$3_value$jscomp$187$$ & 1) && this.svga_enabled && this.cpu.flags[0] & 131072 || (this.svga_enabled = 1 === ($is_graphical$jscomp$3_value$jscomp$187$$ & 1)) && 0 === ($is_graphical$jscomp$3_value$jscomp$187$$ & 128) && this.svga_memory.fill(0);
       break;
     case 5:
-      $dbg_log$$module$src$log$$("SVGA bank offset: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$181$$ << 16), 256);
-      this.svga_bank_offset = $is_graphical$jscomp$3_value$jscomp$181$$ << 16;
+      $dbg_log$$module$src$log$$("SVGA bank offset: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$187$$ << 16), 256);
+      this.svga_bank_offset = $is_graphical$jscomp$3_value$jscomp$187$$ << 16;
       break;
     case 8:
-      $dbg_log$$module$src$log$$("SVGA X offset: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$181$$), 256);
-      this.svga_offset_x !== $is_graphical$jscomp$3_value$jscomp$181$$ && (this.svga_offset_x = $is_graphical$jscomp$3_value$jscomp$181$$, this.svga_offset = this.svga_offset_y * this.svga_width + this.svga_offset_x, this.complete_redraw());
+      $dbg_log$$module$src$log$$("SVGA X offset: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$187$$), 256);
+      this.svga_offset_x !== $is_graphical$jscomp$3_value$jscomp$187$$ && (this.svga_offset_x = $is_graphical$jscomp$3_value$jscomp$187$$, this.svga_offset = this.svga_offset_y * this.svga_width + this.svga_offset_x, this.complete_redraw());
       break;
     case 9:
-      $dbg_log$$module$src$log$$("SVGA Y offset: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$181$$ * this.svga_width) + " y=" + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$181$$), 256);
-      this.svga_offset_y !== $is_graphical$jscomp$3_value$jscomp$181$$ && (this.svga_offset_y = $is_graphical$jscomp$3_value$jscomp$181$$, this.svga_offset = this.svga_offset_y * this.svga_width + this.svga_offset_x, this.complete_redraw());
+      $dbg_log$$module$src$log$$("SVGA Y offset: " + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$187$$ * this.svga_width) + " y=" + $h$$module$src$lib$$($is_graphical$jscomp$3_value$jscomp$187$$), 256);
+      this.svga_offset_y !== $is_graphical$jscomp$3_value$jscomp$187$$ && (this.svga_offset_y = $is_graphical$jscomp$3_value$jscomp$187$$, this.svga_offset = this.svga_offset_y * this.svga_width + this.svga_offset_x, this.complete_redraw());
       break;
     default:
       $dbg_log$$module$src$log$$("Unimplemented dispi write index: " + $h$$module$src$lib$$(this.dispi_index), 256);
@@ -10869,7 +10955,7 @@ $VGAScreen$$module$src$vga$$.prototype.port1CF_write = function($is_graphical$js
   $dbg_assert$$module$src$log$$(4 === this.svga_bpp || 8 === this.svga_bpp || 15 === this.svga_bpp || 16 === this.svga_bpp || 24 === this.svga_bpp || 32 === this.svga_bpp, "unexpected svga bpp: " + this.svga_bpp);
   this.svga_enabled ? $dbg_log$$module$src$log$$("SVGA: enabled, " + this.svga_width + "x" + this.svga_height + "x" + this.svga_bpp, 256) : $dbg_log$$module$src$log$$("SVGA: disabled", 256);
   this.svga_enabled && 4 === this.dispi_index && ($was_enabled$$ || (this.svga_offset_y = this.svga_offset_x = this.svga_offset = 0), this.graphical_mode = !0, this.screen.set_mode(this.graphical_mode), this.set_size_graphical(this.svga_width, this.svga_height, this.svga_width, this.svga_height, this.svga_bpp));
-  $was_enabled$$ && !this.svga_enabled && (this.graphical_mode = $is_graphical$jscomp$3_value$jscomp$181$$ = 0 !== (this.attribute_mode & 1), this.screen.set_mode($is_graphical$jscomp$3_value$jscomp$181$$), this.update_vga_size(), this.set_font_bitmap(!1), this.complete_redraw());
+  $was_enabled$$ && !this.svga_enabled && (this.graphical_mode = $is_graphical$jscomp$3_value$jscomp$187$$ = 0 !== (this.attribute_mode & 1), this.screen.set_mode($is_graphical$jscomp$3_value$jscomp$187$$), this.update_vga_size(), this.set_font_bitmap(!1), this.complete_redraw());
   this.svga_enabled || (this.svga_bank_offset = 0);
   this.update_layers();
 };
@@ -11021,10 +11107,10 @@ $VGAScreen$$module$src$vga$$.prototype.set_font_page = function() {
   this.complete_redraw();
 };
 const $STAT_NAMES$$module$src$virtio_balloon$$ = "SWAP_IN SWAP_OUT MAJFLT MINFLT MEMFREE MEMTOT AVAIL CACHES HTLB_PGALLOC HTLB_PGFAIL".split(" ");
-function $VirtioBalloon$$module$src$virtio_balloon$$($cpu$jscomp$26$$, $bus$jscomp$29$$) {
-  this.bus = $bus$jscomp$29$$;
+function $VirtioBalloon$$module$src$virtio_balloon$$($cpu$jscomp$27$$, $bus$jscomp$30$$) {
+  this.bus = $bus$jscomp$30$$;
   this.zeroed = this.fp_cmd = this.actual = this.num_pages = 0;
-  this.virtio = new $VirtIO$$module$src$virtio$$($cpu$jscomp$26$$, {name:"virtio-balloon", pci_id:88, device_id:4165, subsystem_device_id:5, common:{initial_port:55296, queues:[{size_supported:32, notify_offset:0}, {size_supported:32, notify_offset:0}, {size_supported:2, notify_offset:1}, {size_supported:64, notify_offset:2}, ], features:[1, 3, 32, ], on_driver_ok:() => {
+  this.virtio = new $VirtIO$$module$src$virtio$$($cpu$jscomp$27$$, {name:"virtio-balloon", pci_id:88, device_id:4165, subsystem_device_id:5, common:{initial_port:55296, queues:[{size_supported:32, notify_offset:0}, {size_supported:32, notify_offset:0}, {size_supported:2, notify_offset:1}, {size_supported:64, notify_offset:2}, ], features:[1, 3, 32, ], on_driver_ok:() => {
     $dbg_log$$module$src$log$$("Balloon setup", 2048);
   }, }, notification:{initial_port:55552, single_handler:!1, handlers:[$queue_id$jscomp$12$$ => {
     const $queue$jscomp$7$$ = this.virtio.queues[$queue_id$jscomp$12$$];
@@ -11045,8 +11131,8 @@ function $VirtioBalloon$$module$src$virtio_balloon$$($cpu$jscomp$26$$, $bus$jsco
       $bufchain$jscomp$14_queue$jscomp$8$$.get_next_blob($buffer$jscomp$59$$);
       let $result$jscomp$23$$ = {};
       for (let $i$jscomp$93$$ = 0; $i$jscomp$93$$ < $bufchain$jscomp$14_queue$jscomp$8$$.length_readable; $i$jscomp$93$$ += 10) {
-        let [$cat$$, $value$jscomp$182$$] = $Unmarshall$$module$lib$marshall$$(["h", "d"], $buffer$jscomp$59$$, {offset:$i$jscomp$93$$});
-        $result$jscomp$23$$[$STAT_NAMES$$module$src$virtio_balloon$$[$cat$$]] = $value$jscomp$182$$;
+        let [$cat$$, $value$jscomp$188$$] = $Unmarshall$$module$lib$marshall$$(["h", "d"], $buffer$jscomp$59$$, {offset:$i$jscomp$93$$});
+        $result$jscomp$23$$[$STAT_NAMES$$module$src$virtio_balloon$$[$cat$$]] = $value$jscomp$188$$;
       }
       this.virtio.queues[$queue_id$jscomp$13$$].push_reply($bufchain$jscomp$14_queue$jscomp$8$$);
       this.stats_cb && this.stats_cb($result$jscomp$23$$);
@@ -11091,16 +11177,16 @@ $VirtioBalloon$$module$src$virtio_balloon$$.prototype.Cleanup = function($cb$$) 
   this.virtio.notify_config_changes();
 };
 $VirtioBalloon$$module$src$virtio_balloon$$.prototype.get_state = function() {
-  const $state$jscomp$55$$ = [];
-  $state$jscomp$55$$[0] = this.virtio;
-  $state$jscomp$55$$[1] = this.num_pages;
-  $state$jscomp$55$$[2] = this.actual;
-  return $state$jscomp$55$$;
+  const $state$jscomp$56$$ = [];
+  $state$jscomp$56$$[0] = this.virtio;
+  $state$jscomp$56$$[1] = this.num_pages;
+  $state$jscomp$56$$[2] = this.actual;
+  return $state$jscomp$56$$;
 };
-$VirtioBalloon$$module$src$virtio_balloon$$.prototype.set_state = function($state$jscomp$56$$) {
-  this.virtio.set_state($state$jscomp$56$$[0]);
-  this.num_pages = $state$jscomp$56$$[1];
-  this.actual = $state$jscomp$56$$[2];
+$VirtioBalloon$$module$src$virtio_balloon$$.prototype.set_state = function($state$jscomp$57$$) {
+  this.virtio.set_state($state$jscomp$57$$[0]);
+  this.num_pages = $state$jscomp$57$$[1];
+  this.actual = $state$jscomp$57$$[2];
 };
 $VirtioBalloon$$module$src$virtio_balloon$$.prototype.GetStats = function($data$jscomp$225_queue$jscomp$10$$) {
   this.stats_cb = $data$jscomp$225_queue$jscomp$10$$;
@@ -11200,7 +11286,7 @@ function $load_kernel$$module$src$kernel$$($data8$jscomp$inline_162_mem8$$, $bzi
     }
   }
 }
-;function $CPU$$module$src$cpu$$($bus$jscomp$30$$, $memory$jscomp$1_wm$$, $stop_idling$$) {
+;function $CPU$$module$src$cpu$$($bus$jscomp$31$$, $memory$jscomp$1_wm$$, $stop_idling$$) {
   this.stop_idling = $stop_idling$$;
   this.wm = $memory$jscomp$1_wm$$;
   this.wasm_patch();
@@ -11278,31 +11364,31 @@ function $load_kernel$$module$src$kernel$$($data8$jscomp$inline_162_mem8$$, $bzi
   this.fw_pointer = 0;
   this.option_roms = [];
   this.io = void 0;
-  this.bus = $bus$jscomp$30$$;
+  this.bus = $bus$jscomp$31$$;
   this.set_tsc(0, 0);
   this.seen_code = {};
   this.seen_code_uncompiled = {};
 }
-$CPU$$module$src$cpu$$.prototype.mmap_read8 = function($addr$jscomp$38_value$jscomp$183$$) {
-  $addr$jscomp$38_value$jscomp$183$$ = this.memory_map_read8[$addr$jscomp$38_value$jscomp$183$$ >>> 17]($addr$jscomp$38_value$jscomp$183$$);
-  $dbg_assert$$module$src$log$$(0 <= $addr$jscomp$38_value$jscomp$183$$ && 255 >= $addr$jscomp$38_value$jscomp$183$$);
-  return $addr$jscomp$38_value$jscomp$183$$;
+$CPU$$module$src$cpu$$.prototype.mmap_read8 = function($addr$jscomp$38_value$jscomp$189$$) {
+  $addr$jscomp$38_value$jscomp$189$$ = this.memory_map_read8[$addr$jscomp$38_value$jscomp$189$$ >>> 17]($addr$jscomp$38_value$jscomp$189$$);
+  $dbg_assert$$module$src$log$$(0 <= $addr$jscomp$38_value$jscomp$189$$ && 255 >= $addr$jscomp$38_value$jscomp$189$$);
+  return $addr$jscomp$38_value$jscomp$189$$;
 };
-$CPU$$module$src$cpu$$.prototype.mmap_write8 = function($addr$jscomp$39$$, $value$jscomp$184$$) {
-  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$184$$ && 255 >= $value$jscomp$184$$);
-  this.memory_map_write8[$addr$jscomp$39$$ >>> 17]($addr$jscomp$39$$, $value$jscomp$184$$);
+$CPU$$module$src$cpu$$.prototype.mmap_write8 = function($addr$jscomp$39$$, $value$jscomp$190$$) {
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$190$$ && 255 >= $value$jscomp$190$$);
+  this.memory_map_write8[$addr$jscomp$39$$ >>> 17]($addr$jscomp$39$$, $value$jscomp$190$$);
 };
-$CPU$$module$src$cpu$$.prototype.mmap_write16 = function($addr$jscomp$40$$, $value$jscomp$185$$) {
+$CPU$$module$src$cpu$$.prototype.mmap_write16 = function($addr$jscomp$40$$, $value$jscomp$191$$) {
   var $fn$jscomp$17$$ = this.memory_map_write8[$addr$jscomp$40$$ >>> 17];
-  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$185$$ && 65535 >= $value$jscomp$185$$);
-  $fn$jscomp$17$$($addr$jscomp$40$$, $value$jscomp$185$$ & 255);
-  $fn$jscomp$17$$($addr$jscomp$40$$ + 1 | 0, $value$jscomp$185$$ >> 8);
+  $dbg_assert$$module$src$log$$(0 <= $value$jscomp$191$$ && 65535 >= $value$jscomp$191$$);
+  $fn$jscomp$17$$($addr$jscomp$40$$, $value$jscomp$191$$ & 255);
+  $fn$jscomp$17$$($addr$jscomp$40$$ + 1 | 0, $value$jscomp$191$$ >> 8);
 };
 $CPU$$module$src$cpu$$.prototype.mmap_read32 = function($addr$jscomp$41$$) {
   return this.memory_map_read32[$addr$jscomp$41$$ >>> 17]($addr$jscomp$41$$);
 };
-$CPU$$module$src$cpu$$.prototype.mmap_write32 = function($addr$jscomp$42$$, $value$jscomp$186$$) {
-  this.memory_map_write32[$addr$jscomp$42$$ >>> 17]($addr$jscomp$42$$, $value$jscomp$186$$);
+$CPU$$module$src$cpu$$.prototype.mmap_write32 = function($addr$jscomp$42$$, $value$jscomp$192$$) {
+  this.memory_map_write32[$addr$jscomp$42$$ >>> 17]($addr$jscomp$42$$, $value$jscomp$192$$);
 };
 $CPU$$module$src$cpu$$.prototype.mmap_write64 = function($addr$jscomp$43$$, $value0$jscomp$2$$, $value1$jscomp$9$$) {
   var $aligned_addr$jscomp$5_write_func32$jscomp$1$$ = $addr$jscomp$43$$ >>> 17;
@@ -11409,97 +11495,99 @@ $CPU$$module$src$cpu$$.prototype.jit_clear_all_funcs = function() {
   }
 };
 $CPU$$module$src$cpu$$.prototype.get_state = function() {
-  var $state$jscomp$57$$ = [];
-  $state$jscomp$57$$[0] = this.memory_size[0];
-  $state$jscomp$57$$[1] = new Uint8Array([...this.segment_is_null, ...this.segment_access_bytes]);
-  $state$jscomp$57$$[2] = this.segment_offsets;
-  $state$jscomp$57$$[3] = this.segment_limits;
-  $state$jscomp$57$$[4] = this.protected_mode[0];
-  $state$jscomp$57$$[5] = this.idtr_offset[0];
-  $state$jscomp$57$$[6] = this.idtr_size[0];
-  $state$jscomp$57$$[7] = this.gdtr_offset[0];
-  $state$jscomp$57$$[8] = this.gdtr_size[0];
-  $state$jscomp$57$$[10] = this.cr;
-  $state$jscomp$57$$[11] = this.cpl[0];
-  $state$jscomp$57$$[13] = this.is_32[0];
-  $state$jscomp$57$$[16] = this.stack_size_32[0];
-  $state$jscomp$57$$[17] = this.in_hlt[0];
-  $state$jscomp$57$$[18] = this.last_virt_eip[0];
-  $state$jscomp$57$$[19] = this.eip_phys[0];
-  $state$jscomp$57$$[22] = this.sysenter_cs[0];
-  $state$jscomp$57$$[23] = this.sysenter_eip[0];
-  $state$jscomp$57$$[24] = this.sysenter_esp[0];
-  $state$jscomp$57$$[25] = this.prefixes[0];
-  $state$jscomp$57$$[26] = this.flags[0];
-  $state$jscomp$57$$[27] = this.flags_changed[0];
-  $state$jscomp$57$$[28] = this.last_op1[0];
-  $state$jscomp$57$$[30] = this.last_op_size[0];
-  $state$jscomp$57$$[37] = this.instruction_pointer[0];
-  $state$jscomp$57$$[38] = this.previous_ip[0];
-  $state$jscomp$57$$[39] = this.reg32;
-  $state$jscomp$57$$[40] = this.sreg;
-  $state$jscomp$57$$[41] = this.dreg;
-  $state$jscomp$57$$[42] = this.reg_pdpte;
+  var $state$jscomp$58$$ = [];
+  $state$jscomp$58$$[0] = this.memory_size[0];
+  $state$jscomp$58$$[1] = new Uint8Array([...this.segment_is_null, ...this.segment_access_bytes]);
+  $state$jscomp$58$$[2] = this.segment_offsets;
+  $state$jscomp$58$$[3] = this.segment_limits;
+  $state$jscomp$58$$[4] = this.protected_mode[0];
+  $state$jscomp$58$$[5] = this.idtr_offset[0];
+  $state$jscomp$58$$[6] = this.idtr_size[0];
+  $state$jscomp$58$$[7] = this.gdtr_offset[0];
+  $state$jscomp$58$$[8] = this.gdtr_size[0];
+  $state$jscomp$58$$[10] = this.cr;
+  $state$jscomp$58$$[11] = this.cpl[0];
+  $state$jscomp$58$$[13] = this.is_32[0];
+  $state$jscomp$58$$[16] = this.stack_size_32[0];
+  $state$jscomp$58$$[17] = this.in_hlt[0];
+  $state$jscomp$58$$[18] = this.last_virt_eip[0];
+  $state$jscomp$58$$[19] = this.eip_phys[0];
+  $state$jscomp$58$$[22] = this.sysenter_cs[0];
+  $state$jscomp$58$$[23] = this.sysenter_eip[0];
+  $state$jscomp$58$$[24] = this.sysenter_esp[0];
+  $state$jscomp$58$$[25] = this.prefixes[0];
+  $state$jscomp$58$$[26] = this.flags[0];
+  $state$jscomp$58$$[27] = this.flags_changed[0];
+  $state$jscomp$58$$[28] = this.last_op1[0];
+  $state$jscomp$58$$[30] = this.last_op_size[0];
+  $state$jscomp$58$$[37] = this.instruction_pointer[0];
+  $state$jscomp$58$$[38] = this.previous_ip[0];
+  $state$jscomp$58$$[39] = this.reg32;
+  $state$jscomp$58$$[40] = this.sreg;
+  $state$jscomp$58$$[41] = this.dreg;
+  $state$jscomp$58$$[42] = this.reg_pdpte;
   this.store_current_tsc();
-  $state$jscomp$57$$[43] = this.current_tsc;
-  $state$jscomp$57$$[45] = this.devices.virtio_9p;
-  $state$jscomp$57$$[46] = this.get_state_apic();
-  $state$jscomp$57$$[47] = this.devices.rtc;
-  $state$jscomp$57$$[48] = this.devices.pci;
-  $state$jscomp$57$$[49] = this.devices.dma;
-  $state$jscomp$57$$[50] = this.devices.acpi;
-  $state$jscomp$57$$[52] = this.devices.vga;
-  $state$jscomp$57$$[53] = this.devices.ps2;
-  $state$jscomp$57$$[54] = this.devices.uart0;
-  $state$jscomp$57$$[55] = this.devices.fdc;
-  this.devices.ide.secondary ? $state$jscomp$57$$[85] = this.devices.ide : this.devices.ide.primary?.master.is_atapi ? $state$jscomp$57$$[56] = this.devices.ide.primary : $state$jscomp$57$$[57] = this.devices.ide.primary;
-  $state$jscomp$57$$[58] = this.devices.pit;
-  $state$jscomp$57$$[59] = this.devices.net;
-  $state$jscomp$57$$[60] = this.get_state_pic();
-  $state$jscomp$57$$[61] = this.devices.sb16;
-  $state$jscomp$57$$[62] = this.fw_value;
-  $state$jscomp$57$$[63] = this.get_state_ioapic();
-  $state$jscomp$57$$[64] = this.tss_size_32[0];
-  $state$jscomp$57$$[66] = this.reg_xmm32s;
-  $state$jscomp$57$$[67] = this.fpu_st;
-  $state$jscomp$57$$[68] = this.fpu_stack_empty[0];
-  $state$jscomp$57$$[69] = this.fpu_stack_ptr[0];
-  $state$jscomp$57$$[70] = this.fpu_control_word[0];
-  $state$jscomp$57$$[71] = this.fpu_ip[0];
-  $state$jscomp$57$$[72] = this.fpu_ip_selector[0];
-  $state$jscomp$57$$[73] = this.fpu_dp[0];
-  $state$jscomp$57$$[74] = this.fpu_dp_selector[0];
-  $state$jscomp$57$$[75] = this.fpu_opcode[0];
+  $state$jscomp$58$$[43] = this.current_tsc;
+  $state$jscomp$58$$[45] = this.devices.virtio_9p;
+  $state$jscomp$58$$[46] = this.get_state_apic();
+  $state$jscomp$58$$[47] = this.devices.rtc;
+  $state$jscomp$58$$[48] = this.devices.pci;
+  $state$jscomp$58$$[49] = this.devices.dma;
+  $state$jscomp$58$$[50] = this.devices.acpi;
+  $state$jscomp$58$$[52] = this.devices.vga;
+  $state$jscomp$58$$[53] = this.devices.ps2;
+  $state$jscomp$58$$[54] = this.devices.uart0;
+  $state$jscomp$58$$[55] = this.devices.fdc;
+  this.devices.ide.secondary ? $state$jscomp$58$$[85] = this.devices.ide : this.devices.ide.primary?.master.is_atapi ? $state$jscomp$58$$[56] = this.devices.ide.primary : $state$jscomp$58$$[57] = this.devices.ide.primary;
+  $state$jscomp$58$$[58] = this.devices.pit;
+  $state$jscomp$58$$[59] = this.devices.net;
+  $state$jscomp$58$$[60] = this.get_state_pic();
+  $state$jscomp$58$$[61] = this.devices.sb16;
+  $state$jscomp$58$$[62] = this.fw_value;
+  $state$jscomp$58$$[63] = this.get_state_ioapic();
+  $state$jscomp$58$$[64] = this.tss_size_32[0];
+  $state$jscomp$58$$[66] = this.reg_xmm32s;
+  $state$jscomp$58$$[67] = this.fpu_st;
+  $state$jscomp$58$$[68] = this.fpu_stack_empty[0];
+  $state$jscomp$58$$[69] = this.fpu_stack_ptr[0];
+  $state$jscomp$58$$[70] = this.fpu_control_word[0];
+  $state$jscomp$58$$[71] = this.fpu_ip[0];
+  $state$jscomp$58$$[72] = this.fpu_ip_selector[0];
+  $state$jscomp$58$$[73] = this.fpu_dp[0];
+  $state$jscomp$58$$[74] = this.fpu_dp_selector[0];
+  $state$jscomp$58$$[75] = this.fpu_opcode[0];
   const {packed_memory:$packed_memory$$, bitmap:$bitmap$jscomp$2$$} = this.pack_memory();
-  $state$jscomp$57$$[77] = $packed_memory$$;
-  $state$jscomp$57$$[78] = new Uint8Array($bitmap$jscomp$2$$.get_buffer());
-  $state$jscomp$57$$[79] = this.devices.uart1;
-  $state$jscomp$57$$[80] = this.devices.uart2;
-  $state$jscomp$57$$[81] = this.devices.uart3;
-  $state$jscomp$57$$[82] = this.devices.virtio_console;
-  $state$jscomp$57$$[83] = this.devices.virtio_net;
-  $state$jscomp$57$$[84] = this.devices.virtio_balloon;
-  $state$jscomp$57$$[86] = this.last_result;
-  $state$jscomp$57$$[87] = this.fpu_status_word;
-  $state$jscomp$57$$[88] = this.mxcsr;
-  $state$jscomp$57$$[89] = this.devices.vmware;
-  return $state$jscomp$57$$;
+  $state$jscomp$58$$[77] = $packed_memory$$;
+  $state$jscomp$58$$[78] = new Uint8Array($bitmap$jscomp$2$$.get_buffer());
+  $state$jscomp$58$$[79] = this.devices.uart1;
+  $state$jscomp$58$$[80] = this.devices.uart2;
+  $state$jscomp$58$$[81] = this.devices.uart3;
+  $state$jscomp$58$$[82] = this.devices.virtio_console;
+  $state$jscomp$58$$[83] = this.devices.virtio_net;
+  $state$jscomp$58$$[84] = this.devices.virtio_balloon;
+  $state$jscomp$58$$[86] = this.last_result;
+  $state$jscomp$58$$[87] = this.fpu_status_word;
+  $state$jscomp$58$$[88] = this.mxcsr;
+  $state$jscomp$58$$[89] = this.devices.vmware;
+  $state$jscomp$58$$[90] = this.devices.parallel0;
+  $state$jscomp$58$$[91] = this.devices.parallel1;
+  return $state$jscomp$58$$;
 };
 $CPU$$module$src$cpu$$.prototype.get_state_pic = function() {
-  const $pic$$ = new Uint8Array(this.wasm_memory.buffer, this.get_pic_addr_master(), 13), $pic_slave$$ = new Uint8Array(this.wasm_memory.buffer, this.get_pic_addr_slave(), 13), $state$jscomp$58$$ = [], $state_slave$$ = [];
-  $state$jscomp$58$$[0] = $pic$$[0];
-  $state$jscomp$58$$[1] = $pic$$[1];
-  $state$jscomp$58$$[2] = $pic$$[2];
-  $state$jscomp$58$$[3] = $pic$$[3];
-  $state$jscomp$58$$[4] = $pic$$[4];
-  $state$jscomp$58$$[5] = $state_slave$$;
-  $state$jscomp$58$$[6] = $pic$$[6];
-  $state$jscomp$58$$[7] = $pic$$[7];
-  $state$jscomp$58$$[8] = $pic$$[8];
-  $state$jscomp$58$$[9] = $pic$$[9];
-  $state$jscomp$58$$[10] = $pic$$[10];
-  $state$jscomp$58$$[11] = $pic$$[11];
-  $state$jscomp$58$$[12] = $pic$$[12];
+  const $pic$$ = new Uint8Array(this.wasm_memory.buffer, this.get_pic_addr_master(), 13), $pic_slave$$ = new Uint8Array(this.wasm_memory.buffer, this.get_pic_addr_slave(), 13), $state$jscomp$59$$ = [], $state_slave$$ = [];
+  $state$jscomp$59$$[0] = $pic$$[0];
+  $state$jscomp$59$$[1] = $pic$$[1];
+  $state$jscomp$59$$[2] = $pic$$[2];
+  $state$jscomp$59$$[3] = $pic$$[3];
+  $state$jscomp$59$$[4] = $pic$$[4];
+  $state$jscomp$59$$[5] = $state_slave$$;
+  $state$jscomp$59$$[6] = $pic$$[6];
+  $state$jscomp$59$$[7] = $pic$$[7];
+  $state$jscomp$59$$[8] = $pic$$[8];
+  $state$jscomp$59$$[9] = $pic$$[9];
+  $state$jscomp$59$$[10] = $pic$$[10];
+  $state$jscomp$59$$[11] = $pic$$[11];
+  $state$jscomp$59$$[12] = $pic$$[12];
   $state_slave$$[0] = $pic_slave$$[0];
   $state_slave$$[1] = $pic_slave$$[1];
   $state_slave$$[2] = $pic_slave$$[2];
@@ -11513,7 +11601,7 @@ $CPU$$module$src$cpu$$.prototype.get_state_pic = function() {
   $state_slave$$[10] = $pic_slave$$[10];
   $state_slave$$[11] = $pic_slave$$[11];
   $state_slave$$[12] = $pic_slave$$[12];
-  return $state$jscomp$58$$;
+  return $state$jscomp$59$$;
 };
 $CPU$$module$src$cpu$$.prototype.get_state_apic = function() {
   return new Uint8Array(this.wasm_memory.buffer, this.get_apic_addr(), 184);
@@ -11521,99 +11609,101 @@ $CPU$$module$src$cpu$$.prototype.get_state_apic = function() {
 $CPU$$module$src$cpu$$.prototype.get_state_ioapic = function() {
   return new Uint8Array(this.wasm_memory.buffer, this.get_ioapic_addr(), 208);
 };
-$CPU$$module$src$cpu$$.prototype.set_state = function($state$jscomp$59$$) {
-  this.memory_size[0] = $state$jscomp$59$$[0];
+$CPU$$module$src$cpu$$.prototype.set_state = function($state$jscomp$60$$) {
+  this.memory_size[0] = $state$jscomp$60$$[0];
   this.mem8.length !== this.memory_size[0] && console.warn("Note: Memory size mismatch. we=" + this.mem8.length + " state=" + this.memory_size[0]);
-  8 === $state$jscomp$59$$[1].length ? (this.segment_is_null.set($state$jscomp$59$$[1]), this.segment_access_bytes.fill(242), this.segment_access_bytes[1] = 250) : 16 === $state$jscomp$59$$[1].length ? (this.segment_is_null.set($state$jscomp$59$$[1].subarray(0, 8)), this.segment_access_bytes.set($state$jscomp$59$$[1].subarray(8, 16))) : $dbg_assert$$module$src$log$$("Unexpected cpu segment state length:" + $state$jscomp$59$$[1].length);
-  this.segment_offsets.set($state$jscomp$59$$[2]);
-  this.segment_limits.set($state$jscomp$59$$[3]);
-  this.protected_mode[0] = $state$jscomp$59$$[4];
-  this.idtr_offset[0] = $state$jscomp$59$$[5];
-  this.idtr_size[0] = $state$jscomp$59$$[6];
-  this.gdtr_offset[0] = $state$jscomp$59$$[7];
-  this.gdtr_size[0] = $state$jscomp$59$$[8];
-  this.cr.set($state$jscomp$59$$[10]);
-  this.cpl[0] = $state$jscomp$59$$[11];
-  this.is_32[0] = $state$jscomp$59$$[13];
-  this.stack_size_32[0] = $state$jscomp$59$$[16];
-  this.in_hlt[0] = $state$jscomp$59$$[17];
-  this.last_virt_eip[0] = $state$jscomp$59$$[18];
-  this.eip_phys[0] = $state$jscomp$59$$[19];
-  this.sysenter_cs[0] = $state$jscomp$59$$[22];
-  this.sysenter_eip[0] = $state$jscomp$59$$[23];
-  this.sysenter_esp[0] = $state$jscomp$59$$[24];
-  this.prefixes[0] = $state$jscomp$59$$[25];
-  this.flags[0] = $state$jscomp$59$$[26];
-  this.flags_changed[0] = $state$jscomp$59$$[27];
-  this.last_op1[0] = $state$jscomp$59$$[28];
-  this.last_op_size[0] = $state$jscomp$59$$[30];
-  this.instruction_pointer[0] = $state$jscomp$59$$[37];
-  this.previous_ip[0] = $state$jscomp$59$$[38];
-  this.reg32.set($state$jscomp$59$$[39]);
-  this.sreg.set($state$jscomp$59$$[40]);
-  this.dreg.set($state$jscomp$59$$[41]);
-  $state$jscomp$59$$[42] && this.reg_pdpte.set($state$jscomp$59$$[42]);
-  this.set_tsc($state$jscomp$59$$[43][0], $state$jscomp$59$$[43][1]);
-  this.devices.virtio_9p && this.devices.virtio_9p.set_state($state$jscomp$59$$[45]);
-  $state$jscomp$59$$[46] && this.set_state_apic($state$jscomp$59$$[46]);
-  this.devices.rtc && this.devices.rtc.set_state($state$jscomp$59$$[47]);
-  this.devices.dma && this.devices.dma.set_state($state$jscomp$59$$[49]);
-  this.devices.acpi && this.devices.acpi.set_state($state$jscomp$59$$[50]);
-  this.devices.vga && this.devices.vga.set_state($state$jscomp$59$$[52]);
-  this.devices.ps2 && this.devices.ps2.set_state($state$jscomp$59$$[53]);
-  this.devices.uart0 && this.devices.uart0.set_state($state$jscomp$59$$[54]);
-  this.devices.fdc && this.devices.fdc.set_state($state$jscomp$59$$[55]);
-  $state$jscomp$59$$[56] || $state$jscomp$59$$[57] ? ($bitmap$jscomp$3_ide_config$jscomp$1$$ = [[void 0, void 0], [void 0, void 0]], $bitmap$jscomp$3_ide_config$jscomp$1$$[0][0] = $state$jscomp$59$$[56] ? {is_cdrom:!0, buffer:this.devices.cdrom.buffer} : {is_cdrom:!1, buffer:this.devices.ide.primary.master.buffer}, this.devices.ide = new $IDEController$$module$src$ide$$(this, this.devices.ide.bus, $bitmap$jscomp$3_ide_config$jscomp$1$$), this.devices.cdrom = $state$jscomp$59$$[56] ? this.devices.ide.primary.master : 
-  void 0, this.devices.ide.primary.set_state($state$jscomp$59$$[56] || $state$jscomp$59$$[57])) : $state$jscomp$59$$[85] && this.devices.ide.set_state($state$jscomp$59$$[85]);
-  this.devices.pci && this.devices.pci.set_state($state$jscomp$59$$[48]);
-  this.devices.pit && this.devices.pit.set_state($state$jscomp$59$$[58]);
-  this.devices.net && this.devices.net.set_state($state$jscomp$59$$[59]);
-  this.set_state_pic($state$jscomp$59$$[60]);
-  this.devices.sb16 && this.devices.sb16.set_state($state$jscomp$59$$[61]);
-  this.devices.uart1 && this.devices.uart1.set_state($state$jscomp$59$$[79]);
-  this.devices.uart2 && this.devices.uart2.set_state($state$jscomp$59$$[80]);
-  this.devices.uart3 && this.devices.uart3.set_state($state$jscomp$59$$[81]);
-  this.devices.virtio_console && this.devices.virtio_console.set_state($state$jscomp$59$$[82]);
-  this.devices.virtio_net && this.devices.virtio_net.set_state($state$jscomp$59$$[83]);
-  this.devices.virtio_balloon && this.devices.virtio_balloon.set_state($state$jscomp$59$$[84]);
-  this.devices.vmware && $state$jscomp$59$$[89] && this.devices.vmware.set_state($state$jscomp$59$$[89]);
-  this.fw_value = $state$jscomp$59$$[62];
-  $state$jscomp$59$$[63] && this.set_state_ioapic($state$jscomp$59$$[63]);
-  this.tss_size_32[0] = $state$jscomp$59$$[64];
-  this.reg_xmm32s.set($state$jscomp$59$$[66]);
-  this.fpu_st.set($state$jscomp$59$$[67]);
-  this.fpu_stack_empty[0] = $state$jscomp$59$$[68];
-  this.fpu_stack_ptr[0] = $state$jscomp$59$$[69];
-  this.fpu_control_word[0] = $state$jscomp$59$$[70];
-  this.fpu_ip[0] = $state$jscomp$59$$[71];
-  this.fpu_ip_selector[0] = $state$jscomp$59$$[72];
-  this.fpu_dp[0] = $state$jscomp$59$$[73];
-  this.fpu_dp_selector[0] = $state$jscomp$59$$[74];
-  this.fpu_opcode[0] = $state$jscomp$59$$[75];
-  void 0 !== $state$jscomp$59$$[86] && (this.last_result = $state$jscomp$59$$[86]);
-  void 0 !== $state$jscomp$59$$[87] && (this.fpu_status_word = $state$jscomp$59$$[87]);
-  void 0 !== $state$jscomp$59$$[88] && (this.mxcsr = $state$jscomp$59$$[88]);
-  var $bitmap$jscomp$3_ide_config$jscomp$1$$ = new $Bitmap$$module$src$lib$$($state$jscomp$59$$[78].buffer);
-  this.unpack_memory($bitmap$jscomp$3_ide_config$jscomp$1$$, $state$jscomp$59$$[77]);
+  8 === $state$jscomp$60$$[1].length ? (this.segment_is_null.set($state$jscomp$60$$[1]), this.segment_access_bytes.fill(242), this.segment_access_bytes[1] = 250) : 16 === $state$jscomp$60$$[1].length ? (this.segment_is_null.set($state$jscomp$60$$[1].subarray(0, 8)), this.segment_access_bytes.set($state$jscomp$60$$[1].subarray(8, 16))) : $dbg_assert$$module$src$log$$("Unexpected cpu segment state length:" + $state$jscomp$60$$[1].length);
+  this.segment_offsets.set($state$jscomp$60$$[2]);
+  this.segment_limits.set($state$jscomp$60$$[3]);
+  this.protected_mode[0] = $state$jscomp$60$$[4];
+  this.idtr_offset[0] = $state$jscomp$60$$[5];
+  this.idtr_size[0] = $state$jscomp$60$$[6];
+  this.gdtr_offset[0] = $state$jscomp$60$$[7];
+  this.gdtr_size[0] = $state$jscomp$60$$[8];
+  this.cr.set($state$jscomp$60$$[10]);
+  this.cpl[0] = $state$jscomp$60$$[11];
+  this.is_32[0] = $state$jscomp$60$$[13];
+  this.stack_size_32[0] = $state$jscomp$60$$[16];
+  this.in_hlt[0] = $state$jscomp$60$$[17];
+  this.last_virt_eip[0] = $state$jscomp$60$$[18];
+  this.eip_phys[0] = $state$jscomp$60$$[19];
+  this.sysenter_cs[0] = $state$jscomp$60$$[22];
+  this.sysenter_eip[0] = $state$jscomp$60$$[23];
+  this.sysenter_esp[0] = $state$jscomp$60$$[24];
+  this.prefixes[0] = $state$jscomp$60$$[25];
+  this.flags[0] = $state$jscomp$60$$[26];
+  this.flags_changed[0] = $state$jscomp$60$$[27];
+  this.last_op1[0] = $state$jscomp$60$$[28];
+  this.last_op_size[0] = $state$jscomp$60$$[30];
+  this.instruction_pointer[0] = $state$jscomp$60$$[37];
+  this.previous_ip[0] = $state$jscomp$60$$[38];
+  this.reg32.set($state$jscomp$60$$[39]);
+  this.sreg.set($state$jscomp$60$$[40]);
+  this.dreg.set($state$jscomp$60$$[41]);
+  $state$jscomp$60$$[42] && this.reg_pdpte.set($state$jscomp$60$$[42]);
+  this.set_tsc($state$jscomp$60$$[43][0], $state$jscomp$60$$[43][1]);
+  this.devices.virtio_9p && this.devices.virtio_9p.set_state($state$jscomp$60$$[45]);
+  $state$jscomp$60$$[46] && this.set_state_apic($state$jscomp$60$$[46]);
+  this.devices.rtc && this.devices.rtc.set_state($state$jscomp$60$$[47]);
+  this.devices.dma && this.devices.dma.set_state($state$jscomp$60$$[49]);
+  this.devices.acpi && this.devices.acpi.set_state($state$jscomp$60$$[50]);
+  this.devices.vga && this.devices.vga.set_state($state$jscomp$60$$[52]);
+  this.devices.ps2 && this.devices.ps2.set_state($state$jscomp$60$$[53]);
+  this.devices.uart0 && this.devices.uart0.set_state($state$jscomp$60$$[54]);
+  this.devices.fdc && this.devices.fdc.set_state($state$jscomp$60$$[55]);
+  $state$jscomp$60$$[56] || $state$jscomp$60$$[57] ? ($bitmap$jscomp$3_ide_config$jscomp$1$$ = [[void 0, void 0], [void 0, void 0]], $bitmap$jscomp$3_ide_config$jscomp$1$$[0][0] = $state$jscomp$60$$[56] ? {is_cdrom:!0, buffer:this.devices.cdrom.buffer} : {is_cdrom:!1, buffer:this.devices.ide.primary.master.buffer}, this.devices.ide = new $IDEController$$module$src$ide$$(this, this.devices.ide.bus, $bitmap$jscomp$3_ide_config$jscomp$1$$), this.devices.cdrom = $state$jscomp$60$$[56] ? this.devices.ide.primary.master : 
+  void 0, this.devices.ide.primary.set_state($state$jscomp$60$$[56] || $state$jscomp$60$$[57])) : $state$jscomp$60$$[85] && this.devices.ide.set_state($state$jscomp$60$$[85]);
+  this.devices.pci && this.devices.pci.set_state($state$jscomp$60$$[48]);
+  this.devices.pit && this.devices.pit.set_state($state$jscomp$60$$[58]);
+  this.devices.net && this.devices.net.set_state($state$jscomp$60$$[59]);
+  this.set_state_pic($state$jscomp$60$$[60]);
+  this.devices.sb16 && this.devices.sb16.set_state($state$jscomp$60$$[61]);
+  this.devices.uart1 && this.devices.uart1.set_state($state$jscomp$60$$[79]);
+  this.devices.uart2 && this.devices.uart2.set_state($state$jscomp$60$$[80]);
+  this.devices.uart3 && this.devices.uart3.set_state($state$jscomp$60$$[81]);
+  this.devices.virtio_console && this.devices.virtio_console.set_state($state$jscomp$60$$[82]);
+  this.devices.virtio_net && this.devices.virtio_net.set_state($state$jscomp$60$$[83]);
+  this.devices.virtio_balloon && this.devices.virtio_balloon.set_state($state$jscomp$60$$[84]);
+  this.devices.vmware && $state$jscomp$60$$[89] && this.devices.vmware.set_state($state$jscomp$60$$[89]);
+  this.devices.parallel0 && $state$jscomp$60$$[90] && this.devices.parallel0.set_state($state$jscomp$60$$[90]);
+  this.devices.parallel1 && $state$jscomp$60$$[91] && this.devices.parallel1.set_state($state$jscomp$60$$[91]);
+  this.fw_value = $state$jscomp$60$$[62];
+  $state$jscomp$60$$[63] && this.set_state_ioapic($state$jscomp$60$$[63]);
+  this.tss_size_32[0] = $state$jscomp$60$$[64];
+  this.reg_xmm32s.set($state$jscomp$60$$[66]);
+  this.fpu_st.set($state$jscomp$60$$[67]);
+  this.fpu_stack_empty[0] = $state$jscomp$60$$[68];
+  this.fpu_stack_ptr[0] = $state$jscomp$60$$[69];
+  this.fpu_control_word[0] = $state$jscomp$60$$[70];
+  this.fpu_ip[0] = $state$jscomp$60$$[71];
+  this.fpu_ip_selector[0] = $state$jscomp$60$$[72];
+  this.fpu_dp[0] = $state$jscomp$60$$[73];
+  this.fpu_dp_selector[0] = $state$jscomp$60$$[74];
+  this.fpu_opcode[0] = $state$jscomp$60$$[75];
+  void 0 !== $state$jscomp$60$$[86] && (this.last_result = $state$jscomp$60$$[86]);
+  void 0 !== $state$jscomp$60$$[87] && (this.fpu_status_word = $state$jscomp$60$$[87]);
+  void 0 !== $state$jscomp$60$$[88] && (this.mxcsr = $state$jscomp$60$$[88]);
+  var $bitmap$jscomp$3_ide_config$jscomp$1$$ = new $Bitmap$$module$src$lib$$($state$jscomp$60$$[78].buffer);
+  this.unpack_memory($bitmap$jscomp$3_ide_config$jscomp$1$$, $state$jscomp$60$$[77]);
   this.update_state_flags();
   this.full_clear_tlb();
   this.jit_clear_cache();
 };
-$CPU$$module$src$cpu$$.prototype.set_state_pic = function($state$jscomp$60$$) {
+$CPU$$module$src$cpu$$.prototype.set_state_pic = function($state$jscomp$61$$) {
   const $pic$jscomp$1$$ = new Uint8Array(this.wasm_memory.buffer, this.get_pic_addr_master(), 13), $pic_slave$jscomp$1$$ = new Uint8Array(this.wasm_memory.buffer, this.get_pic_addr_slave(), 13);
-  $pic$jscomp$1$$[0] = $state$jscomp$60$$[0];
-  $pic$jscomp$1$$[1] = $state$jscomp$60$$[1];
-  $pic$jscomp$1$$[2] = $state$jscomp$60$$[2];
-  $pic$jscomp$1$$[3] = $state$jscomp$60$$[3];
-  $pic$jscomp$1$$[4] = $state$jscomp$60$$[4];
-  const $state_slave$jscomp$1$$ = $state$jscomp$60$$[5];
-  $pic$jscomp$1$$[6] = $state$jscomp$60$$[6];
-  $pic$jscomp$1$$[7] = $state$jscomp$60$$[7];
-  $pic$jscomp$1$$[8] = $state$jscomp$60$$[8];
-  $pic$jscomp$1$$[9] = $state$jscomp$60$$[9];
-  $pic$jscomp$1$$[10] = $state$jscomp$60$$[10];
-  $pic$jscomp$1$$[11] = $state$jscomp$60$$[11];
-  $pic$jscomp$1$$[12] = $state$jscomp$60$$[12];
+  $pic$jscomp$1$$[0] = $state$jscomp$61$$[0];
+  $pic$jscomp$1$$[1] = $state$jscomp$61$$[1];
+  $pic$jscomp$1$$[2] = $state$jscomp$61$$[2];
+  $pic$jscomp$1$$[3] = $state$jscomp$61$$[3];
+  $pic$jscomp$1$$[4] = $state$jscomp$61$$[4];
+  const $state_slave$jscomp$1$$ = $state$jscomp$61$$[5];
+  $pic$jscomp$1$$[6] = $state$jscomp$61$$[6];
+  $pic$jscomp$1$$[7] = $state$jscomp$61$$[7];
+  $pic$jscomp$1$$[8] = $state$jscomp$61$$[8];
+  $pic$jscomp$1$$[9] = $state$jscomp$61$$[9];
+  $pic$jscomp$1$$[10] = $state$jscomp$61$$[10];
+  $pic$jscomp$1$$[11] = $state$jscomp$61$$[11];
+  $pic$jscomp$1$$[12] = $state$jscomp$61$$[12];
   $pic_slave$jscomp$1$$[0] = $state_slave$jscomp$1$$[0];
   $pic_slave$jscomp$1$$[1] = $state_slave$jscomp$1$$[1];
   $pic_slave$jscomp$1$$[2] = $state_slave$jscomp$1$$[2];
@@ -11627,49 +11717,49 @@ $CPU$$module$src$cpu$$.prototype.set_state_pic = function($state$jscomp$60$$) {
   $pic_slave$jscomp$1$$[11] = $state_slave$jscomp$1$$[11];
   $pic_slave$jscomp$1$$[12] = $state_slave$jscomp$1$$[12];
 };
-$CPU$$module$src$cpu$$.prototype.set_state_apic = function($state$jscomp$61$$) {
-  if ($state$jscomp$61$$ instanceof Array) {
+$CPU$$module$src$cpu$$.prototype.set_state_apic = function($state$jscomp$62$$) {
+  if ($state$jscomp$62$$ instanceof Array) {
     var $apic_apic$jscomp$1$$ = new Int32Array(this.wasm_memory.buffer, this.get_apic_addr(), 46);
-    $apic_apic$jscomp$1$$[0] = $state$jscomp$61$$[0];
-    $apic_apic$jscomp$1$$[1] = $state$jscomp$61$$[1];
-    $apic_apic$jscomp$1$$[2] = $state$jscomp$61$$[2];
-    $apic_apic$jscomp$1$$[3] = $state$jscomp$61$$[3];
-    $apic_apic$jscomp$1$$[4] = $state$jscomp$61$$[4];
-    $apic_apic$jscomp$1$$[8] = $state$jscomp$61$$[6];
-    $apic_apic$jscomp$1$$[9] = $state$jscomp$61$$[7];
-    $apic_apic$jscomp$1$$[10] = $state$jscomp$61$$[8];
-    $apic_apic$jscomp$1$$[11] = $state$jscomp$61$$[9];
-    $apic_apic$jscomp$1$$[12] = $state$jscomp$61$$[10];
-    $apic_apic$jscomp$1$$[13] = $state$jscomp$61$$[11];
-    $apic_apic$jscomp$1$$[14] = $state$jscomp$61$$[12];
-    $apic_apic$jscomp$1$$[15] = $state$jscomp$61$$[13];
-    $apic_apic$jscomp$1$$.set($state$jscomp$61$$[15], 16);
-    $apic_apic$jscomp$1$$.set($state$jscomp$61$$[15], 24);
-    $apic_apic$jscomp$1$$.set($state$jscomp$61$$[16], 32);
-    $apic_apic$jscomp$1$$[40] = $state$jscomp$61$$[17];
-    $apic_apic$jscomp$1$$[41] = $state$jscomp$61$$[18];
-    $apic_apic$jscomp$1$$[42] = $state$jscomp$61$$[19];
-    $apic_apic$jscomp$1$$[43] = $state$jscomp$61$$[20];
-    $apic_apic$jscomp$1$$[44] = $state$jscomp$61$$[21];
-    $apic_apic$jscomp$1$$[45] = $state$jscomp$61$$[22] || 65536;
+    $apic_apic$jscomp$1$$[0] = $state$jscomp$62$$[0];
+    $apic_apic$jscomp$1$$[1] = $state$jscomp$62$$[1];
+    $apic_apic$jscomp$1$$[2] = $state$jscomp$62$$[2];
+    $apic_apic$jscomp$1$$[3] = $state$jscomp$62$$[3];
+    $apic_apic$jscomp$1$$[4] = $state$jscomp$62$$[4];
+    $apic_apic$jscomp$1$$[8] = $state$jscomp$62$$[6];
+    $apic_apic$jscomp$1$$[9] = $state$jscomp$62$$[7];
+    $apic_apic$jscomp$1$$[10] = $state$jscomp$62$$[8];
+    $apic_apic$jscomp$1$$[11] = $state$jscomp$62$$[9];
+    $apic_apic$jscomp$1$$[12] = $state$jscomp$62$$[10];
+    $apic_apic$jscomp$1$$[13] = $state$jscomp$62$$[11];
+    $apic_apic$jscomp$1$$[14] = $state$jscomp$62$$[12];
+    $apic_apic$jscomp$1$$[15] = $state$jscomp$62$$[13];
+    $apic_apic$jscomp$1$$.set($state$jscomp$62$$[15], 16);
+    $apic_apic$jscomp$1$$.set($state$jscomp$62$$[15], 24);
+    $apic_apic$jscomp$1$$.set($state$jscomp$62$$[16], 32);
+    $apic_apic$jscomp$1$$[40] = $state$jscomp$62$$[17];
+    $apic_apic$jscomp$1$$[41] = $state$jscomp$62$$[18];
+    $apic_apic$jscomp$1$$[42] = $state$jscomp$62$$[19];
+    $apic_apic$jscomp$1$$[43] = $state$jscomp$62$$[20];
+    $apic_apic$jscomp$1$$[44] = $state$jscomp$62$$[21];
+    $apic_apic$jscomp$1$$[45] = $state$jscomp$62$$[22] || 65536;
   } else {
-    $apic_apic$jscomp$1$$ = new Uint8Array(this.wasm_memory.buffer, this.get_apic_addr(), 184), $dbg_assert$$module$src$log$$($state$jscomp$61$$ instanceof Uint8Array), $dbg_assert$$module$src$log$$($state$jscomp$61$$.length === $apic_apic$jscomp$1$$.length), $apic_apic$jscomp$1$$.set($state$jscomp$61$$);
+    $apic_apic$jscomp$1$$ = new Uint8Array(this.wasm_memory.buffer, this.get_apic_addr(), 184), $dbg_assert$$module$src$log$$($state$jscomp$62$$ instanceof Uint8Array), $dbg_assert$$module$src$log$$($state$jscomp$62$$.length === $apic_apic$jscomp$1$$.length), $apic_apic$jscomp$1$$.set($state$jscomp$62$$);
   }
 };
-$CPU$$module$src$cpu$$.prototype.set_state_ioapic = function($state$jscomp$62$$) {
-  if ($state$jscomp$62$$ instanceof Array) {
-    $dbg_assert$$module$src$log$$(24 === $state$jscomp$62$$[0].length);
-    $dbg_assert$$module$src$log$$(24 === $state$jscomp$62$$[1].length);
-    $dbg_assert$$module$src$log$$(6 === $state$jscomp$62$$.length);
+$CPU$$module$src$cpu$$.prototype.set_state_ioapic = function($state$jscomp$63$$) {
+  if ($state$jscomp$63$$ instanceof Array) {
+    $dbg_assert$$module$src$log$$(24 === $state$jscomp$63$$[0].length);
+    $dbg_assert$$module$src$log$$(24 === $state$jscomp$63$$[1].length);
+    $dbg_assert$$module$src$log$$(6 === $state$jscomp$63$$.length);
     var $ioapic_ioapic$jscomp$1$$ = new Int32Array(this.wasm_memory.buffer, this.get_ioapic_addr(), 52);
-    $ioapic_ioapic$jscomp$1$$.set($state$jscomp$62$$[0], 0);
-    $ioapic_ioapic$jscomp$1$$.set($state$jscomp$62$$[1], 24);
-    $ioapic_ioapic$jscomp$1$$[48] = $state$jscomp$62$$[2];
-    $ioapic_ioapic$jscomp$1$$[49] = $state$jscomp$62$$[3];
-    $ioapic_ioapic$jscomp$1$$[50] = $state$jscomp$62$$[4];
-    $ioapic_ioapic$jscomp$1$$[51] = $state$jscomp$62$$[5];
+    $ioapic_ioapic$jscomp$1$$.set($state$jscomp$63$$[0], 0);
+    $ioapic_ioapic$jscomp$1$$.set($state$jscomp$63$$[1], 24);
+    $ioapic_ioapic$jscomp$1$$[48] = $state$jscomp$63$$[2];
+    $ioapic_ioapic$jscomp$1$$[49] = $state$jscomp$63$$[3];
+    $ioapic_ioapic$jscomp$1$$[50] = $state$jscomp$63$$[4];
+    $ioapic_ioapic$jscomp$1$$[51] = $state$jscomp$63$$[5];
   } else {
-    $ioapic_ioapic$jscomp$1$$ = new Uint8Array(this.wasm_memory.buffer, this.get_ioapic_addr(), 208), $dbg_assert$$module$src$log$$($state$jscomp$62$$ instanceof Uint8Array), $dbg_assert$$module$src$log$$($state$jscomp$62$$.length === $ioapic_ioapic$jscomp$1$$.length), $ioapic_ioapic$jscomp$1$$.set($state$jscomp$62$$);
+    $ioapic_ioapic$jscomp$1$$ = new Uint8Array(this.wasm_memory.buffer, this.get_ioapic_addr(), 208), $dbg_assert$$module$src$log$$($state$jscomp$63$$ instanceof Uint8Array), $dbg_assert$$module$src$log$$($state$jscomp$63$$.length === $ioapic_ioapic$jscomp$1$$.length), $ioapic_ioapic$jscomp$1$$.set($state$jscomp$63$$);
   }
 };
 $CPU$$module$src$cpu$$.prototype.pack_memory = function() {
@@ -11727,8 +11817,8 @@ $CPU$$module$src$cpu$$.prototype.init = function($option_rom$jscomp$1_settings$j
   $option_rom$jscomp$1_settings$jscomp$2$$.cpuid_level && this.set_cpuid_level($option_rom$jscomp$1_settings$jscomp$2$$.cpuid_level);
   this.acpi_enabled[0] = +$option_rom$jscomp$1_settings$jscomp$2$$.acpi;
   this.reset_cpu();
-  var $ide_config$jscomp$2_io$jscomp$5$$ = new $IO$$module$src$io$$(this);
-  this.io = $ide_config$jscomp$2_io$jscomp$5$$;
+  var $ide_config$jscomp$2_io$jscomp$6$$ = new $IO$$module$src$io$$(this);
+  this.io = $ide_config$jscomp$2_io$jscomp$6$$;
   this.bios.main = $option_rom$jscomp$1_settings$jscomp$2$$.bios;
   this.bios.vga = $option_rom$jscomp$1_settings$jscomp$2$$.vga_bios;
   this.load_bios();
@@ -11736,25 +11826,25 @@ $CPU$$module$src$cpu$$.prototype.init = function($option_rom$jscomp$1_settings$j
     const $option_rom$$ = $load_kernel$$module$src$kernel$$(this.mem8, $option_rom$jscomp$1_settings$jscomp$2$$.bzimage, $option_rom$jscomp$1_settings$jscomp$2$$.initrd, $option_rom$jscomp$1_settings$jscomp$2$$.cmdline || "");
     $option_rom$$ && this.option_roms.push($option_rom$$);
   }
-  $ide_config$jscomp$2_io$jscomp$5$$.register_read(179, this, function() {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_read(179, this, function() {
     $dbg_log$$module$src$log$$("port 0xB3 read");
     return 0;
   });
   var $a20_byte$$ = 0;
-  $ide_config$jscomp$2_io$jscomp$5$$.register_read(146, this, function() {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_read(146, this, function() {
     return $a20_byte$$;
   });
-  $ide_config$jscomp$2_io$jscomp$5$$.register_write(146, this, function($out_byte$jscomp$13$$) {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_write(146, this, function($out_byte$jscomp$13$$) {
     $a20_byte$$ = $out_byte$jscomp$13$$;
   });
-  $ide_config$jscomp$2_io$jscomp$5$$.register_read(1297, this, function() {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_read(1297, this, function() {
     if (this.fw_pointer < this.fw_value.length) {
       return this.fw_value[this.fw_pointer++];
     }
     $dbg_assert$$module$src$log$$(!1, "config port: Read past value");
     return 0;
   });
-  $ide_config$jscomp$2_io$jscomp$5$$.register_write(1296, this, void 0, function($buffer32_value$jscomp$187$$) {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_write(1296, this, void 0, function($buffer32_value$jscomp$193$$) {
     function $i32$$($x$jscomp$122$$) {
       return new Uint8Array(Int32Array.of($x$jscomp$122$$).buffer);
     }
@@ -11764,35 +11854,35 @@ $CPU$$module$src$cpu$$.prototype.init = function($option_rom$jscomp$1_settings$j
     function $to_be32$$($x$jscomp$124$$) {
       return $x$jscomp$124$$ << 24 | $x$jscomp$124$$ << 8 & 16711680 | $x$jscomp$124$$ >> 8 & 65280 | $x$jscomp$124$$ >>> 24;
     }
-    $dbg_log$$module$src$log$$("bios config port, index=" + $h$$module$src$lib$$($buffer32_value$jscomp$187$$));
+    $dbg_log$$module$src$log$$("bios config port, index=" + $h$$module$src$lib$$($buffer32_value$jscomp$193$$));
     this.fw_pointer = 0;
-    if (0 === $buffer32_value$jscomp$187$$) {
+    if (0 === $buffer32_value$jscomp$193$$) {
       this.fw_value = $i32$$(1431127377);
     } else {
-      if (1 === $buffer32_value$jscomp$187$$) {
+      if (1 === $buffer32_value$jscomp$193$$) {
         this.fw_value = $i32$$(0);
       } else {
-        if (3 === $buffer32_value$jscomp$187$$) {
+        if (3 === $buffer32_value$jscomp$193$$) {
           this.fw_value = new Uint8Array(Int32Array.of(this.memory_size[0], 0).buffer);
         } else {
-          if (5 === $buffer32_value$jscomp$187$$) {
+          if (5 === $buffer32_value$jscomp$193$$) {
             this.fw_value = $i32$$(1);
           } else {
-            if (15 === $buffer32_value$jscomp$187$$) {
+            if (15 === $buffer32_value$jscomp$193$$) {
               this.fw_value = $i32$$(1);
             } else {
-              if (13 === $buffer32_value$jscomp$187$$) {
+              if (13 === $buffer32_value$jscomp$193$$) {
                 this.fw_value = new Uint8Array(16);
               } else {
-                if (25 === $buffer32_value$jscomp$187$$) {
-                  $buffer32_value$jscomp$187$$ = new Int32Array(4 + 64 * this.option_roms.length);
-                  const $buffer8$$ = new Uint8Array($buffer32_value$jscomp$187$$.buffer);
-                  $buffer32_value$jscomp$187$$[0] = $to_be32$$(this.option_roms.length);
+                if (25 === $buffer32_value$jscomp$193$$) {
+                  $buffer32_value$jscomp$193$$ = new Int32Array(4 + 64 * this.option_roms.length);
+                  const $buffer8$$ = new Uint8Array($buffer32_value$jscomp$193$$.buffer);
+                  $buffer32_value$jscomp$193$$[0] = $to_be32$$(this.option_roms.length);
                   for (let $i$jscomp$100$$ = 0; $i$jscomp$100$$ < this.option_roms.length; $i$jscomp$100$$++) {
                     const {name:$name$jscomp$108$$, data:$data$jscomp$226$$} = this.option_roms[$i$jscomp$100$$], $file_struct_ptr$$ = 4 + 64 * $i$jscomp$100$$;
                     $dbg_assert$$module$src$log$$(65536 > 49152 + $i$jscomp$100$$);
-                    $buffer32_value$jscomp$187$$[$file_struct_ptr$$ + 0 >> 2] = $to_be32$$($data$jscomp$226$$.length);
-                    $buffer32_value$jscomp$187$$[$file_struct_ptr$$ + 4 >> 2] = $to_be16$$(49152 + $i$jscomp$100$$);
+                    $buffer32_value$jscomp$193$$[$file_struct_ptr$$ + 0 >> 2] = $to_be32$$($data$jscomp$226$$.length);
+                    $buffer32_value$jscomp$193$$[$file_struct_ptr$$ + 4 >> 2] = $to_be16$$(49152 + $i$jscomp$100$$);
                     $dbg_assert$$module$src$log$$(56 > $name$jscomp$108$$.length);
                     for (let $j$jscomp$11$$ = 0; $j$jscomp$11$$ < $name$jscomp$108$$.length; $j$jscomp$11$$++) {
                       $buffer8$$[$file_struct_ptr$$ + 8 + $j$jscomp$11$$] = $name$jscomp$108$$.charCodeAt($j$jscomp$11$$);
@@ -11800,7 +11890,7 @@ $CPU$$module$src$cpu$$.prototype.init = function($option_rom$jscomp$1_settings$j
                   }
                   this.fw_value = $buffer8$$;
                 } else {
-                  32768 <= $buffer32_value$jscomp$187$$ && 49152 > $buffer32_value$jscomp$187$$ ? this.fw_value = $i32$$(0) : 49152 <= $buffer32_value$jscomp$187$$ && $buffer32_value$jscomp$187$$ - 49152 < this.option_roms.length ? this.fw_value = this.option_roms[$buffer32_value$jscomp$187$$ - 49152].data : ($dbg_log$$module$src$log$$("Warning: Unimplemented fw index: " + $h$$module$src$lib$$($buffer32_value$jscomp$187$$)), this.fw_value = $i32$$(0));
+                  32768 <= $buffer32_value$jscomp$193$$ && 49152 > $buffer32_value$jscomp$193$$ ? this.fw_value = $i32$$(0) : 49152 <= $buffer32_value$jscomp$193$$ && $buffer32_value$jscomp$193$$ - 49152 < this.option_roms.length ? this.fw_value = this.option_roms[$buffer32_value$jscomp$193$$ - 49152].data : ($dbg_log$$module$src$log$$("Warning: Unimplemented fw index: " + $h$$module$src$lib$$($buffer32_value$jscomp$193$$)), this.fw_value = $i32$$(0));
                 }
               }
             }
@@ -11809,21 +11899,22 @@ $CPU$$module$src$cpu$$.prototype.init = function($option_rom$jscomp$1_settings$j
       }
     }
   });
-  $ide_config$jscomp$2_io$jscomp$5$$.register_write(128, this, function() {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_write(128, this, function() {
   });
-  $ide_config$jscomp$2_io$jscomp$5$$.register_read(128, this, function() {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_read(128, this, function() {
     return 255;
   });
-  $ide_config$jscomp$2_io$jscomp$5$$.register_write(233, this, function() {
+  $ide_config$jscomp$2_io$jscomp$6$$.register_write(233, this, function() {
   });
   this.devices = {};
   $option_rom$jscomp$1_settings$jscomp$2$$.load_devices && (this.devices.pci = new $PCI$$module$src$pci$$(this), this.acpi_enabled[0] && (this.devices.acpi = new $ACPI$$module$src$acpi$$(this)), this.devices.rtc = new $RTC$$module$src$rtc$$(this), this.fill_cmos(this.devices.rtc, $option_rom$jscomp$1_settings$jscomp$2$$), this.devices.dma = new $DMA$$module$src$dma$$(this), this.devices.vga = new $VGAScreen$$module$src$vga$$(this, $device_bus$$, $option_rom$jscomp$1_settings$jscomp$2$$.screen, $option_rom$jscomp$1_settings$jscomp$2$$.vga_memory_size || 
-  8388608), this.devices.ps2 = new $PS2$$module$src$ps2$$(this, $device_bus$$), this.devices.vmware = new $VMwareMouse$$module$src$vmware$$(this, $device_bus$$), this.devices.uart0 = new $UART$$module$src$uart$$(this, 1016, $device_bus$$), $option_rom$jscomp$1_settings$jscomp$2$$.uart1 && (this.devices.uart1 = new $UART$$module$src$uart$$(this, 760, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.uart2 && (this.devices.uart2 = new $UART$$module$src$uart$$(this, 1E3, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.uart3 && 
-  (this.devices.uart3 = new $UART$$module$src$uart$$(this, 744, $device_bus$$)), this.devices.fdc = new $FloppyController$$module$src$floppy$$(this, $option_rom$jscomp$1_settings$jscomp$2$$.fda, $option_rom$jscomp$1_settings$jscomp$2$$.fdb), $ide_config$jscomp$2_io$jscomp$5$$ = [[void 0, void 0], [void 0, void 0]], $option_rom$jscomp$1_settings$jscomp$2$$.hda && ($ide_config$jscomp$2_io$jscomp$5$$[0][0] = {buffer:$option_rom$jscomp$1_settings$jscomp$2$$.hda}, $ide_config$jscomp$2_io$jscomp$5$$[0][1] = 
-  {buffer:$option_rom$jscomp$1_settings$jscomp$2$$.hdb}), $ide_config$jscomp$2_io$jscomp$5$$[1][0] = {is_cdrom:!0, buffer:$option_rom$jscomp$1_settings$jscomp$2$$.cdrom}, this.devices.ide = new $IDEController$$module$src$ide$$(this, $device_bus$$, $ide_config$jscomp$2_io$jscomp$5$$), this.devices.cdrom = this.devices.ide.secondary.master, this.devices.pit = new $PIT$$module$src$pit$$(this, $device_bus$$), "ne2k" === $option_rom$jscomp$1_settings$jscomp$2$$.net_device.type ? this.devices.net = new $Ne2k$$module$src$ne2k$$(this, 
-  $device_bus$$, $option_rom$jscomp$1_settings$jscomp$2$$.preserve_mac_from_state_image, $option_rom$jscomp$1_settings$jscomp$2$$.mac_address_translation) : "virtio" === $option_rom$jscomp$1_settings$jscomp$2$$.net_device.type && (this.devices.virtio_net = new $VirtioNet$$module$src$virtio_net$$(this, $device_bus$$, $option_rom$jscomp$1_settings$jscomp$2$$.preserve_mac_from_state_image, $option_rom$jscomp$1_settings$jscomp$2$$.net_device.mtu)), $option_rom$jscomp$1_settings$jscomp$2$$.fs9p ? this.devices.virtio_9p = 
-  new $Virtio9p$$module$lib$9p$$($option_rom$jscomp$1_settings$jscomp$2$$.fs9p, this, $device_bus$$) : $option_rom$jscomp$1_settings$jscomp$2$$.handle9p ? this.devices.virtio_9p = new $Virtio9pHandler$$module$lib$9p$$($option_rom$jscomp$1_settings$jscomp$2$$.handle9p, this) : $option_rom$jscomp$1_settings$jscomp$2$$.proxy9p && (this.devices.virtio_9p = new $Virtio9pProxy$$module$lib$9p$$($option_rom$jscomp$1_settings$jscomp$2$$.proxy9p, this)), $option_rom$jscomp$1_settings$jscomp$2$$.virtio_console && 
-  (this.devices.virtio_console = new $VirtioConsole$$module$src$virtio_console$$(this, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.virtio_balloon && (this.devices.virtio_balloon = new $VirtioBalloon$$module$src$virtio_balloon$$(this, $device_bus$$)), this.devices.sb16 = new $SB16$$module$src$sb16$$(this, $device_bus$$));
+  8388608), this.devices.ps2 = new $PS2$$module$src$ps2$$(this, $device_bus$$), this.devices.vmware = new $VMwareMouse$$module$src$vmware$$(this, $device_bus$$), this.devices.uart0 = new $UART$$module$src$uart$$(this, 1016, $device_bus$$), this.devices.parallel0 = new $ParallelPort$$module$src$parallel$$(this, 888, 7, 0, $device_bus$$), $option_rom$jscomp$1_settings$jscomp$2$$.uart1 && (this.devices.uart1 = new $UART$$module$src$uart$$(this, 760, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.uart2 && 
+  (this.devices.uart2 = new $UART$$module$src$uart$$(this, 1E3, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.uart3 && (this.devices.uart3 = new $UART$$module$src$uart$$(this, 744, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.parallel1 && (this.devices.parallel1 = new $ParallelPort$$module$src$parallel$$(this, 632, 5, 1, $device_bus$$)), this.devices.fdc = new $FloppyController$$module$src$floppy$$(this, $option_rom$jscomp$1_settings$jscomp$2$$.fda, $option_rom$jscomp$1_settings$jscomp$2$$.fdb), 
+  $ide_config$jscomp$2_io$jscomp$6$$ = [[void 0, void 0], [void 0, void 0]], $option_rom$jscomp$1_settings$jscomp$2$$.hda && ($ide_config$jscomp$2_io$jscomp$6$$[0][0] = {buffer:$option_rom$jscomp$1_settings$jscomp$2$$.hda}, $ide_config$jscomp$2_io$jscomp$6$$[0][1] = {buffer:$option_rom$jscomp$1_settings$jscomp$2$$.hdb}), $ide_config$jscomp$2_io$jscomp$6$$[1][0] = {is_cdrom:!0, buffer:$option_rom$jscomp$1_settings$jscomp$2$$.cdrom}, this.devices.ide = new $IDEController$$module$src$ide$$(this, $device_bus$$, 
+  $ide_config$jscomp$2_io$jscomp$6$$), this.devices.cdrom = this.devices.ide.secondary.master, this.devices.pit = new $PIT$$module$src$pit$$(this, $device_bus$$), "ne2k" === $option_rom$jscomp$1_settings$jscomp$2$$.net_device.type ? this.devices.net = new $Ne2k$$module$src$ne2k$$(this, $device_bus$$, $option_rom$jscomp$1_settings$jscomp$2$$.preserve_mac_from_state_image, $option_rom$jscomp$1_settings$jscomp$2$$.mac_address_translation) : "virtio" === $option_rom$jscomp$1_settings$jscomp$2$$.net_device.type && 
+  (this.devices.virtio_net = new $VirtioNet$$module$src$virtio_net$$(this, $device_bus$$, $option_rom$jscomp$1_settings$jscomp$2$$.preserve_mac_from_state_image, $option_rom$jscomp$1_settings$jscomp$2$$.net_device.mtu)), $option_rom$jscomp$1_settings$jscomp$2$$.fs9p ? this.devices.virtio_9p = new $Virtio9p$$module$lib$9p$$($option_rom$jscomp$1_settings$jscomp$2$$.fs9p, this, $device_bus$$) : $option_rom$jscomp$1_settings$jscomp$2$$.handle9p ? this.devices.virtio_9p = new $Virtio9pHandler$$module$lib$9p$$($option_rom$jscomp$1_settings$jscomp$2$$.handle9p, 
+  this) : $option_rom$jscomp$1_settings$jscomp$2$$.proxy9p && (this.devices.virtio_9p = new $Virtio9pProxy$$module$lib$9p$$($option_rom$jscomp$1_settings$jscomp$2$$.proxy9p, this)), $option_rom$jscomp$1_settings$jscomp$2$$.virtio_console && (this.devices.virtio_console = new $VirtioConsole$$module$src$virtio_console$$(this, $device_bus$$)), $option_rom$jscomp$1_settings$jscomp$2$$.virtio_balloon && (this.devices.virtio_balloon = new $VirtioBalloon$$module$src$virtio_balloon$$(this, $device_bus$$)), 
+  this.devices.sb16 = new $SB16$$module$src$sb16$$(this, $device_bus$$));
   $option_rom$jscomp$1_settings$jscomp$2$$.multiboot && ($dbg_log$$module$src$log$$("loading multiboot", 2), $option_rom$jscomp$1_settings$jscomp$2$$ = this.load_multiboot_option_rom($option_rom$jscomp$1_settings$jscomp$2$$.multiboot, $option_rom$jscomp$1_settings$jscomp$2$$.initrd, $option_rom$jscomp$1_settings$jscomp$2$$.cmdline)) && (this.bios.main ? ($dbg_log$$module$src$log$$("adding option rom for multiboot", 2), this.option_roms.push($option_rom$jscomp$1_settings$jscomp$2$$)) : ($dbg_log$$module$src$log$$("loaded multiboot without bios", 
   2), this.reg32[0] = this.io.port_read32(244)));
   this.debug_init();
@@ -11852,7 +11943,7 @@ $CPU$$module$src$cpu$$.prototype.load_multiboot_option_rom = function($buffer$js
     }
     $dbg_log$$module$src$log$$("Multiboot magic found, flags: " + $h$$module$src$lib$$($flags$jscomp$16$$ >>> 0, 8), 2);
     $dbg_assert$$module$src$log$$(0 === ($flags$jscomp$16$$ & -65540), "TODO");
-    var $cpu$jscomp$27$$ = this;
+    var $cpu$jscomp$28$$ = this;
     this.io.register_read(244, this, function() {
       return 0;
     }, function() {
@@ -11860,21 +11951,21 @@ $CPU$$module$src$cpu$$.prototype.load_multiboot_option_rom = function($buffer$js
     }, function() {
       var $i$jscomp$103_multiboot_data$$ = 31860;
       let $info$jscomp$1$$ = 0;
-      $cmdline$jscomp$2$$ && ($info$jscomp$1$$ |= 4, $cpu$jscomp$27$$.write32(31760, $i$jscomp$103_multiboot_data$$), $cmdline$jscomp$2$$ += "\x00", $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = (new TextEncoder).encode($cmdline$jscomp$2$$), $cpu$jscomp$27$$.write_blob($cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$, $i$jscomp$103_multiboot_data$$), $i$jscomp$103_multiboot_data$$ += $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$.length);
+      $cmdline$jscomp$2$$ && ($info$jscomp$1$$ |= 4, $cpu$jscomp$28$$.write32(31760, $i$jscomp$103_multiboot_data$$), $cmdline$jscomp$2$$ += "\x00", $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = (new TextEncoder).encode($cmdline$jscomp$2$$), $cpu$jscomp$28$$.write_blob($cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$, $i$jscomp$103_multiboot_data$$), $i$jscomp$103_multiboot_data$$ += $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$.length);
       if ($flags$jscomp$16$$ & 2) {
         $info$jscomp$1$$ |= 64;
         $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = 0;
-        $cpu$jscomp$27$$.write32(31788, 0);
-        $cpu$jscomp$27$$.write32(31792, $i$jscomp$103_multiboot_data$$);
+        $cpu$jscomp$28$$.write32(31788, 0);
+        $cpu$jscomp$28$$.write32(31792, $i$jscomp$103_multiboot_data$$);
         $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = 0;
         var $view$jscomp$inline_408_was_memory$$ = !1;
         for (let $addr$jscomp$46$$ = 0; 4294967296 > $addr$jscomp$46$$; $addr$jscomp$46$$ += 131072) {
-          $view$jscomp$inline_408_was_memory$$ && void 0 !== $cpu$jscomp$27$$.memory_map_read8[$addr$jscomp$46$$ >>> 17] ? ($cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$, 20), $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 4, $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$), $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 8, 0), $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 12, $addr$jscomp$46$$ - $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$), 
-          $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 16, 0), $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 20, 1), $i$jscomp$103_multiboot_data$$ += 24, $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ += 24, $view$jscomp$inline_408_was_memory$$ = !1) : $view$jscomp$inline_408_was_memory$$ || void 0 !== $cpu$jscomp$27$$.memory_map_read8[$addr$jscomp$46$$ >>> 17] || ($blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = 
+          $view$jscomp$inline_408_was_memory$$ && void 0 !== $cpu$jscomp$28$$.memory_map_read8[$addr$jscomp$46$$ >>> 17] ? ($cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$, 20), $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 4, $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$), $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 8, 0), $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 12, $addr$jscomp$46$$ - $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$), 
+          $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 16, 0), $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 20, 1), $i$jscomp$103_multiboot_data$$ += 24, $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ += 24, $view$jscomp$inline_408_was_memory$$ = !1) : $view$jscomp$inline_408_was_memory$$ || void 0 !== $cpu$jscomp$28$$.memory_map_read8[$addr$jscomp$46$$ >>> 17] || ($blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = 
           $addr$jscomp$46$$, $view$jscomp$inline_408_was_memory$$ = !0);
         }
         $dbg_assert$$module$src$log$$(!$view$jscomp$inline_408_was_memory$$, "top of 4GB shouldn't have memory");
-        $cpu$jscomp$27$$.write32(31788, $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$);
+        $cpu$jscomp$28$$.write32(31788, $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$);
       }
       var $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = 0, $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = 0;
       if ($flags$jscomp$16$$ & 65536) {
@@ -11894,7 +11985,7 @@ $CPU$$module$src$cpu$$.prototype.load_multiboot_option_rom = function($buffer$js
           $dbg_assert$$module$src$log$$($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ >= $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$), $key$jscomp$inline_413_length$jscomp$34_sections_headers$jscomp$inline_412$$ = $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ - $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$;
         }
         $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = new Uint8Array($buffer$jscomp$62$$, $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$, $key$jscomp$inline_413_length$jscomp$34_sections_headers$jscomp$inline_412$$);
-        $cpu$jscomp$27$$.write_blob($blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$, $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$);
+        $cpu$jscomp$28$$.write_blob($blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$, $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$);
         $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = $JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$ | 0;
         $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = Math.max($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$, $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$);
       } else {
@@ -11934,8 +12025,8 @@ $CPU$$module$src$cpu$$.prototype.load_multiboot_option_rom = function($buffer$js
           $JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$ = $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$;
           $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$.entry;
           for ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ of $JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$) {
-            0 !== $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.type && (1 === $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.type ? ($dbg_assert$$module$src$log$$($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.filesz <= $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz), $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz < $cpu$jscomp$27$$.memory_size[0] ? ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.filesz && 
-            ($JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$ = new Uint8Array($buffer$jscomp$62$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.offset, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.filesz), $cpu$jscomp$27$$.write_blob($JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr)), $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = 
+            0 !== $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.type && (1 === $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.type ? ($dbg_assert$$module$src$log$$($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.filesz <= $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz), $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz < $cpu$jscomp$28$$.memory_size[0] ? ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.filesz && 
+            ($JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$ = new Uint8Array($buffer$jscomp$62$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.offset, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.filesz), $cpu$jscomp$28$$.write_blob($JSCompiler_object_inline_program_headers_484_blob$jscomp$18_entry_addr_section$jscomp$inline_415$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr)), $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$ = 
             Math.max($blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz), $dbg_log$$module$src$log$$("prg load " + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr + " to " + ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz), 2), $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ === 
             $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$.entry && $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.vaddr <= $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ && $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.vaddr + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.memsz > $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ && 
             ($cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ = $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ - $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.vaddr + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr)) : $dbg_log$$module$src$log$$("Warning: Skipped loading section, paddr=" + $h$$module$src$lib$$($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$.paddr) + 
@@ -11947,37 +12038,37 @@ $CPU$$module$src$cpu$$.prototype.load_multiboot_option_rom = function($buffer$js
           $dbg_assert$$module$src$log$$(!1, "Not a bootable multiboot format");
         }
       }
-      $initrd$jscomp$2$$ && ($info$jscomp$1$$ |= 8, $cpu$jscomp$27$$.write32(31764, 1), $cpu$jscomp$27$$.write32(31768, $i$jscomp$103_multiboot_data$$), $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ = $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$, 0 !== ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ & 4095) && ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ = ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ & -4096) + 4096), 
-      $dbg_log$$module$src$log$$("ramdisk address " + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$), $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$ = $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ + $initrd$jscomp$2$$.byteLength, $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$), $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 4, $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$), 
-      $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 8, 0), $cpu$jscomp$27$$.write32($i$jscomp$103_multiboot_data$$ + 12, 0), $dbg_assert$$module$src$log$$($JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$ < $cpu$jscomp$27$$.memory_size[0]), $cpu$jscomp$27$$.write_blob(new Uint8Array($initrd$jscomp$2$$), $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$));
-      $cpu$jscomp$27$$.write32(31744, $info$jscomp$1$$);
-      $cpu$jscomp$27$$.reg32[3] = 31744;
-      $cpu$jscomp$27$$.cr[0] = 1;
-      $cpu$jscomp$27$$.protected_mode[0] = 1;
-      $cpu$jscomp$27$$.flags[0] = 2;
-      $cpu$jscomp$27$$.is_32[0] = 1;
-      $cpu$jscomp$27$$.stack_size_32[0] = 1;
+      $initrd$jscomp$2$$ && ($info$jscomp$1$$ |= 8, $cpu$jscomp$28$$.write32(31764, 1), $cpu$jscomp$28$$.write32(31768, $i$jscomp$103_multiboot_data$$), $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ = $blob$jscomp$17_file_start_header_addr_start$jscomp$43_top_of_load$$, 0 !== ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ & 4095) && ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ = ($load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ & -4096) + 4096), 
+      $dbg_log$$module$src$log$$("ramdisk address " + $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$), $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$ = $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$ + $initrd$jscomp$2$$.byteLength, $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$, $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$), $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 4, $JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$), 
+      $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 8, 0), $cpu$jscomp$28$$.write32($i$jscomp$103_multiboot_data$$ + 12, 0), $dbg_assert$$module$src$log$$($JSCompiler_object_inline_header_483_bss_end_addr_program$jscomp$inline_414_ramdisk_top$$ < $cpu$jscomp$28$$.memory_size[0]), $cpu$jscomp$28$$.write_blob(new Uint8Array($initrd$jscomp$2$$), $load_end_addr_program$jscomp$64_ramdisk_address$jscomp$1$$));
+      $cpu$jscomp$28$$.write32(31744, $info$jscomp$1$$);
+      $cpu$jscomp$28$$.reg32[3] = 31744;
+      $cpu$jscomp$28$$.cr[0] = 1;
+      $cpu$jscomp$28$$.protected_mode[0] = 1;
+      $cpu$jscomp$28$$.flags[0] = 2;
+      $cpu$jscomp$28$$.is_32[0] = 1;
+      $cpu$jscomp$28$$.stack_size_32[0] = 1;
       for ($i$jscomp$103_multiboot_data$$ = 0; 6 > $i$jscomp$103_multiboot_data$$; $i$jscomp$103_multiboot_data$$++) {
-        $cpu$jscomp$27$$.segment_is_null[$i$jscomp$103_multiboot_data$$] = 0, $cpu$jscomp$27$$.segment_offsets[$i$jscomp$103_multiboot_data$$] = 0, $cpu$jscomp$27$$.segment_limits[$i$jscomp$103_multiboot_data$$] = 4294967295, $cpu$jscomp$27$$.sreg[$i$jscomp$103_multiboot_data$$] = 1 === $i$jscomp$103_multiboot_data$$ ? 8 : 16;
+        $cpu$jscomp$28$$.segment_is_null[$i$jscomp$103_multiboot_data$$] = 0, $cpu$jscomp$28$$.segment_offsets[$i$jscomp$103_multiboot_data$$] = 0, $cpu$jscomp$28$$.segment_limits[$i$jscomp$103_multiboot_data$$] = 4294967295, $cpu$jscomp$28$$.sreg[$i$jscomp$103_multiboot_data$$] = 1 === $i$jscomp$103_multiboot_data$$ ? 8 : 16;
       }
-      $cpu$jscomp$27$$.instruction_pointer[0] = $cpu$jscomp$27$$.get_seg_cs() + $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ | 0;
-      $cpu$jscomp$27$$.update_state_flags();
+      $cpu$jscomp$28$$.instruction_pointer[0] = $cpu$jscomp$28$$.get_seg_cs() + $cmdline_utf8_entrypoint_load_addr_multiboot_mmap_count_program_headers$jscomp$inline_411$$ | 0;
+      $cpu$jscomp$28$$.update_state_flags();
       $dbg_log$$module$src$log$$("Starting multiboot kernel at:", 2);
-      $cpu$jscomp$27$$.dump_state();
-      $cpu$jscomp$27$$.dump_regs_short();
+      $cpu$jscomp$28$$.dump_state();
+      $cpu$jscomp$28$$.dump_regs_short();
       return 732803074;
     });
-    this.io.register_write_consecutive(244, this, function($value$jscomp$188$$) {
-      console.log("Test exited with code " + $h$$module$src$lib$$($value$jscomp$188$$, 2));
+    this.io.register_write_consecutive(244, this, function($value$jscomp$194$$) {
+      console.log("Test exited with code " + $h$$module$src$lib$$($value$jscomp$194$$, 2));
       throw "HALT";
     }, function() {
     }, function() {
     }, function() {
     });
     for (let $i$jscomp$104$$ = 0; 15 >= $i$jscomp$104$$; $i$jscomp$104$$++) {
-      function $handle_write$$($value$jscomp$189$$) {
-        $dbg_log$$module$src$log$$("kvm-unit-test: Set irq " + $h$$module$src$lib$$($i$jscomp$104$$) + " to " + $h$$module$src$lib$$($value$jscomp$189$$, 2));
-        $value$jscomp$189$$ ? this.device_raise_irq($i$jscomp$104$$) : this.device_lower_irq($i$jscomp$104$$);
+      function $handle_write$$($value$jscomp$195$$) {
+        $dbg_log$$module$src$log$$("kvm-unit-test: Set irq " + $h$$module$src$lib$$($i$jscomp$104$$) + " to " + $h$$module$src$lib$$($value$jscomp$195$$, 2));
+        $value$jscomp$195$$ ? this.device_raise_irq($i$jscomp$104$$) : this.device_lower_irq($i$jscomp$104$$);
       }
       this.io.register_write(8192 + $i$jscomp$104$$, this, $handle_write$$, $handle_write$$, $handle_write$$);
     }
@@ -12042,8 +12133,8 @@ $CPU$$module$src$cpu$$.prototype.load_bios = function() {
     }
     this.io.mmap_register(4293918720, 1048576, function($addr$jscomp$49$$) {
       return this.mem8[$addr$jscomp$49$$ & 1048575];
-    }.bind(this), function($addr$jscomp$50$$, $value$jscomp$191$$) {
-      this.mem8[$addr$jscomp$50$$ & 1048575] = $value$jscomp$191$$;
+    }.bind(this), function($addr$jscomp$50$$, $value$jscomp$197$$) {
+      this.mem8[$addr$jscomp$50$$ & 1048575] = $value$jscomp$197$$;
     }.bind(this));
   } else {
     $dbg_log$$module$src$log$$("Warning: No BIOS");
@@ -12250,9 +12341,9 @@ $CPU$$module$src$cpu$$.prototype.dump_wasm = function($buffer$jscomp$67$$) {
     $module$jscomp$2$$ && $module$jscomp$2$$.destroy();
   }
 };
-function $VirtIO$$module$src$virtio$$($cpu$jscomp$28$$, $options$jscomp$48$$) {
-  this.cpu = $cpu$jscomp$28$$;
-  this.pci = $cpu$jscomp$28$$.devices.pci;
+function $VirtIO$$module$src$virtio$$($cpu$jscomp$29$$, $options$jscomp$48$$) {
+  this.cpu = $cpu$jscomp$29$$;
+  this.pci = $cpu$jscomp$29$$.devices.pci;
   this.device_id = $options$jscomp$48$$.device_id;
   this.pci_space = [244, 26, $options$jscomp$48$$.device_id & 255, $options$jscomp$48$$.device_id >> 8, 7, 5, 16, 0, 1, 0, 2, 0, 0, 0, 0, 0, 1, 168, 0, 0, 0, 16, 191, 254, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 244, 26, $options$jscomp$48$$.subsystem_device_id & 255, $options$jscomp$48$$.subsystem_device_id >> 8, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, ];
   this.pci_space = this.pci_space.concat(Array(256 - this.pci_space.length).fill(0));
@@ -12272,7 +12363,7 @@ function $VirtIO$$module$src$virtio$$($cpu$jscomp$28$$, $options$jscomp$48$$) {
   this.config_generation = 0;
   this.queues = [];
   for (var $effective_offset_queue_options$$ of $options$jscomp$48$$.common.queues) {
-    this.queues.push(new $VirtQueue$$module$src$virtio$$($cpu$jscomp$28$$, this, $effective_offset_queue_options$$));
+    this.queues.push(new $VirtQueue$$module$src$virtio$$($cpu$jscomp$29$$, this, $effective_offset_queue_options$$));
   }
   this.queue_select = 0;
   this.queue_selected = this.queues[0];
@@ -12290,7 +12381,7 @@ function $VirtIO$$module$src$virtio$$($cpu$jscomp$28$$, $options$jscomp$48$$) {
   $capabilities_offset$jscomp$83$$.push(this.create_isr_capability($options$jscomp$48$$.isr_status));
   $options$jscomp$48$$.device_specific && $capabilities_offset$jscomp$83$$.push(this.create_device_specific_capability($options$jscomp$48$$.device_specific));
   this.init_capabilities($capabilities_offset$jscomp$83$$);
-  $cpu$jscomp$28$$.devices.pci.register_device(this);
+  $cpu$jscomp$29$$.devices.pci.register_device(this);
   this.reset();
 }
 $VirtIO$$module$src$virtio$$.prototype.create_common_capability = function($options$jscomp$49$$) {
@@ -12371,11 +12462,11 @@ $VirtIO$$module$src$virtio$$.prototype.create_device_specific_capability = funct
 };
 $VirtIO$$module$src$virtio$$.prototype.init_capabilities = function($cap_len$jscomp$1_capabilities$jscomp$1_write$$) {
   let $cap_next$$ = this.pci_space[52] = 64;
-  var $bar_offset_cap_ptr_port$jscomp$10$$ = $cap_next$$;
+  var $bar_offset_cap_ptr_port$jscomp$11$$ = $cap_next$$;
   for (const $cap$jscomp$2$$ of $cap_len$jscomp$1_capabilities$jscomp$1_write$$) {
     $cap_len$jscomp$1_capabilities$jscomp$1_write$$ = 16 + $cap$jscomp$2$$.extra.length;
-    $bar_offset_cap_ptr_port$jscomp$10$$ = $cap_next$$;
-    $cap_next$$ = $bar_offset_cap_ptr_port$jscomp$10$$ + $cap_len$jscomp$1_capabilities$jscomp$1_write$$;
+    $bar_offset_cap_ptr_port$jscomp$11$$ = $cap_next$$;
+    $cap_next$$ = $bar_offset_cap_ptr_port$jscomp$11$$ + $cap_len$jscomp$1_capabilities$jscomp$1_write$$;
     $dbg_assert$$module$src$log$$(256 >= $cap_next$$, "VirtIO device<" + this.name + "> can't fit all capabilities into 256byte configspace");
     $dbg_assert$$module$src$log$$(0 <= $cap$jscomp$2$$.bar && 6 > $cap$jscomp$2$$.bar, "VirtIO device<" + this.name + "> capability invalid bar number");
     var $bar_size_shim_read8_on_16$$ = $cap$jscomp$2$$.struct.reduce(($bytes$jscomp$8$$, $field$$) => $bytes$jscomp$8$$ + $field$$.bytes, 0);
@@ -12383,31 +12474,31 @@ $VirtIO$$module$src$virtio$$.prototype.init_capabilities = function($cap_len$jsc
     $bar_size_shim_read8_on_16$$ = 16 > $bar_size_shim_read8_on_16$$ ? 16 : 1 << $int_log2$$module$src$lib$$($bar_size_shim_read8_on_16$$ - 1) + 1;
     $dbg_assert$$module$src$log$$(0 === ($cap$jscomp$2$$.port & $bar_size_shim_read8_on_16$$ - 1), "VirtIO device<" + this.name + "> capability port should be aligned to pci bar size");
     this.pci_bars[$cap$jscomp$2$$.bar] = {size:$bar_size_shim_read8_on_16$$, };
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$] = 9;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 1] = $cap_next$$;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 2] = $cap_len$jscomp$1_capabilities$jscomp$1_write$$;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 3] = $cap$jscomp$2$$.type;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 4] = $cap$jscomp$2$$.bar;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 5] = 0;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 6] = 0;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 7] = 0;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 8] = $cap$jscomp$2$$.offset & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 9] = $cap$jscomp$2$$.offset >>> 8 & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 10] = $cap$jscomp$2$$.offset >>> 16 & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 11] = $cap$jscomp$2$$.offset >>> 24;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 12] = $bar_size_shim_read8_on_16$$ & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 13] = $bar_size_shim_read8_on_16$$ >>> 8 & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 14] = $bar_size_shim_read8_on_16$$ >>> 16 & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 15] = $bar_size_shim_read8_on_16$$ >>> 24;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$] = 9;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 1] = $cap_next$$;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 2] = $cap_len$jscomp$1_capabilities$jscomp$1_write$$;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 3] = $cap$jscomp$2$$.type;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 4] = $cap$jscomp$2$$.bar;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 5] = 0;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 6] = 0;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 7] = 0;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 8] = $cap$jscomp$2$$.offset & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 9] = $cap$jscomp$2$$.offset >>> 8 & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 10] = $cap$jscomp$2$$.offset >>> 16 & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 11] = $cap$jscomp$2$$.offset >>> 24;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 12] = $bar_size_shim_read8_on_16$$ & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 13] = $bar_size_shim_read8_on_16$$ >>> 8 & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 14] = $bar_size_shim_read8_on_16$$ >>> 16 & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 15] = $bar_size_shim_read8_on_16$$ >>> 24;
     for (const [$i$jscomp$120$$, $extra_byte$$] of $cap$jscomp$2$$.extra.entries()) {
-      this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 16 + $i$jscomp$120$$] = $extra_byte$$;
+      this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 16 + $i$jscomp$120$$] = $extra_byte$$;
     }
-    $bar_offset_cap_ptr_port$jscomp$10$$ = 16 + 4 * $cap$jscomp$2$$.bar;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$] = $cap$jscomp$2$$.port & 254 | !$cap$jscomp$2$$.use_mmio;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 1] = $cap$jscomp$2$$.port >>> 8 & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 2] = $cap$jscomp$2$$.port >>> 16 & 255;
-    this.pci_space[$bar_offset_cap_ptr_port$jscomp$10$$ + 3] = $cap$jscomp$2$$.port >>> 24 & 255;
-    $bar_offset_cap_ptr_port$jscomp$10$$ = $cap$jscomp$2$$.port + $cap$jscomp$2$$.offset;
+    $bar_offset_cap_ptr_port$jscomp$11$$ = 16 + 4 * $cap$jscomp$2$$.bar;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$] = $cap$jscomp$2$$.port & 254 | !$cap$jscomp$2$$.use_mmio;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 1] = $cap$jscomp$2$$.port >>> 8 & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 2] = $cap$jscomp$2$$.port >>> 16 & 255;
+    this.pci_space[$bar_offset_cap_ptr_port$jscomp$11$$ + 3] = $cap$jscomp$2$$.port >>> 24 & 255;
+    $bar_offset_cap_ptr_port$jscomp$11$$ = $cap$jscomp$2$$.port + $cap$jscomp$2$$.offset;
     for (const $field$jscomp$1$$ of $cap$jscomp$2$$.struct) {
       let $read$$ = $field$jscomp$1$$.read;
       $cap_len$jscomp$1_capabilities$jscomp$1_write$$ = $field$jscomp$1$$.write;
@@ -12436,26 +12527,26 @@ $VirtIO$$module$src$virtio$$.prototype.init_capabilities = function($cap_len$jsc
         };
         switch($field$jscomp$1$$.bytes) {
           case 4:
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$, this, $shim_read8_on_32$$, void 0, $read$$);
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$ + 1, this, $shim_read8_on_32$$);
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$ + 2, this, $shim_read8_on_32$$);
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$ + 3, this, $shim_read8_on_32$$);
-            this.cpu.io.register_write($bar_offset_cap_ptr_port$jscomp$10$$, this, void 0, void 0, $cap_len$jscomp$1_capabilities$jscomp$1_write$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$, this, $shim_read8_on_32$$, void 0, $read$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$ + 1, this, $shim_read8_on_32$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$ + 2, this, $shim_read8_on_32$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$ + 3, this, $shim_read8_on_32$$);
+            this.cpu.io.register_write($bar_offset_cap_ptr_port$jscomp$11$$, this, void 0, void 0, $cap_len$jscomp$1_capabilities$jscomp$1_write$$);
             break;
           case 2:
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$, this, $bar_size_shim_read8_on_16$$, $read$$, $shim_read32_on_16$$);
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$ + 1, this, $bar_size_shim_read8_on_16$$);
-            this.cpu.io.register_write($bar_offset_cap_ptr_port$jscomp$10$$, this, void 0, $cap_len$jscomp$1_capabilities$jscomp$1_write$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$, this, $bar_size_shim_read8_on_16$$, $read$$, $shim_read32_on_16$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$ + 1, this, $bar_size_shim_read8_on_16$$);
+            this.cpu.io.register_write($bar_offset_cap_ptr_port$jscomp$11$$, this, void 0, $cap_len$jscomp$1_capabilities$jscomp$1_write$$);
             break;
           case 1:
-            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$10$$, this, $read$$);
-            this.cpu.io.register_write($bar_offset_cap_ptr_port$jscomp$10$$, this, $cap_len$jscomp$1_capabilities$jscomp$1_write$$);
+            this.cpu.io.register_read($bar_offset_cap_ptr_port$jscomp$11$$, this, $read$$);
+            this.cpu.io.register_write($bar_offset_cap_ptr_port$jscomp$11$$, this, $cap_len$jscomp$1_capabilities$jscomp$1_write$$);
             break;
           default:
             $dbg_assert$$module$src$log$$(!1, "VirtIO device <" + this.name + "> invalid capability field width of " + $field$jscomp$1$$.bytes + " bytes");
         }
       }
-      $bar_offset_cap_ptr_port$jscomp$10$$ += $field$jscomp$1$$.bytes;
+      $bar_offset_cap_ptr_port$jscomp$11$$ += $field$jscomp$1$$.bytes;
     }
   }
   $dbg_assert$$module$src$log$$(256 >= $cap_next$$ + 20, "VirtIO device<" + this.name + "> can't fit all capabilities into 256byte configspace");
@@ -12481,32 +12572,32 @@ $VirtIO$$module$src$virtio$$.prototype.init_capabilities = function($cap_len$jsc
   this.pci_space[$cap_next$$ + 19] = 0;
 };
 $VirtIO$$module$src$virtio$$.prototype.get_state = function() {
-  let $state$jscomp$63$$ = [];
-  $state$jscomp$63$$[0] = this.device_feature_select;
-  $state$jscomp$63$$[1] = this.driver_feature_select;
-  $state$jscomp$63$$[2] = this.device_feature;
-  $state$jscomp$63$$[3] = this.driver_feature;
-  $state$jscomp$63$$[4] = this.features_ok;
-  $state$jscomp$63$$[5] = this.device_status;
-  $state$jscomp$63$$[6] = this.config_has_changed;
-  $state$jscomp$63$$[7] = this.config_generation;
-  $state$jscomp$63$$[8] = this.isr_status;
-  $state$jscomp$63$$[9] = this.queue_select;
-  return $state$jscomp$63$$ = $state$jscomp$63$$.concat(this.queues);
+  let $state$jscomp$64$$ = [];
+  $state$jscomp$64$$[0] = this.device_feature_select;
+  $state$jscomp$64$$[1] = this.driver_feature_select;
+  $state$jscomp$64$$[2] = this.device_feature;
+  $state$jscomp$64$$[3] = this.driver_feature;
+  $state$jscomp$64$$[4] = this.features_ok;
+  $state$jscomp$64$$[5] = this.device_status;
+  $state$jscomp$64$$[6] = this.config_has_changed;
+  $state$jscomp$64$$[7] = this.config_generation;
+  $state$jscomp$64$$[8] = this.isr_status;
+  $state$jscomp$64$$[9] = this.queue_select;
+  return $state$jscomp$64$$ = $state$jscomp$64$$.concat(this.queues);
 };
-$VirtIO$$module$src$virtio$$.prototype.set_state = function($state$jscomp$64$$) {
-  this.device_feature_select = $state$jscomp$64$$[0];
-  this.driver_feature_select = $state$jscomp$64$$[1];
-  this.device_feature = $state$jscomp$64$$[2];
-  this.driver_feature = $state$jscomp$64$$[3];
-  this.features_ok = $state$jscomp$64$$[4];
-  this.device_status = $state$jscomp$64$$[5];
-  this.config_has_changed = $state$jscomp$64$$[6];
-  this.config_generation = $state$jscomp$64$$[7];
-  this.isr_status = $state$jscomp$64$$[8];
-  this.queue_select = $state$jscomp$64$$[9];
+$VirtIO$$module$src$virtio$$.prototype.set_state = function($state$jscomp$65$$) {
+  this.device_feature_select = $state$jscomp$65$$[0];
+  this.driver_feature_select = $state$jscomp$65$$[1];
+  this.device_feature = $state$jscomp$65$$[2];
+  this.driver_feature = $state$jscomp$65$$[3];
+  this.features_ok = $state$jscomp$65$$[4];
+  this.device_status = $state$jscomp$65$$[5];
+  this.config_has_changed = $state$jscomp$65$$[6];
+  this.config_generation = $state$jscomp$65$$[7];
+  this.isr_status = $state$jscomp$65$$[8];
+  this.queue_select = $state$jscomp$65$$[9];
   let $i$jscomp$121$$ = 0;
-  for (const $queue$jscomp$11$$ of $state$jscomp$64$$.slice(10)) {
+  for (const $queue$jscomp$11$$ of $state$jscomp$65$$.slice(10)) {
     this.queues[$i$jscomp$121$$].set_state($queue$jscomp$11$$), $i$jscomp$121$$++;
   }
   this.queue_selected = this.queues[this.queue_select] || null;
@@ -12549,8 +12640,8 @@ $VirtIO$$module$src$virtio$$.prototype.lower_irq = function() {
   this.isr_status = 0;
   this.pci.lower_irq(this.pci_id);
 };
-function $VirtQueue$$module$src$virtio$$($cpu$jscomp$29$$, $virtio$$, $options$jscomp$53$$) {
-  this.cpu = $cpu$jscomp$29$$;
+function $VirtQueue$$module$src$virtio$$($cpu$jscomp$30$$, $virtio$$, $options$jscomp$53$$) {
+  this.cpu = $cpu$jscomp$30$$;
   this.virtio = $virtio$$;
   this.size_supported = this.size = $options$jscomp$53$$.size_supported;
   this.mask = this.size - 1;
@@ -12560,31 +12651,31 @@ function $VirtQueue$$module$src$virtio$$($cpu$jscomp$29$$, $virtio$$, $options$j
   this.reset();
 }
 $VirtQueue$$module$src$virtio$$.prototype.get_state = function() {
-  const $state$jscomp$65$$ = [];
-  $state$jscomp$65$$[0] = this.size;
-  $state$jscomp$65$$[1] = this.size_supported;
-  $state$jscomp$65$$[2] = this.enabled;
-  $state$jscomp$65$$[3] = this.notify_offset;
-  $state$jscomp$65$$[4] = this.desc_addr;
-  $state$jscomp$65$$[5] = this.avail_addr;
-  $state$jscomp$65$$[6] = this.avail_last_idx;
-  $state$jscomp$65$$[7] = this.used_addr;
-  $state$jscomp$65$$[8] = this.num_staged_replies;
-  $state$jscomp$65$$[9] = 1;
-  return $state$jscomp$65$$;
+  const $state$jscomp$66$$ = [];
+  $state$jscomp$66$$[0] = this.size;
+  $state$jscomp$66$$[1] = this.size_supported;
+  $state$jscomp$66$$[2] = this.enabled;
+  $state$jscomp$66$$[3] = this.notify_offset;
+  $state$jscomp$66$$[4] = this.desc_addr;
+  $state$jscomp$66$$[5] = this.avail_addr;
+  $state$jscomp$66$$[6] = this.avail_last_idx;
+  $state$jscomp$66$$[7] = this.used_addr;
+  $state$jscomp$66$$[8] = this.num_staged_replies;
+  $state$jscomp$66$$[9] = 1;
+  return $state$jscomp$66$$;
 };
-$VirtQueue$$module$src$virtio$$.prototype.set_state = function($state$jscomp$66$$) {
-  this.size = $state$jscomp$66$$[0];
-  this.size_supported = $state$jscomp$66$$[1];
-  this.enabled = $state$jscomp$66$$[2];
-  this.notify_offset = $state$jscomp$66$$[3];
-  this.desc_addr = $state$jscomp$66$$[4];
-  this.avail_addr = $state$jscomp$66$$[5];
-  this.avail_last_idx = $state$jscomp$66$$[6];
-  this.used_addr = $state$jscomp$66$$[7];
-  this.num_staged_replies = $state$jscomp$66$$[8];
+$VirtQueue$$module$src$virtio$$.prototype.set_state = function($state$jscomp$67$$) {
+  this.size = $state$jscomp$67$$[0];
+  this.size_supported = $state$jscomp$67$$[1];
+  this.enabled = $state$jscomp$67$$[2];
+  this.notify_offset = $state$jscomp$67$$[3];
+  this.desc_addr = $state$jscomp$67$$[4];
+  this.avail_addr = $state$jscomp$67$$[5];
+  this.avail_last_idx = $state$jscomp$67$$[6];
+  this.used_addr = $state$jscomp$67$$[7];
+  this.num_staged_replies = $state$jscomp$67$$[8];
   this.mask = this.size - 1;
-  this.fix_wrapping = 1 !== $state$jscomp$66$$[9];
+  this.fix_wrapping = 1 !== $state$jscomp$67$$[9];
 };
 $VirtQueue$$module$src$virtio$$.prototype.reset = function() {
   this.enabled = !1;
@@ -12665,21 +12756,21 @@ $VirtQueue$$module$src$virtio$$.prototype.avail_get_used_event = function() {
 $VirtQueue$$module$src$virtio$$.prototype.used_get_flags = function() {
   return this.cpu.read16(this.used_addr);
 };
-$VirtQueue$$module$src$virtio$$.prototype.used_set_flags = function($value$jscomp$192$$) {
-  this.cpu.write16(this.used_addr, $value$jscomp$192$$);
+$VirtQueue$$module$src$virtio$$.prototype.used_set_flags = function($value$jscomp$198$$) {
+  this.cpu.write16(this.used_addr, $value$jscomp$198$$);
 };
 $VirtQueue$$module$src$virtio$$.prototype.used_get_idx = function() {
   return this.cpu.read16(this.used_addr + 2);
 };
-$VirtQueue$$module$src$virtio$$.prototype.used_set_idx = function($value$jscomp$193$$) {
-  this.cpu.write16(this.used_addr + 2, $value$jscomp$193$$);
+$VirtQueue$$module$src$virtio$$.prototype.used_set_idx = function($value$jscomp$199$$) {
+  this.cpu.write16(this.used_addr + 2, $value$jscomp$199$$);
 };
 $VirtQueue$$module$src$virtio$$.prototype.used_set_entry = function($i$jscomp$124$$, $desc_idx$jscomp$1$$, $length_written$$) {
   this.cpu.write32(this.used_addr + 4 + 8 * $i$jscomp$124$$, $desc_idx$jscomp$1$$);
   this.cpu.write32(this.used_addr + 8 + 8 * $i$jscomp$124$$, $length_written$$);
 };
-$VirtQueue$$module$src$virtio$$.prototype.used_set_avail_event = function($value$jscomp$194$$) {
-  this.cpu.write16(this.used_addr + 4 + 8 * this.size, $value$jscomp$194$$);
+$VirtQueue$$module$src$virtio$$.prototype.used_set_avail_event = function($value$jscomp$200$$) {
+  this.cpu.write16(this.used_addr + 4 + 8 * this.size, $value$jscomp$200$$);
 };
 function $VirtQueueBufferChain$$module$src$virtio$$($virtqueue$$, $desc_idx$jscomp$2_head_idx$$) {
   this.cpu = $virtqueue$$.cpu;
@@ -12758,8 +12849,8 @@ $VirtQueueBufferChain$$module$src$virtio$$.prototype.set_next_blob = function($s
   return $src_offset$$;
 };
 const $P9_LOCK_TYPES$$module$lib$9p$$ = ["shared", "exclusive", "unlock"];
-function $init_virtio$$module$lib$9p$$($cpu$jscomp$30$$, $configspace_taglen$$, $configspace_tagname$$, $receive$$) {
-  const $virtio$jscomp$1$$ = new $VirtIO$$module$src$virtio$$($cpu$jscomp$30$$, {name:"virtio-9p", pci_id:48, device_id:4169, subsystem_device_id:9, common:{initial_port:43008, queues:[{size_supported:32, notify_offset:0, }, ], features:[0, 32, 29, 28, ], on_driver_ok:() => {
+function $init_virtio$$module$lib$9p$$($cpu$jscomp$31$$, $configspace_taglen$$, $configspace_tagname$$, $receive$$) {
+  const $virtio$jscomp$1$$ = new $VirtIO$$module$src$virtio$$($cpu$jscomp$31$$, {name:"virtio-9p", pci_id:48, device_id:4169, subsystem_device_id:9, common:{initial_port:43008, queues:[{size_supported:32, notify_offset:0, }, ], features:[0, 32, 29, 28, ], on_driver_ok:() => {
   }, }, notification:{initial_port:43264, single_handler:!1, handlers:[$queue_id$jscomp$15_virtqueue$jscomp$1$$ => {
     if (0 !== $queue_id$jscomp$15_virtqueue$jscomp$1$$) {
       $dbg_assert$$module$src$log$$(!1, "Virtio9P Notified for non-existent queue: " + $queue_id$jscomp$15_virtqueue$jscomp$1$$ + " (expected queue_id of 0)");
@@ -12775,12 +12866,12 @@ function $init_virtio$$module$lib$9p$$($cpu$jscomp$30$$, $configspace_taglen$$, 
   }, }))), }, });
   return $virtio$jscomp$1$$;
 }
-function $Virtio9p$$module$lib$9p$$($filesystem$jscomp$2$$, $cpu$jscomp$31$$, $bus$jscomp$31$$) {
+function $Virtio9p$$module$lib$9p$$($filesystem$jscomp$2$$, $cpu$jscomp$32$$, $bus$jscomp$32$$) {
   this.fs = $filesystem$jscomp$2$$;
-  this.bus = $bus$jscomp$31$$;
+  this.bus = $bus$jscomp$32$$;
   this.configspace_tagname = [104, 111, 115, 116, 57, 112];
   this.configspace_taglen = this.configspace_tagname.length;
-  this.virtio = $init_virtio$$module$lib$9p$$($cpu$jscomp$31$$, this.configspace_taglen, this.configspace_tagname, this.ReceiveRequest.bind(this));
+  this.virtio = $init_virtio$$module$lib$9p$$($cpu$jscomp$32$$, this.configspace_taglen, this.configspace_tagname, this.ReceiveRequest.bind(this));
   this.virtqueue = this.virtio.queues[0];
   this.VERSION = "9P2000.L";
   this.msize = this.BLOCKSIZE = 8192;
@@ -12789,35 +12880,35 @@ function $Virtio9p$$module$lib$9p$$($filesystem$jscomp$2$$, $cpu$jscomp$31$$, $b
   this.fids = [];
 }
 $Virtio9p$$module$lib$9p$$.prototype.get_state = function() {
-  var $state$jscomp$67$$ = [];
-  $state$jscomp$67$$[0] = this.configspace_tagname;
-  $state$jscomp$67$$[1] = this.configspace_taglen;
-  $state$jscomp$67$$[2] = this.virtio;
-  $state$jscomp$67$$[3] = this.VERSION;
-  $state$jscomp$67$$[4] = this.BLOCKSIZE;
-  $state$jscomp$67$$[5] = this.msize;
-  $state$jscomp$67$$[6] = this.replybuffer;
-  $state$jscomp$67$$[7] = this.replybuffersize;
-  $state$jscomp$67$$[8] = this.fids.map(function($f$jscomp$8$$) {
+  var $state$jscomp$68$$ = [];
+  $state$jscomp$68$$[0] = this.configspace_tagname;
+  $state$jscomp$68$$[1] = this.configspace_taglen;
+  $state$jscomp$68$$[2] = this.virtio;
+  $state$jscomp$68$$[3] = this.VERSION;
+  $state$jscomp$68$$[4] = this.BLOCKSIZE;
+  $state$jscomp$68$$[5] = this.msize;
+  $state$jscomp$68$$[6] = this.replybuffer;
+  $state$jscomp$68$$[7] = this.replybuffersize;
+  $state$jscomp$68$$[8] = this.fids.map(function($f$jscomp$8$$) {
     return [$f$jscomp$8$$.inodeid, $f$jscomp$8$$.type, $f$jscomp$8$$.uid, $f$jscomp$8$$.dbg_name];
   });
-  $state$jscomp$67$$[9] = this.fs;
-  return $state$jscomp$67$$;
+  $state$jscomp$68$$[9] = this.fs;
+  return $state$jscomp$68$$;
 };
-$Virtio9p$$module$lib$9p$$.prototype.set_state = function($state$jscomp$68$$) {
-  this.configspace_tagname = $state$jscomp$68$$[0];
-  this.configspace_taglen = $state$jscomp$68$$[1];
-  this.virtio.set_state($state$jscomp$68$$[2]);
+$Virtio9p$$module$lib$9p$$.prototype.set_state = function($state$jscomp$69$$) {
+  this.configspace_tagname = $state$jscomp$69$$[0];
+  this.configspace_taglen = $state$jscomp$69$$[1];
+  this.virtio.set_state($state$jscomp$69$$[2]);
   this.virtqueue = this.virtio.queues[0];
-  this.VERSION = $state$jscomp$68$$[3];
-  this.BLOCKSIZE = $state$jscomp$68$$[4];
-  this.msize = $state$jscomp$68$$[5];
-  this.replybuffer = $state$jscomp$68$$[6];
-  this.replybuffersize = $state$jscomp$68$$[7];
-  this.fids = $state$jscomp$68$$[8].map(function($f$jscomp$9$$) {
+  this.VERSION = $state$jscomp$69$$[3];
+  this.BLOCKSIZE = $state$jscomp$69$$[4];
+  this.msize = $state$jscomp$69$$[5];
+  this.replybuffer = $state$jscomp$69$$[6];
+  this.replybuffersize = $state$jscomp$69$$[7];
+  this.fids = $state$jscomp$69$$[8].map(function($f$jscomp$9$$) {
     return {inodeid:$f$jscomp$9$$[0], type:$f$jscomp$9$$[1], uid:$f$jscomp$9$$[2], dbg_name:$f$jscomp$9$$[3]};
   });
-  this.fs.set_state($state$jscomp$68$$[9]);
+  this.fs.set_state($state$jscomp$69$$[9]);
 };
 $Virtio9p$$module$lib$9p$$.prototype.Createfid = function($inodeid$jscomp$1$$, $type$jscomp$158$$, $uid$$, $dbg_name$$) {
   return {inodeid:$inodeid$jscomp$1$$, type:$type$jscomp$158$$, uid:$uid$$, dbg_name:$dbg_name$$};
@@ -12850,7 +12941,7 @@ $Virtio9p$$module$lib$9p$$.prototype.SendReply = function($bufchain$jscomp$20$$)
 $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$jscomp$21$$) {
   var $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = new Uint8Array($bufchain$jscomp$21$$.length_readable);
   $bufchain$jscomp$21$$.get_next_blob($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
-  var $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = {offset:0}, $header$jscomp$6_tag$jscomp$3$$ = $Unmarshall$$module$lib$marshall$$(["w", "b", "h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$), $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = $header$jscomp$6_tag$jscomp$3$$[1];
+  var $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = {offset:0}, $header$jscomp$6_tag$jscomp$3$$ = $Unmarshall$$module$lib$marshall$$(["w", "b", "h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$), $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = $header$jscomp$6_tag$jscomp$3$$[1];
   $header$jscomp$6_tag$jscomp$3$$ = $header$jscomp$6_tag$jscomp$3$$[2];
   switch($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$) {
     case 8:
@@ -12870,14 +12961,14 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       break;
     case 112:
     case 12:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $dbg_log$$module$src$log$$("[open] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$, 4194304);
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
+      $dbg_log$$module$src$log$$("[open] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid;
       var $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $dbg_log$$module$src$log$$("file open " + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " tag:" + $header$jscomp$6_tag$jscomp$3$$, 4194304);
-      await this.fs.OpenInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      await this.fs.OpenInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = [];
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] = $inode$jscomp$35_minor$jscomp$1_nwfid$$.qid;
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] = this.msize - 24;
@@ -12886,7 +12977,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 70:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
@@ -12902,7 +12993,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 16:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
@@ -12917,17 +13008,17 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 18:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wswwww".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wswwww".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[5];
       $dbg_log$$module$src$log$$("[mknod] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", major=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", minor=" + $inode$jscomp$35_minor$jscomp$1_nwfid$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateNode($lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $inode$jscomp$35_minor$jscomp$1_nwfid$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
       $Marshall$$module$lib$marshall$$(["Q"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid], this.replybuffer, 7);
@@ -12935,7 +13026,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 22:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       $dbg_log$$module$src$log$$("[readlink] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " target=" + $inode$jscomp$35_minor$jscomp$1_nwfid$$.symlink, 4194304);
@@ -12944,15 +13035,15 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 72:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $dbg_log$$module$src$log$$("[mkdir] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
+      $dbg_log$$module$src$log$$("[mkdir] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateDirectory($lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ | 16384;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ | 16384;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
       $Marshall$$module$lib$marshall$$(["Q"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid], this.replybuffer, 7);
@@ -12960,14 +13051,14 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 14:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "w", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
       this.bus.send("9p-create", [$lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid]);
-      $dbg_log$$module$src$log$$("[create] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 
+      $dbg_log$$module$src$log$$("[create] fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + ", name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + ", flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ + ", mode=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ + ", gid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, 
       4194304);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.CreateFile($lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid = $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$;
@@ -12976,13 +13067,13 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$);
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.uid = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid;
       $inode$jscomp$35_minor$jscomp$1_nwfid$$.gid = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$;
-      $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ | 32768;
+      $inode$jscomp$35_minor$jscomp$1_nwfid$$.mode = $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ | 32768;
       $Marshall$$module$lib$marshall$$(["Q", "w"], [$inode$jscomp$35_minor$jscomp$1_nwfid$$.qid, this.msize - 24], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 17);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 52:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbwddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbwddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 0 === $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4] ? Infinity : $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
@@ -12996,7 +13087,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 54:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wbddws".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 0 === $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3] ? Infinity : $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
       $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = this.fs.DescribeLock($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2], $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4], 
@@ -13011,7 +13102,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 24:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       $dbg_log$$module$src$log$$("[getattr]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " request mask=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1], 4194304);
@@ -13046,7 +13137,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 26:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wwwwwddddd".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$("wwwwwddddd".split(""), $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = this.fs.GetInode(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid);
       $dbg_log$$module$src$log$$("[setattr]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " request mask=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " name=" + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name, 4194304);
@@ -13063,13 +13154,13 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 50:
-      $Unmarshall$$module$lib$marshall$$(["w", "d"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $Unmarshall$$module$lib$marshall$$(["w", "d"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 0);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 40:
     case 116:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       var $count$jscomp$71_nwname$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
@@ -13100,7 +13191,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 118:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $count$jscomp$71_nwname$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
@@ -13111,7 +13202,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
         this.SendReply($bufchain$jscomp$21$$);
         break;
       } else {
-        await this.fs.Write(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $count$jscomp$71_nwname$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$.subarray($attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$.offset));
+        await this.fs.Write(this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $count$jscomp$71_nwname$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$.subarray($attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$.offset));
       }
       this.bus.send("9p-write-end", [$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$, $count$jscomp$71_nwname$$]);
       $Marshall$$module$lib$marshall$$(["w"], [$count$jscomp$71_nwname$$], this.replybuffer, 7);
@@ -13119,7 +13210,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 74:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
@@ -13137,18 +13228,18 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 76:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
-      $dbg_log$$module$src$log$$("[unlink]: dirfd=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + " name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 4194304);
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Search(this.fids[$attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
+      $dbg_log$$module$src$log$$("[unlink]: dirfd=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ + " name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 4194304);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Search(this.fids[$attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
       if (-1 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$) {
         this.SendError($header$jscomp$6_tag$jscomp$3$$, "No such file or directory", 2);
         this.SendReply($bufchain$jscomp$21$$);
         break;
       }
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Unlink(this.fids[$attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = this.fs.Unlink(this.fids[$attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$].inodeid, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
       if (0 > $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$) {
         -39 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ ? $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = "Directory not empty" : -1 === $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ ? $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = "Operation not permitted" : ($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ = "Unknown error: " + -$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$, 
         $dbg_assert$$module$src$log$$(!1, "[unlink]: Unexpected error code: " + -$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$));
@@ -13160,7 +13251,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 100:
-      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Unmarshall$$module$lib$marshall$$(["w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Unmarshall$$module$lib$marshall$$(["w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $dbg_log$$module$src$log$$("[version]: msize=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$[0] + " version=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$[1], 4194304);
       this.msize !== $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$[0] && (this.msize = $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$[0], this.replybuffer = new Uint8Array(Math.min(16777216, 2 * this.msize)));
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $Marshall$$module$lib$marshall$$(["w", "s"], [this.msize, this.VERSION], this.replybuffer, 7);
@@ -13168,7 +13259,7 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 104:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s", "s", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[4];
       $dbg_log$$module$src$log$$("[attach]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " afid=" + $h$$module$src$lib$$($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1]) + " uname=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2] + " aname=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3], 
@@ -13181,13 +13272,13 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.bus.send("9p-attach");
       break;
     case 108:
-      $Unmarshall$$module$lib$marshall$$(["h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $Unmarshall$$module$lib$marshall$$(["h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $dbg_log$$module$src$log$$("[flush] " + $header$jscomp$6_tag$jscomp$3$$, 4194304);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 0);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 110:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "h"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $inode$jscomp$35_minor$jscomp$1_nwfid$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
       $count$jscomp$71_nwname$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
@@ -13203,27 +13294,27 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       for ($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < $count$jscomp$71_nwname$$; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
         $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$.push("s");
       }
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $Unmarshall$$module$lib$marshall$$($lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $Unmarshall$$module$lib$marshall$$($lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$, $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].inodeid;
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = 9;
       var $nwidx$$ = 0;
-      $dbg_log$$module$src$log$$("walk in dir " + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " to: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$.toString(), 4194304);
+      $dbg_log$$module$src$log$$("walk in dir " + this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].dbg_name + " to: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$.toString(), 4194304);
       for ($data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = 0; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ < $count$jscomp$71_nwname$$; $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$++) {
-        $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.Search($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
+        $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = this.fs.Search($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
         if (-1 === $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$) {
-          $dbg_log$$module$src$log$$("Could not find: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$], 4194304);
+          $dbg_log$$module$src$log$$("Could not find: " + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$], 4194304);
           break;
         }
         $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ += $Marshall$$module$lib$marshall$$(["Q"], [this.fs.GetInode($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$).qid], this.replybuffer, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$);
         $nwidx$$++;
-        this.fids[$inode$jscomp$35_minor$jscomp$1_nwfid$$] = this.Createfid($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 1, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
+        this.fids[$inode$jscomp$35_minor$jscomp$1_nwfid$$] = this.Createfid($buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 1, this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].uid, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$]);
       }
       $Marshall$$module$lib$marshall$$(["h"], [$nwidx$$], this.replybuffer, 7);
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ - 7);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 120:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $dbg_log$$module$src$log$$("[clunk]: fid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0], 4194304);
       this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]] && 0 <= this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid && (await this.fs.CloseInode(this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid), this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].inodeid = 
       -1, this.fids[$data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0]].type = -1);
@@ -13231,18 +13322,18 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 32:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "s", "d", "w"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0];
       $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1];
-      $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
+      $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2];
       $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$ = $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[3];
-      $dbg_log$$module$src$log$$("[txattrcreate]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " attr_size=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$ + " flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 4194304);
+      $dbg_log$$module$src$log$$("[txattrcreate]: fid=" + $fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$ + " name=" + $lock_length_name$jscomp$109_offset$jscomp$84_oldname$jscomp$1_space$jscomp$7_uid$jscomp$1_wnames$$ + " attr_size=" + $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$ + " flags=" + $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, 4194304);
       this.fids[$fid$jscomp$1_olddirfid_ret$jscomp$12_size$jscomp$46_version$jscomp$6$$].type = 2;
       this.BuildReply($error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$, $header$jscomp$6_tag$jscomp$3$$, 0);
       this.SendReply($bufchain$jscomp$21$$);
       break;
     case 30:
-      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$69_walk$jscomp$1$$);
+      $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$ = $Unmarshall$$module$lib$marshall$$(["w", "w", "s"], $buffer$jscomp$68_dfid_flags$jscomp$20_idx$jscomp$22_major$jscomp$1_newdirfid_symgt$$, $attr_size_dirfd_mode$jscomp$22_state$jscomp$70_walk$jscomp$1$$);
       $dbg_log$$module$src$log$$("[xattrwalk]: fid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[0] + " newfid=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[1] + " name=" + $data$jscomp$252_filename$jscomp$13_gid_i$jscomp$125_inodeid$jscomp$2_lock_request_newname$jscomp$2_req$$[2], 4194304);
       this.SendError($header$jscomp$6_tag$jscomp$3$$, "Setxattr not supported", 95);
       this.SendReply($bufchain$jscomp$21$$);
@@ -13251,12 +13342,12 @@ $Virtio9p$$module$lib$9p$$.prototype.ReceiveRequest = async function($bufchain$j
       $dbg_log$$module$src$log$$("Error in Virtio9p: Unknown id " + $error_message_error_message$jscomp$1_error_message$jscomp$2_id$jscomp$27$$ + " received", 4194304), $dbg_assert$$module$src$log$$(!1);
   }
 };
-function $Virtio9pHandler$$module$lib$9p$$($handle_fn$$, $cpu$jscomp$32$$) {
+function $Virtio9pHandler$$module$lib$9p$$($handle_fn$$, $cpu$jscomp$33$$) {
   this.handle_fn = $handle_fn$$;
   this.tag_bufchain = new Map;
   this.configspace_tagname = [104, 111, 115, 116, 57, 112];
   this.configspace_taglen = this.configspace_tagname.length;
-  this.virtio = $init_virtio$$module$lib$9p$$($cpu$jscomp$32$$, this.configspace_taglen, this.configspace_tagname, async $bufchain$jscomp$22$$ => {
+  this.virtio = $init_virtio$$module$lib$9p$$($cpu$jscomp$33$$, this.configspace_taglen, this.configspace_tagname, async $bufchain$jscomp$22$$ => {
     const $reqbuf$$ = new Uint8Array($bufchain$jscomp$22$$.length_readable);
     $bufchain$jscomp$22$$.get_next_blob($reqbuf$$);
     var $reqtag$$ = $Unmarshall$$module$lib$marshall$$(["w", "b", "h"], $reqbuf$$, {offset:0})[2];
@@ -13270,26 +13361,26 @@ function $Virtio9pHandler$$module$lib$9p$$($handle_fn$$, $cpu$jscomp$32$$) {
   this.virtqueue = this.virtio.queues[0];
 }
 $Virtio9pHandler$$module$lib$9p$$.prototype.get_state = function() {
-  var $state$jscomp$70$$ = [];
-  $state$jscomp$70$$[0] = this.configspace_tagname;
-  $state$jscomp$70$$[1] = this.configspace_taglen;
-  $state$jscomp$70$$[2] = this.virtio;
-  $state$jscomp$70$$[3] = this.tag_bufchain;
-  return $state$jscomp$70$$;
+  var $state$jscomp$71$$ = [];
+  $state$jscomp$71$$[0] = this.configspace_tagname;
+  $state$jscomp$71$$[1] = this.configspace_taglen;
+  $state$jscomp$71$$[2] = this.virtio;
+  $state$jscomp$71$$[3] = this.tag_bufchain;
+  return $state$jscomp$71$$;
 };
-$Virtio9pHandler$$module$lib$9p$$.prototype.set_state = function($state$jscomp$71$$) {
-  this.configspace_tagname = $state$jscomp$71$$[0];
-  this.configspace_taglen = $state$jscomp$71$$[1];
-  this.virtio.set_state($state$jscomp$71$$[2]);
+$Virtio9pHandler$$module$lib$9p$$.prototype.set_state = function($state$jscomp$72$$) {
+  this.configspace_tagname = $state$jscomp$72$$[0];
+  this.configspace_taglen = $state$jscomp$72$$[1];
+  this.virtio.set_state($state$jscomp$72$$[2]);
   this.virtqueue = this.virtio.queues[0];
-  this.tag_bufchain = $state$jscomp$71$$[3];
+  this.tag_bufchain = $state$jscomp$72$$[3];
 };
 $Virtio9pHandler$$module$lib$9p$$.prototype.reset = function() {
   this.virtio.reset();
 };
-function $Virtio9pProxy$$module$lib$9p$$($url$jscomp$28$$, $cpu$jscomp$33$$) {
+function $Virtio9pProxy$$module$lib$9p$$($url$jscomp$28$$, $cpu$jscomp$34$$) {
   this.socket = void 0;
-  this.cpu = $cpu$jscomp$33$$;
+  this.cpu = $cpu$jscomp$34$$;
   this.send_queue = [];
   this.url = $url$jscomp$28$$;
   this.reconnect_interval = 10000;
@@ -13299,7 +13390,7 @@ function $Virtio9pProxy$$module$lib$9p$$($url$jscomp$28$$, $cpu$jscomp$33$$) {
   this.tag_bufchain = new Map;
   this.configspace_tagname = [104, 111, 115, 116, 57, 112];
   this.configspace_taglen = this.configspace_tagname.length;
-  this.virtio = $init_virtio$$module$lib$9p$$($cpu$jscomp$33$$, this.configspace_taglen, this.configspace_tagname, async $bufchain$jscomp$24$$ => {
+  this.virtio = $init_virtio$$module$lib$9p$$($cpu$jscomp$34$$, this.configspace_taglen, this.configspace_tagname, async $bufchain$jscomp$24$$ => {
     const $reqbuf$jscomp$1$$ = new Uint8Array($bufchain$jscomp$24$$.length_readable);
     $bufchain$jscomp$24$$.get_next_blob($reqbuf$jscomp$1$$);
     const $reqtag$jscomp$1$$ = $Unmarshall$$module$lib$marshall$$(["w", "b", "h"], $reqbuf$jscomp$1$$, {offset:0})[2];
@@ -13309,19 +13400,19 @@ function $Virtio9pProxy$$module$lib$9p$$($url$jscomp$28$$, $cpu$jscomp$33$$) {
   this.virtqueue = this.virtio.queues[0];
 }
 $Virtio9pProxy$$module$lib$9p$$.prototype.get_state = function() {
-  var $state$jscomp$72$$ = [];
-  $state$jscomp$72$$[0] = this.configspace_tagname;
-  $state$jscomp$72$$[1] = this.configspace_taglen;
-  $state$jscomp$72$$[2] = this.virtio;
-  $state$jscomp$72$$[3] = this.tag_bufchain;
-  return $state$jscomp$72$$;
+  var $state$jscomp$73$$ = [];
+  $state$jscomp$73$$[0] = this.configspace_tagname;
+  $state$jscomp$73$$[1] = this.configspace_taglen;
+  $state$jscomp$73$$[2] = this.virtio;
+  $state$jscomp$73$$[3] = this.tag_bufchain;
+  return $state$jscomp$73$$;
 };
-$Virtio9pProxy$$module$lib$9p$$.prototype.set_state = function($state$jscomp$73$$) {
-  this.configspace_tagname = $state$jscomp$73$$[0];
-  this.configspace_taglen = $state$jscomp$73$$[1];
-  this.virtio.set_state($state$jscomp$73$$[2]);
+$Virtio9pProxy$$module$lib$9p$$.prototype.set_state = function($state$jscomp$74$$) {
+  this.configspace_tagname = $state$jscomp$74$$[0];
+  this.configspace_taglen = $state$jscomp$74$$[1];
+  this.virtio.set_state($state$jscomp$74$$[2]);
   this.virtqueue = this.virtio.queues[0];
-  this.tag_bufchain = $state$jscomp$73$$[3];
+  this.tag_bufchain = $state$jscomp$74$$[3];
 };
 $Virtio9pProxy$$module$lib$9p$$.prototype.reset = function() {
   this.virtio.reset();
@@ -13349,13 +13440,13 @@ $Virtio9pProxy$$module$lib$9p$$.prototype.destroy = function() {
 $Virtio9pProxy$$module$lib$9p$$.prototype.connect = function() {
   if ("undefined" !== typeof WebSocket) {
     if (this.socket) {
-      var $now$jscomp$15_state$jscomp$74$$ = this.socket.readyState;
-      if (0 === $now$jscomp$15_state$jscomp$74$$ || 1 === $now$jscomp$15_state$jscomp$74$$) {
+      var $now$jscomp$15_state$jscomp$75$$ = this.socket.readyState;
+      if (0 === $now$jscomp$15_state$jscomp$75$$ || 1 === $now$jscomp$15_state$jscomp$75$$) {
         return;
       }
     }
-    $now$jscomp$15_state$jscomp$74$$ = Date.now();
-    if (!(this.last_connect_attempt + this.reconnect_interval > $now$jscomp$15_state$jscomp$74$$)) {
+    $now$jscomp$15_state$jscomp$75$$ = Date.now();
+    if (!(this.last_connect_attempt + this.reconnect_interval > $now$jscomp$15_state$jscomp$75$$)) {
       this.last_connect_attempt = Date.now();
       try {
         this.socket = new WebSocket(this.url);

@@ -18,7 +18,7 @@
           wasm_path: "res/v86-debug.wasm",
           screen_container: document.getElementById("screen"),
           cdrom: { url: "res/mango.iso" },
-          // hda: { buffer: new ArrayBuffer(16 * 1024 * 1024) }, // waiting until v86 bug resolved...
+          hda: { buffer: new ArrayBuffer(16 * 1024 * 1024) }, // waiting until v86 bug resolved...
           bios: { url: "res/seabios.bin" },
           vga_bios: { url: "res/vgabios.bin" },
           autostart: true
