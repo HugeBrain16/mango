@@ -1,4 +1,4 @@
-let version = "1.0";
+let version = "1.1";
 let argc = argc();
 let prefix = "/system/scripts/";
 
@@ -16,8 +16,13 @@ func help() {
   println("List subcommands:");
   println("help - shows this");
   println("edit - open editor for a script");
-  println("new  - creates a new script");
+  println("new  - creates a new script and edit it");
   println("rm   - deletes an existing script");
+  println("ls   - lists scripts");
+}
+
+func ls() {
+  exec("list " + prefix);
 }
 
 func edit() {
@@ -45,9 +50,10 @@ func rm() {
 func new() {
   if (argc > 1) {
     let path = format(argv(1));
-    if (file_isfile(path) == false)
+    if (file_isfile(path) == false) {
       exec("newfile " + path);
-    else
+      exec("edit " + path);
+    } else
       println("Already exist.");
   } else
     println("Usage: sm new <name>");
@@ -60,6 +66,7 @@ if (argc > 0) {
   else if (cmd == "edit") edit();
   else if (cmd == "new") new();
   else if (cmd == "rm") rm();
+  else if (cmd == "ls") ls();
   else println("Unknown command: " + cmd);
 } else {
   header();

@@ -3,6 +3,7 @@ import io
 import sys
 import struct
 from datetime import datetime
+from pathlib import Path
 
 FILE = (1 << 0)
 FOLDER = (1 << 1)
@@ -43,10 +44,10 @@ class Date:
 	def __init__(self, time):
 		self.seconds = (time >> 48) & 0xFF
 		self.minutes = (time >> 40) & 0xFF
-		self.hours 	 = (time >> 32) & 0xFF
-		self.day 	 = (time >> 24) & 0xFF
-		self.month 	 = (time >> 16) & 0xFF
-		self.year 	 = (time) & 0xFFFF
+		self.hours   = (time >> 32) & 0xFF
+		self.day     = (time >> 24) & 0xFF
+		self.month   = (time >> 16) & 0xFF
+		self.year    = (time) & 0xFFFF
 
 	def formatted(self):
 		return f"{self.hours:02}:{self.minutes:02}:{self.seconds:02} {self.day:02}-{self.month:02}-{self.year}"
@@ -513,6 +514,8 @@ if __name__ == "__main__":
 			print("... info <path>\n\tprint the full node info")
 			print("... read <path>\n\tread a whole file")
 			print("... push <localfile> <path>\n\tpush a local file into the disk")
+			print("... newfile <path>\n\tcreate a new file")
+			print("... newfolder <path>\n\tcreate a new folder")
 		elif args[1] == "info":
 			if not disk.formatted:
 				sys.exit("error: disk is not formatted!")
@@ -569,6 +572,60 @@ if __name__ == "__main__":
 				sys.exit("error: path is not a folder!")
 
 			disk.push(args[2], args[3])
+		elif args[1] == "newfile":
+			if not disk.formatted:
+				sys.exit("error: disk is not formatted!")
+
+			if len(args) < 3:
+				sys.exit("usage: mangofs <disk> newfile <path>")
+
+			path = args[2]
+			if path[0] != '/':
+				sys.exit("error: invalid path!")
+
+			test_path = disk.get_node(path)
+			if test_path and test_path.get_type() == FILE:
+				sys.exit("error: path already exists!")
+
+			parent = os.path.dirname(path)
+			name = os.path.basename(path)
+			if not name:
+				sys.exit("error: invalid name!")
+
+			parent_node = disk.get_node(parent)
+			if not parent_node:
+				sys.exit("error: path not found!")
+			elif parent_node.get_type() != "FOLDER":
+				sys.exit("error: path is not a folder!")
+
+			disk.node_create(parent_node, name, FILE)
+		elif args[1] == "newfolder":
+			if not disk.formatted:
+				sys.exit("error: disk is not formatted!")
+
+			if len(args) < 3:
+				sys.exit("usage: mangofs <disk> newfolder <path>")
+
+			path = args[2]
+			if path[0] != '/':
+				sys.exit("error: invalid path!")
+
+			test_path = disk.get_node(path)
+			if test_path and test_path.get_type() == FOLDER:
+				sys.exit("error: path already exists!")
+
+			parent = os.path.dirname(path)
+			name = os.path.basename(path)
+			if not name:
+				sys.exit("error: invalid name!")
+
+			parent_node = disk.get_node(parent)
+			if not parent_node:
+				sys.exit("error: path not found!")
+			elif parent_node.get_type() != "FOLDER":
+				sys.exit("error: path is not a folder!")
+
+			disk.node_create(parent_node, name, FOLDER)
 		elif args[1] == "format":
 			disk.format()
 			print("Disk formatted successfuly!")

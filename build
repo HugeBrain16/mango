@@ -1,5 +1,29 @@
 #!/usr/bin/env bash
 
+if [[ "$1" == "disk" ]]; then
+    qemu-img create -f raw disk.img 4M
+    python mangofs.py disk.img format
+
+    python mangofs.py disk.img newfolder /system
+    python mangofs.py disk.img newfolder /system/config
+    python mangofs.py disk.img newfolder /system/scripts
+    python mangofs.py disk.img newfolder /system/assets
+    python mangofs.py disk.img newfile /system/init.sc
+
+    for file in files/scripts/*; do
+        echo "Adding $file..."
+        python mangofs.py disk.img push $file /system/scripts
+    done
+
+    for file in files/assets/*; do
+        echo "Adding $file..."
+        python mangofs.py disk.img push $file /system/assets
+    done
+
+    echo "Disk image bootstrapped."
+    exit 0
+fi
+
 if [[ $MANGO_TOOLCHAIN -ne 1 ]]; then
     echo "Not using toolchain, exiting..."
     exit 1

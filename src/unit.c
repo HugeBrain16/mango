@@ -1,4 +1,5 @@
 #include "string.h"
+#include "pit.h"
 
 void unit_get_size(uint32_t size, char *buffer) {
     if ((size >> 30) > 0) {
@@ -15,4 +16,8 @@ void unit_get_size(uint32_t size, char *buffer) {
         return strfmt(buffer, "%d.%d KB", whole, frac);
     }
     return strfmt(buffer, "%d B", size);
+}
+
+uint32_t ms_to_ticks(int ms) {
+    return (ms * pit_hz) / 1000;
 }

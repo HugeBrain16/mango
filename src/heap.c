@@ -193,3 +193,20 @@ void *heap_calloc(size_t base, size_t size) {
     memset(ptr, 0, total);
     return ptr;
 }
+
+void heap_stat(size_t *used, size_t *usable, size_t *free, int *blocks) {
+    *used = 0;
+    *usable = 0;
+    *free = heap_end - (heap_current + (sizeof(block_t) + block_tail->size));
+
+    *blocks = 1;
+    block_t *current = block_head;
+    while (current) {
+        if (current->is_free)
+            *usable += current->size;
+        else
+            *used += current->size;
+        (*blocks)++;
+        current = current->next;
+    }
+}

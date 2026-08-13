@@ -42,10 +42,28 @@ void screen_clear(uint32_t color) {
         buffer[i] = color;
 }
 
-void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale) {
+int screen_get_pixel(int x, int y, uint32_t *color, int direct) {
+    uint32_t *buffer = direct ? screen_buffer : get_buffer();
+
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height) {
+        *color = buffer[y * (screen_pitch / sizeof(uint32_t)) + x];
+        return 1;
+    }
+
+    return 0;
+}
+
+void screen_draw_pixel(int x, int y, uint32_t color, int direct) {
+    uint32_t *buffer = direct ? screen_buffer : get_buffer();
+
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height)
+        buffer[y * (screen_pitch / sizeof(uint32_t)) + x] = color;
+}
+
+void screen_draw_char2(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale, int direct) {
     const uint8_t *glyph = font_bitmaps[(unsigned char) c];
 
-    uint32_t *buffer = get_buffer();
+    uint32_t *buffer = direct ? screen_buffer : get_buffer();
 
     int scaled_w = (int)FONT_WIDTH * scale;
     int scaled_h = (int)FONT_HEIGHT * scale;
@@ -70,6 +88,10 @@ void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color
     }
 }
 
+void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale) {
+    screen_draw_char2(x, y, c, fg_color, bg_color, scale, 0);
+}
+
 void screen_scroll(int lines, uint32_t color) {
     size_t stride = screen_pitch / sizeof(uint32_t);
     size_t rows = screen_height - lines;
@@ -85,27 +107,42 @@ void screen_scroll(int lines, uint32_t color) {
         bottom[i] = color;
 }
 
-void screen_draw_rgba(const void *data, size_t size, int x, int y, int width, int height) {
+void screen_draw_rgba(const void *data, size_t size, int x, int y, int width, int height, int direct) {
+    uint32_t *buffer = direct ? screen_buffer : get_buffer();
     size_t stride = screen_pitch / sizeof(uint32_t);
-    const uint8_t *d = (const uint8_t *)data;
-    uint32_t *buffer = get_buffer();
+    uint8_t *rgba = (uint8_t *)data;
 
     for (int dy = 0; dy < height; dy++) {
         for (int dx = 0; dx < width; dx++) {
-            size_t i = ((size_t)dy * width + dx) * 4;
-            if (i + 3 >= size) return;
+            size_t i = (dy * width + dx) * 4;
 
-            uint32_t pixel =
-                ((uint32_t)d[i + 3] << 24) |
-                ((uint32_t)d[i + 0] << 16) |
-                ((uint32_t)d[i + 1] <<  8) |
-                ((uint32_t)d[i + 2]);
+            if (i + 3 >= size)
+                return;
 
-            int pixel_x = x + dx;
-            int pixel_y = y + dy;
+            uint8_t r = rgba[i + 0];
+            uint8_t g = rgba[i + 1];
+            uint8_t b = rgba[i + 2];
+            uint8_t a = rgba[i + 3];
 
-            if (pixel_x >= 0 && pixel_x < screen_width && pixel_y >= 0 && pixel_y < screen_height)
-                buffer[pixel_y * stride + pixel_x] = pixel;
+            int px = x + dx;
+            int py = y + dy;
+
+            if (px < 0 || px >= screen_width || py < 0 || py >= screen_height)
+                continue;
+
+            if (a == 0)
+                continue;
+
+            uint32_t old = buffer[py * stride + px];
+            uint8_t old_r = (old >> 16) & 0xff;
+            uint8_t old_g = (old >> 8) & 0xff;
+            uint8_t old_b = old & 0xff;
+
+            r = (r * a + old_r * (255 - a)) / 255;
+            g = (g * a + old_g * (255 - a)) / 255;
+            b = (b * a + old_b * (255 - a)) / 255;
+
+            buffer[py * stride + px] = (r << 16) | (g << 8) | b;
         }
     }
 }

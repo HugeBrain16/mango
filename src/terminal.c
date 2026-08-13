@@ -11,6 +11,8 @@
 #include "serial.h"
 #include "config.h"
 #include "file.h"
+#include "unit.h"
+#include "script.h"
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
@@ -19,9 +21,7 @@ static size_t term_history_idx = 0;
 static int term_history_max = TERM_MAX_HISTORY;
 static char *term_path = NULL;
 
-void term_init() {
-    term_x = 0;
-    term_y = 0;
+void term_init(int draw) {
     term_input_cursor = 0;
     term_input_pos = 0;
     term_input_buffer = NULL;
@@ -34,8 +34,26 @@ void term_init() {
         term_history_idx = 0;
     }
 
-    if (!term_path)
+    if (!term_path) {
         term_path = heap_alloc(FILE_MAX_PATH);
+        memset(term_path, 0, FILE_MAX_PATH);
+    }
+
+    keyboard_mode = KEYBOARD_MODE_TERM;
+    term_load_config();
+    if (draw == TERM_DRAW_DEFAULT || draw == TERM_DRAW_NOPROMPT) {
+        screen_clear(term_bg);
+        term_x = 0;
+        term_y = 0;
+    }
+
+    if (file_is_ready() && file_path_isfile("/system/shell.sc") && draw != TERM_DRAW_NOPROMPT)
+        script_run("/system/shell.sc", 0, NULL);
+
+    term_update_path();
+    if (draw == TERM_DRAW_DEFAULT || draw == TERM_DRAW_NOCLEAR)
+        term_draw_prompt();
+    screen_flush();
 }
 
 void term_load_config() {
@@ -85,7 +103,7 @@ static void term_clear_cursor() {
 }
 
 void term_draw_cursor() {
-    uint32_t cursor_delay = (TERM_CURSOR_BLINK * pit_hz) / 1000;
+    uint32_t cursor_delay = ms_to_ticks(TERM_CURSOR_BLINK);
 
     if (pit_ticks - cursor_ticks >= cursor_delay) {
         cursor_visible = !cursor_visible;
@@ -107,6 +125,8 @@ static void term_redraw_cursor(int hide) {
 }
 
 void term_write(const char *text) {
+    if (keyboard_mode != KEYBOARD_MODE_TERM) return;
+
     term_clear_cursor();
 
     for (const char *p = text; *p != '\0'; p++) {

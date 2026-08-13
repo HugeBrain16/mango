@@ -7,6 +7,7 @@
 
 extern char early_boot[128];
 extern int boot_logging;
+extern int boot_status;
 extern string_t *boot_log;
 
 extern void log(const char *msg);

@@ -26,5 +26,6 @@ extern void *heap_realloc(void *ptr, size_t size);
 extern void *heap_calloc(size_t base, size_t size);
 extern void heap_free(void *ptr);
 extern size_t heap_free_bytes();
+extern void heap_stat(size_t *used, size_t *usable, size_t *free, int *blocks);
 
 #endif

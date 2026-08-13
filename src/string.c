@@ -105,7 +105,7 @@ char *strstr(const char *str1, const char *str2) {
             const char *s2 = str2;
             while (*s1 && *s2 && *s1 == *s2) {
                 s1++;
-                s1++;
+                s2++;
             }
 
             if (!*s2)

@@ -20,6 +20,9 @@
 #include "cpu.h"
 #include "sound.h"
 #include "pci.h"
+#include "desktop.h"
+#include "media.h"
+#include "modules.h"
 #include <external/spng/spng.h>
 
 #define MINIMP3_NO_SIMD
@@ -341,9 +344,6 @@ static int command_edit(int argc, char *argv[]) {
 
             if (parent) {
                 if (file_exists(parent, path_basename)) {
-                    keyboard_mode = KEYBOARD_MODE_EDIT;
-                    command_clear(argc, argv);
-
                     edit_init(file_get(parent, path_basename));
                 } else {
                     term_write("File does not exist!\n");
@@ -362,8 +362,8 @@ static int command_edit(int argc, char *argv[]) {
         heap_free(path_basename);
         return exit;
     } else {
-        term_write("Usage: edit <path>\n");
-        return 1;
+        edit_init(0);
+        return 0;
     }
 }
 
@@ -843,96 +843,30 @@ static int command_runscript(int argc, char *argv[]) {
 }
 
 static int command_time(int argc, char *argv[]) {
-    rtc_datetime_t now;
-    rtc_datetime(&now);
-
-    int time_offset = 0;
-
-    char *time_config = config_get("/system/config/time.cfg", "offset");
-    if (time_config) {
-        time_offset = intstr(time_config);
-        heap_free(time_config);
-    }
-
-    if (argc == 1)
-        time_offset = intstr(argv[0]);
-
-    if (time_offset != 0)
-        rtc_to_local(&now, time_offset);
-
     char msg[8];
-    char hrs[3];
-    char min[3];
-    intpad(hrs, now.hours, 2, '0');
-    intpad(min, now.minutes, 2, '0');
-
-    strfmt(msg, "%s:%s\n", hrs, min);
+    module_time(msg, argc > 1 ? intstr(argv[0]) : 0);
     term_write(msg);
-
+    term_write("\n");
     return 0;
 }
 
 static int command_date(int argc, char *argv[]) {
-    rtc_datetime_t now;
-    rtc_datetime(&now);
-
-    int time_offset = 0;
-
-    char *time_config = config_get("/system/config/time.cfg", "offset");
-    if (time_config) {
-        time_offset = intstr(time_config);
-        heap_free(time_config);
-    }
-
-    if (argc == 1)
-        time_offset = intstr(argv[0]);
-
-    if (time_offset != 0)
-        rtc_to_local(&now, time_offset);
-
     char msg[16];
-    char day[3];
-    char month[3];
-    intpad(day, now.day, 2, '0');
-    intpad(month, now.month, 2, '0');
-
-    strfmt(msg, "%s-%s-%d\n", day, month, now.year);
+    module_date(msg, argc > 1 ? intstr(argv[0]) : 0);
     term_write(msg);
-
+    term_write("\n");
     return 0;
 }
 
 static int command_datetime(int argc, char *argv[]) {
-    rtc_datetime_t now;
-    rtc_datetime(&now);
-
-    int time_offset = 0;
-
-    char *time_config = config_get("/system/config/time.cfg", "offset");
-    if (time_config) {
-        time_offset = intstr(time_config);
-        heap_free(time_config);
-    }
-
-    if (argc == 1)
-        time_offset = intstr(argv[0]);
-
-    if (time_offset != 0)
-        rtc_to_local(&now, time_offset);
-
-    char msg[18];
-    char hrs[3];
-    char min[3];
-    char day[3];
-    char month[3];
-    intpad(hrs, now.hours, 2, '0');
-    intpad(min, now.minutes, 2, '0');
-    intpad(day, now.day, 2, '0');
-    intpad(month, now.month, 2, '0');
-
-    strfmt(msg, "%d-%s-%s %s:%s\n", now.year, month, day, hrs, min);
-    term_write(msg);
-
+    char time[8];
+    char date[16];
+    module_time(time, argc > 1 ? intstr(argv[0]) : 0);
+    module_date(date, argc > 1 ? intstr(argv[0]) : 0);
+    term_write(date);
+    term_write(" ");
+    term_write(time);
+    term_write("\n");
     return 0;
 }
 
@@ -977,20 +911,6 @@ static int command_diskinfo(int argc, char *argv[]) {
     return 0;
 }
 
-static int command_setupsystem(int argc, char *argv[]) {
-    unused(argc); unused(argv);
-
-    if (nodisk()) return 1;
-
-    if (!file_path_isfolder("/system")) command_handle("newfolder /system", 0);
-    if (!file_path_isfolder("/system/config")) command_handle("newfolder /system/config", 0);
-    if (!file_path_isfolder("/system/scripts")) command_handle("newfolder /system/scripts", 0);
-    if (!file_path_isfile("/system/init.sc")) command_handle("newfile /system/init.sc", 0);
-
-    term_write("Setup successful!\n");
-    return 0;
-}
-
 static int command_reloadconfig(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
@@ -1022,25 +942,14 @@ static int command_viewimage(int argc, char *argv[]) {
         return 1;
     }
 
-    spng_ctx *ctx = spng_ctx_new(0);
     char *content = file_read(file_sector);
-    spng_set_png_buffer(ctx, content, file.size);
+    image_t *image = image_png(content, file.size);
 
-    struct spng_ihdr ihdr = {0};
-    spng_get_ihdr(ctx, &ihdr);
-
-    size_t size;
-    spng_decoded_image_size(ctx, SPNG_FMT_RGBA8, &size);
-
-    void *data = heap_alloc(size);
-    spng_decode_image(ctx, data, size, SPNG_FMT_RGBA8, 0);
-
-    screen_draw_rgba(data, size, 0, term_y + (FONT_HEIGHT * screen_scale), ihdr.width, ihdr.height);
-    term_y += ihdr.height + (FONT_HEIGHT * screen_scale);
+    screen_draw_rgba(image->data, image->size, 0, term_y + (FONT_HEIGHT * screen_scale), image->width, image->height, 0);
+    term_y += image->height + (FONT_HEIGHT * screen_scale);
 
     heap_free(content);
-    heap_free(data);
-    spng_ctx_free(ctx);
+    image_free(image);
     return 0;
 }
 
@@ -1167,20 +1076,12 @@ static int command_meminfo(int argc, char *argv[]) {
 
     char buffer[64];
 
-    size_t used = 0;
-    size_t usable = 0;
-    size_t free = heap_end - (heap_current + (sizeof(block_t) + block_tail->size));
+    size_t used;
+    size_t usable;
+    size_t free;
+    int blocks;
+    heap_stat(&used, &usable, &free, &blocks);
 
-    int blocks = 1;
-    block_t *current = block_head;
-    while (current) {
-        if (current->is_free)
-            usable += current->size;
-        else
-            used += current->size;
-        blocks++;
-        current = current->next;
-    }
     strfmt(buffer, "USED = %d (%d KB)\n", used, used >> 10);
     term_write(buffer);
     strfmt(buffer, "USABLE = %d (%d KB)\n", usable, usable >> 10);
@@ -1189,6 +1090,26 @@ static int command_meminfo(int argc, char *argv[]) {
     term_write(buffer);
     strfmt(buffer, "BLOCKS = %d\n", blocks);
     term_write(buffer);
+    return 0;
+}
+
+static int command_desktop(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    if (!desktop_active)
+        desktop_init();
+    else
+        term_write("Desktop is already running.\n");
+    return 0;
+}
+
+static int command_exit(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    if (desktop_active) {
+        desktop_init();
+    } else
+        term_write("Root instance, can't exit.\n");
     return 0;
 }
 
@@ -1227,12 +1148,13 @@ static commands_t commands[] = {
     { "date", command_date },
     { "datetime", command_datetime },
     { "diskinfo", command_diskinfo },
-    { "setupsystem", command_setupsystem },
     { "reloadconfig", command_reloadconfig },
     { "viewimage", command_viewimage },
     { "playaudio", command_playaudio },
     { "listpci", command_listpci },
     { "meminfo", command_meminfo },
+    { "desktop", command_desktop },
+    { "exit", command_exit },
 };
 
 int command_handle(char *command, int printprompt) {

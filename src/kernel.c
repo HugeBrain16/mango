@@ -28,9 +28,12 @@
 #include "sound.h"
 #include "command.h"
 #include "fio.h"
+#include "mouse.h"
+#include "desktop.h"
 
 char early_boot[128] = {0};
 int boot_logging = 1;
+int boot_status = 0;
 string_t *boot_log = NULL;
 uintptr_t __stack_chk_guard;
 
@@ -98,7 +101,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     }
 
     screen_init(mbi);
-    term_init();
+    term_init(TERM_DRAW_NOPROMPT);
 
     pages_init();
     msg = "[ INFO ] Pages OK\n";
@@ -203,6 +206,10 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     msg = "[ INFO ] PS/2 Keyboard OK\n";
     string_puts(boot_log, msg);
     log(msg);
+    mouse_init();
+    msg = "[ INFO ] PS/2 Mouse OK\n";
+    string_puts(boot_log, msg);
+    log(msg);
 
     acpi_init();
 
@@ -235,15 +242,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     fio_close(syslog);
     string_free(boot_log);
     boot_logging = 0;
-
-    term_init();
-    term_load_config();
-    term_update_path();
-    screen_clear(term_bg);
-    keyboard_mode = KEYBOARD_MODE_TERM;
-
-    if (file_is_ready() && file_path_isfile("/system/init.sc"))
-        script_run("/system/init.sc", 0, NULL);
+    boot_status = 1;
 
     char *scale_config = config_get("/system/config/screen.cfg", "scale");
     if (scale_config) {
@@ -251,10 +250,16 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         heap_free(scale_config);
     }
 
-    if (!config_has("/system/config/system.cfg", "disable_welcome_message"))
-        term_write2("Welcome to Mango!\n", COLOR_YELLOW, term_bg);
+    term_init(TERM_DRAW_NOPROMPT);
+    if (file_is_ready() && file_path_isfile("/system/init.sc"))
+        script_run("/system/init.sc", 0, NULL);
+    if (file_is_ready() && file_path_isfile("/system/shell.sc"))
+        script_run("/system/shell.sc", 0, NULL);
     term_draw_prompt();
 
-    for (;;)
+    for (;;) {
+        if (keyboard_mode == KEYBOARD_MODE_DESKTOP)
+            desktop_update();
         __asm__ volatile("hlt");
+    }
 }

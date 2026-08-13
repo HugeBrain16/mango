@@ -12,6 +12,10 @@
 #define TERM_COLOR_FG COLOR_WHITE
 #define TERM_COLOR_BG COLOR_BLACK
 
+#define TERM_DRAW_NOPROMPT 0
+#define TERM_DRAW_DEFAULT 1
+#define TERM_DRAW_NOCLEAR 2
+
 int term_input_cursor;
 int term_input_pos;
 int term_prompt;
@@ -22,7 +26,7 @@ int term_y;
 int term_fg;
 int term_bg;
 
-extern void term_init();
+extern void term_init(int draw);
 extern void term_write(const char *msg);
 extern void term_write2(const char *msg, uint32_t fg_color, uint32_t bg_color);
 extern void term_draw_cursor();

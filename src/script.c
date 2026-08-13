@@ -12,6 +12,7 @@
 #include "kernel.h"
 #include "screen.h"
 #include "cpu.h"
+#include "unit.h"
 
 int script_exit = 0;
 
@@ -2992,7 +2993,7 @@ static script_node_t *call_sleep(script_node_t *node) {
     }
 
     uint32_t start = pit_ticks;
-    uint32_t wait = (interval->literal.int_value * pit_hz) / 1000;
+    uint32_t wait = ms_to_ticks(interval->literal.int_value);
 
     __asm__ volatile("sti");
     while (pit_ticks - start < wait)

@@ -7,7 +7,7 @@ features include:
 - custom filesystem
 - text editor
 - experimental user environment (user scripts, init script & system customizations)
-- scripting , [see here](https://github.com/HugeBrain16/mango/wiki/Scripting)
+- scripting, [see here](https://github.com/HugeBrain16/mango/wiki/Scripting)
 
 install i686-elf toolchain (Binutils, GCC, GDB) into "toolchain" folder
 ```sh

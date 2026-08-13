@@ -3,6 +3,8 @@
 #include "ps2.h"
 #include "terminal.h"
 #include "editor.h"
+#include "desktop.h"
+#include "kernel.h"
 
 int keyboard_shift = 0;
 int keyboard_ctrl = 0;
@@ -54,8 +56,14 @@ void keyboard_handle() {
     if (scancode == KEY_CTRL)
         keyboard_ctrl = 1;
 
+    // prevent typing before boot finishes
+    if (!boot_status)
+        return;
+
     if (keyboard_mode == KEYBOARD_MODE_TERM)
         term_handle_type(scancode);
     else if (keyboard_mode == KEYBOARD_MODE_EDIT)
         edit_handle_type(scancode);
+    else if (keyboard_mode == KEYBOARD_MODE_DESKTOP)
+        desktop_handle_type(scancode);
 }
