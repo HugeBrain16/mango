@@ -3,6 +3,8 @@
 
 #include "string.h"
 
+#define BUILD_NUMBER 234
+
 #define unused(x) (void)(x)
 
 extern char early_boot[128];

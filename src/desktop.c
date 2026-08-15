@@ -80,7 +80,6 @@ static void desktop_draw_statusbar() {
 
     clear(draw_x, draw_y, desktop_status_bg);
 
-    char status[256] = {0};
     char time[8];
     char date[16];
     module_time(time, 0);
@@ -91,14 +90,22 @@ static void desktop_draw_statusbar() {
     size_t free;
     heap_stat(&used, &usable, &free, NULL);
 
-    strfmt(status,
-    	"Mango OS | MEM: %d/%d KB | %s %s",
+    char status_left[128];
+    char status_right[128];
+    strfmt(status_left,"Mango OS b%d", BUILD_NUMBER);
+    strfmt(status_right, "MEM: %d/%dKB | %s %s",
     	used >> 10, (free + usable) >> 10, date, time);
 
     draw_x = 0;
-    for (const char *p = status; *p != '\0'; p++) {
+    for (const char *p = status_left; *p != '\0'; p++) {
         screen_draw_char(draw_x, draw_y, *p, desktop_status_fg, COLOR_TRANSPARENT, screen_scale);
         draw_x += FONT_WIDTH * screen_scale;
+    }
+
+    draw_x = screen_width - (FONT_WIDTH * screen_scale);
+    for (int i = strlen(status_right) - 1; i >= 0 && status_right[i] != '\0'; i--) {
+    	screen_draw_char(draw_x, draw_y, status_right[i], desktop_status_fg, COLOR_TRANSPARENT, screen_scale);
+        draw_x -= FONT_WIDTH * screen_scale;
     }
 
     screen_flush();
@@ -195,16 +202,53 @@ static void desktop_load_config() {
 		} else log("[ ERROR ] (DESKTOP) Failed to load wallpaper, can't read file.\n");
 		fio_close(file);
 	} else log("[ ERROR ] (DESKTOP) Failed to load wallpaper, file not found.\n");
+
+	char *status_bg = config_get("/system/config/desktop.cfg", "status_bg");
+	if (status_bg) {
+		int col = color(status_bg);
+		if (col != COLOR_INVALID)
+			desktop_status_bg = col;
+		else
+			log("[ ERROR ] (DESKTOP) Invalid color name for status_bg\n");
+		heap_free(status_bg);
+	}
+	char *status_fg = config_get("/system/config/desktop.cfg", "status_fg");
+	if (status_fg) {
+		int col = color(status_fg);
+		if (col != COLOR_INVALID)
+			desktop_status_fg = col;
+		else
+			log("[ ERROR ] (DESKTOP) Invalid color name for status_fg\n");
+		heap_free(status_fg);
+	}
+	char *icon_text_bg = config_get("/system/config/desktop.cfg", "icon_text_bg");
+	if (icon_text_bg) {
+		int col = color(icon_text_bg);
+		if (col != COLOR_INVALID)
+			desktop_icon_text_bg = col;
+		else
+			log("[ ERROR ] (DESKTOP) Invalid color name for icon_text_bg\n");
+		heap_free(icon_text_bg);
+	}
+	char *icon_text_fg = config_get("/system/config/desktop.cfg", "icon_text_fg");
+	if (icon_text_fg) {
+		int col = color(icon_text_fg);
+		if (col != COLOR_INVALID)
+			desktop_icon_text_fg = col;
+		else
+			log("[ ERROR ] (DESKTOP) Invalid color name for icon_text_fg\n");
+		heap_free(icon_text_fg);
+	}
 }
 
 void desktop_init() {
 	desktop_active = 1;
-
-	keyboard_mode = KEYBOARD_MODE_DESKTOP;
-	screen_clear(desktop_clear);
 	desktop_load_config();
+
+	screen_clear(desktop_clear);
 	desktop_draw_wall();
 	mouse_load_cursor();
+	keyboard_mode = KEYBOARD_MODE_DESKTOP;
 
 	desktop_icons = heap_alloc(sizeof(list_t));
 	list_init(desktop_icons);

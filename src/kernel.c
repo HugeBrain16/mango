@@ -88,6 +88,9 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     char buffer[64];
 
     serial_init();
+    strfmt(buffer, "[ INFO ] Mango b%d\n", BUILD_NUMBER);
+    strcat(early_boot, buffer);
+    log(buffer);
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         msg = "[ PANIC ] Invalid magic number!\n";

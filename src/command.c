@@ -126,7 +126,8 @@ static int command_fetch(int argc, char *argv[]) {
             term_write2("=", term_fg != COLOR_WHITE ? term_fg : COLOR_YELLOW, term_bg);
         }
     }
-    term_write("\nKernel: Mango\n");
+    strfmt(buff, "\nKernel: Mango b%d\n", BUILD_NUMBER);
+    term_write(buff);
 
     strfmt(buff, "CPU: %s\n", cpu_name);
     term_write(buff);
