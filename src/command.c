@@ -1108,6 +1108,7 @@ static int command_exit(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     if (desktop_active) {
+        term_session = 0;
         desktop_init();
     } else
         term_write("Root instance, can't exit.\n");

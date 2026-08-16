@@ -13,6 +13,9 @@
 #include "file.h"
 #include "unit.h"
 #include "script.h"
+#include "desktop.h"
+
+int term_session = 0;
 
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
@@ -22,6 +25,11 @@ static int term_history_max = TERM_MAX_HISTORY;
 static char *term_path = NULL;
 
 void term_init(int draw) {
+    if (desktop_active)
+        term_session = 1;
+    else
+        term_session = 0;
+
     term_input_cursor = 0;
     term_input_pos = 0;
     term_input_buffer = NULL;

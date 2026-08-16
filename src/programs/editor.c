@@ -532,7 +532,7 @@ static void edit_handle_quit() {
     edit_x = 0;
     edit_y = 0;
 
-    if (desktop_active) {
+    if (desktop_active && !term_session) {
         desktop_init();
     } else {
         term_init(TERM_DRAW_DEFAULT);

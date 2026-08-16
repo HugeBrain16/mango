@@ -25,6 +25,7 @@ int term_x;
 int term_y;
 int term_fg;
 int term_bg;
+int term_session;
 
 extern void term_init(int draw);
 extern void term_write(const char *msg);
