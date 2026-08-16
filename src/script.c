@@ -80,6 +80,8 @@ static script_node_t *call_argc(script_node_t *node);
 static script_node_t *call_argv(script_node_t *node);
 static script_node_t *call_rand(script_node_t *node);
 static script_node_t *call_randrange(script_node_t *node);
+static script_node_t *call_color(script_node_t *node);
+static script_node_t *call_color_rgb(script_node_t *node);
 static script_node_t *call_color_setfg(script_node_t *node);
 static script_node_t *call_color_setbg(script_node_t *node);
 static script_node_t *call_color_reset(script_node_t *node);
@@ -93,6 +95,13 @@ static script_node_t *call_cpu_name(script_node_t *node);
 static script_node_t *call_cpu_vendor(script_node_t *node);
 static script_node_t *call_cpu_family(script_node_t *node);
 static script_node_t *call_cpu_model(script_node_t *node);
+static script_node_t *call_screen_width(script_node_t *node);
+static script_node_t *call_screen_height(script_node_t *node);
+static script_node_t *call_screen_pitch(script_node_t *node);
+static script_node_t *call_screen_scale(script_node_t *node);
+static script_node_t *call_screen_clear(script_node_t *node);
+static script_node_t *call_screen_draw(script_node_t *node);
+static script_node_t *call_screen_flush(script_node_t *node);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -141,6 +150,8 @@ static const script_builtin_entry_t builtins[] = {
     { "argv", call_argv },
     { "rand", call_rand },
     { "randrange", call_randrange },
+    { "color", call_color },
+    { "color_rgb", call_color_rgb },
     { "color_setfg", call_color_setfg },
     { "color_setbg", call_color_setbg },
     { "color_reset", call_color_reset },
@@ -154,6 +165,13 @@ static const script_builtin_entry_t builtins[] = {
     { "cpu_vendor", call_cpu_vendor },
     { "cpu_family", call_cpu_family },
     { "cpu_model", call_cpu_model },
+    { "screen_width", call_screen_width },
+    { "screen_height", call_screen_height },
+    { "screen_pitch", call_screen_pitch },
+    { "screen_scale", call_screen_scale },
+    { "screen_clear", call_screen_clear },
+    { "screen_draw", call_screen_draw },
+    { "screen_flush", call_screen_flush },
 };
 
 static script_node_t *g_null = NULL;
@@ -3187,6 +3205,174 @@ static script_node_t *call_color_reset(script_node_t *node) {
 
     script_printfg = term_fg;
     script_printbg = term_bg;
+    return g_null;
+}
+
+static script_node_t *call_color(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function color() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *name = node->call.argv[0];
+
+    if (name->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(name);
+        strfmt(msg, "Error: Function color() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    return node_int(color(name->literal.str_value));
+}
+
+static script_node_t *call_color_rgb(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 3) {
+        char msg[64];
+        strfmt(msg, "Error: Function color_rgb() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < argc; i++) {
+        script_node_t *arg = node->call.argv[i];
+
+        if (arg->value_type != SCRIPT_INT) {
+            char msg[128];
+            script_node_t *type_name = node_type_name(arg);
+            strfmt(msg, "Error: Function color_rgba() arg %d expects int, got %s (line: %d)\n", i + 1, type_name->literal.str_value, node->lineno);
+            term_write(msg);
+            free_node(type_name);
+            free_node(node);
+            return NULL;
+        }
+    }
+
+    script_node_t *r = node->call.argv[0];
+    script_node_t *g = node->call.argv[1];
+    script_node_t *b = node->call.argv[2];
+
+    return node_int((int)COLOR_RGB(
+        r->literal.int_value,
+        g->literal.int_value,
+        b->literal.int_value));
+}
+
+static script_node_t *call_screen_width(script_node_t *node) {
+    unused(node);
+
+    return node_int(screen_width);
+}
+
+static script_node_t *call_screen_height(script_node_t *node) {
+    unused(node);
+
+    return node_int(screen_height);
+}
+
+static script_node_t *call_screen_pitch(script_node_t *node) {
+    unused(node);
+
+    return node_int(screen_pitch);
+}
+
+static script_node_t *call_screen_scale(script_node_t *node) {
+    unused(node);
+
+    return node_float(screen_scale);
+}
+
+static script_node_t *call_screen_draw(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 3) {
+        char msg[64];
+        strfmt(msg, "Error: Function screen_draw() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *x = node->call.argv[0];
+    script_node_t *y = node->call.argv[1];
+    script_node_t *c = node->call.argv[2];
+
+    if (x->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(x);
+        strfmt(msg, "Error: Function screen_draw() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (y->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(y);
+        strfmt(msg, "Error: Function screen_draw() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    if (c->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(c);
+        strfmt(msg, "Error: Function screen_draw() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    screen_draw_pixel(x->literal.int_value, y->literal.int_value, c->literal.int_value, 0);
+    return g_null;
+}
+
+static script_node_t *call_screen_clear(script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function screen_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *col = node->call.argv[0];
+
+    if (col->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(col);
+        strfmt(msg, "Error: Function screen_clear() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    screen_clear(col->literal.int_value);
+    return g_null;
+}
+
+static script_node_t *call_screen_flush(script_node_t *node) {
+    unused(node);
+
+    screen_flush();
     return g_null;
 }
 
