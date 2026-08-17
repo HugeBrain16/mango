@@ -30,6 +30,10 @@ static void free_env(script_env_t *env);
 static void free_eval(script_eval_t *eval);
 
 static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt);
+static int get_tokens(const char *path, script_token_t **tokens);
+static script_runtime_t *get_runtime();
+static int load_runtime(script_stmt_t *block, script_token_t *tokens);
+static void free_runtime(script_runtime_t *runtime);
 
 static script_node_t *node_null();
 static script_node_t *node_true();
@@ -448,6 +452,8 @@ static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
     else if (!strcmp(token->value, "for")) token->type = SCRIPT_TOKEN_FOR;
     else if (!strcmp(token->value, "break")) token->type = SCRIPT_TOKEN_BREAK;
     else if (!strcmp(token->value, "continue")) token->type = SCRIPT_TOKEN_CONTINUE;
+    else if (!strcmp(token->value, "include")) token->type = SCRIPT_TOKEN_INCLUDE;
+    else if (!strcmp(token->value, "delete")) token->type = SCRIPT_TOKEN_DELETE;
 
     return token;
 }
@@ -649,12 +655,16 @@ fail:
 }
 
 static void free_var(script_var_t *var) {
+    if (!var) return;
+
     heap_free(var->name);
     free_node(var->value);
     heap_free(var);
 }
 
 static void free_env(script_env_t *env) {
+    if (!env) return;    
+
     script_var_t *var = env->var_head;
     while (var) {
         script_var_t *next = var->next;
@@ -673,23 +683,33 @@ static void env_reset(script_env_t *env) {
         var = next;
     }
     env->var_head = NULL;
+    env->var_tail = NULL;
 }
 
 static script_var_t *env_find_var(script_stmt_t *block, const char *name) {
     script_env_t *env = block->block.env;
 
     script_var_t *var = env->var_head;
-    script_var_t *prev = NULL;
     while (var) {
         if (!strcmp(var->name, name)) {
             if (var != env->var_head) {
-                prev->next = var->next;
+                var->prev->next = var->next;
+
+                if (var->next)
+                    var->next->prev = var->prev;
+                else
+                    env->var_tail = var->prev;
+
                 var->next = env->var_head;
+                var->prev = NULL;
+
+                if (env->var_head)
+                    env->var_head->prev = var;
+
                 env->var_head = var;
             }
             return var;
         }
-        prev = var;
         var = var->next;
     }
 
@@ -725,13 +745,30 @@ static script_stmt_t *env_find_block(script_stmt_t *block, const char *name) {
 static void env_append_var(script_stmt_t *block, script_var_t *var) {
     script_env_t *env = block->block.env;
 
-    if (!env->var_head)
+    if (!env->var_tail) {
         env->var_head = var;
-    else {
-        script_var_t *current = env->var_head;
-        while (current->next)
-            current = current->next;
-        current->next = var;
+        env->var_tail = var;
+    } else {
+        var->prev = env->var_tail;
+        env->var_tail->next = var;
+        env->var_tail = var;
+    }
+}
+
+static void env_remove_var(script_stmt_t *block, script_var_t *var) {
+    script_env_t *env = block->block.env;
+
+    if (var) {
+        if (var->prev)
+            var->prev->next = var->next;
+        else
+            env->var_head = var->next;
+
+        if (var->next)
+            var->next->prev = var->prev;
+        else
+            env->var_tail = var->prev;
+        free_var(var);
     }
 }
 
@@ -742,6 +779,7 @@ static script_var_t *env_new_var(const char *name) {
     var->name = heap_alloc(length);
     memcpy(var->name, name, length);
     var->next = NULL;
+    var->prev = NULL;
 
     return var;
 }
@@ -764,19 +802,8 @@ static void env_set_var_from_stmt(script_stmt_t *block, const char *name, script
     if (!var) {
         var = env_new_var(name);
         env_append_var(block, var);
-    } else {
-        script_node_t *vv = var->value;
-
-        switch (vv->value_type) {
-            case SCRIPT_STR:
-            case SCRIPT_INT:
-            case SCRIPT_FLOAT:
-            case SCRIPT_NULL:
-            case SCRIPT_BOOL:
-                free_node(vv);
-                break;
-        }
-    }
+    } else
+        free_node(var->value);
 
     script_node_t *node = node_null();
     node->node_type = SCRIPT_AST_LITERAL;
@@ -1033,6 +1060,7 @@ static script_stmt_t *stmt_block(script_stmt_t *parent) {
 
     stmt->block.env = heap_alloc(sizeof(script_env_t));
     stmt->block.env->var_head = NULL;
+    stmt->block.env->var_tail = NULL;
 
     return stmt;
 }
@@ -1115,6 +1143,30 @@ static script_stmt_t *stmt_for(script_stmt_t *init, script_node_t *expr, script_
     return stmt;
 }
 
+static script_stmt_t *stmt_include(script_node_t *path) {
+    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    stmt->type = SCRIPT_STMT_INCLUDE;
+    stmt->lineno = path->lineno;
+    stmt->parent = NULL;
+    stmt->child = NULL;
+    stmt->next = NULL;
+    stmt->include_stmt.path = path;
+
+    return stmt;
+}
+
+static script_stmt_t *stmt_delete(script_node_t *name) {
+    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    stmt->type = SCRIPT_STMT_DELETE;
+    stmt->lineno = name->lineno;
+    stmt->parent = NULL;
+    stmt->child = NULL;
+    stmt->next = NULL;
+    stmt->delete_stmt.name = name;
+
+    return stmt;
+}
+
 static void free_node(script_node_t *node) {
     if (!node) return;
     if (node == g_null || node == g_true || node == g_false) return;
@@ -1144,6 +1196,8 @@ static void free_node(script_node_t *node) {
 }
 
 static void free_stmt(script_stmt_t *stmt) {
+    if (!stmt) return;
+
     switch (stmt->type) {
         case SCRIPT_STMT_DEFINE:
         case SCRIPT_STMT_DECLARE:
@@ -1192,6 +1246,12 @@ static void free_stmt(script_stmt_t *stmt) {
             free_node(stmt->for_stmt.expr);
             free_stmt(stmt->for_stmt.update);
             free_stmt(stmt->for_stmt.body);
+            break;
+        case SCRIPT_STMT_INCLUDE:
+            free_node(stmt->include_stmt.path);
+            break;
+        case SCRIPT_STMT_DELETE:
+            free_node(stmt->delete_stmt.name);
             break;
     }
 
@@ -1687,6 +1747,42 @@ static script_stmt_t *parse_for(script_token_t **token) {
     return stmt_for(init, expr, update, body);
 }
 
+static script_stmt_t *parse_include(script_token_t **token) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_STRING) {
+        char msg[64];
+        int lineno = *token ? (*token)->lineno : 0;
+        strfmt(msg, "Error: expected string of path (line: %d)\n", lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    char *path = (*token)->value;
+    size_t lineno = (*token)->lineno;
+    *token = (*token)->next;
+
+    script_node_t *node = node_string(path);
+    node->lineno = lineno;
+    return stmt_include(node);
+}
+
+static script_stmt_t *parse_delete(script_token_t **token) {
+    if (!*token || (*token)->type != SCRIPT_TOKEN_IDENTIFIER) {
+        char msg[64];
+        int lineno = *token ? (*token)->lineno : 0;
+        strfmt(msg, "Error: expected identifier (line: %d)\n", lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    char *name = (*token)->value;
+    size_t lineno = (*token)->lineno;
+    *token = (*token)->next;
+
+    script_node_t *node = node_string(name);
+    node->lineno = lineno;
+    return stmt_delete(node);
+}
+
 static script_stmt_t *parse_statement_inner(script_token_t **token) {
     if (!*token) return NULL;
 
@@ -1715,6 +1811,12 @@ static script_stmt_t *parse_statement_inner(script_token_t **token) {
     } else if ((*token)->type == SCRIPT_TOKEN_CONTINUE) {
         *token = (*token)->next;
         stmt = parse_continue();
+    } else if ((*token)->type == SCRIPT_TOKEN_INCLUDE) {
+        *token = (*token)->next;
+        stmt = parse_include(token);
+    } else if ((*token)->type == SCRIPT_TOKEN_DELETE) {
+        *token = (*token)->next;
+        stmt = parse_delete(token);
     } else if ((*token)->type == SCRIPT_TOKEN_WHILE) {
         *token = (*token)->next;
         stmt = parse_while(token);
@@ -3891,6 +3993,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
                 script_node_t *arg = eval_args[i];
 
                 env_set_var(call_block, param->literal.str_value, arg);
+                eval_args[i] = NULL;
             }
 
             script_eval_t *eval = eval_block(call_block, func->func.block);
@@ -4288,6 +4391,55 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
     return eval;
 }
 
+static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
+    script_stmt_t *root = block;
+    while (root->parent)
+        root = root->parent;
+
+    script_token_t *tokens = NULL;
+    int token_status = get_tokens(stmt->include_stmt.path->literal.str_value, &tokens);
+    if (!tokens)
+        return NULL;
+
+    if (token_status == 1) {
+        char msg[128];
+        strfmt(msg, "Error: File not found (line: %d)\n", stmt->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    script_stmt_t *module = stmt_block(NULL);
+    if(!load_runtime(module, tokens)) {
+        while (tokens) {
+            script_token_t *next = tokens->next;
+            free_token(tokens);
+            tokens = next;
+        }
+        free_stmt(module);
+        return NULL;
+    }
+
+    free_eval(eval_block(root, module));
+
+    while (tokens) {
+        script_token_t *next = tokens->next;
+        free_token(tokens);
+        tokens = next;
+    }
+
+    free_stmt(module);
+    return g_null;
+}
+
+static script_node_t *eval_delete(script_stmt_t *block, script_stmt_t *stmt) {
+    char *name = stmt->delete_stmt.name->literal.str_value;
+
+    script_var_t *var = env_unscoped_find_var(block, name);
+    if (var)
+        env_remove_var(block, var);
+    return g_null;
+}
+
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) {
     if (!stmt) return NULL;
 
@@ -4345,6 +4497,16 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
             eval->type = SCRIPT_EVAL_NONE;
             eval->node = eval_func(block, stmt);
             break;
+        case SCRIPT_STMT_INCLUDE:
+            eval = heap_alloc(sizeof(script_eval_t));
+            eval->type = SCRIPT_EVAL_NONE;
+            eval->node = eval_include(block, stmt);
+            break;
+        case SCRIPT_STMT_DELETE:
+            eval = heap_alloc(sizeof(script_eval_t));
+            eval->type = SCRIPT_EVAL_NONE;
+            eval->node = eval_delete(block, stmt);
+            break;
         case SCRIPT_STMT_BLOCK:
             return eval_block(block, stmt);
         case SCRIPT_STMT_IF:
@@ -4358,7 +4520,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
     return eval;
 }
 
-static void block_add_statement(script_stmt_t *block, script_stmt_t* stmt) {
+static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt) {
     if (block->type != SCRIPT_STMT_BLOCK)
         return;
 
@@ -4388,60 +4550,22 @@ static script_runtime_t *get_runtime() {
     return rt;
 }
 
+static int load_runtime(script_stmt_t *block, script_token_t *tokens) {
+    while (tokens) {
+        script_stmt_t *stmt = parse_statement(&tokens);
+        if (!stmt)
+            return 0;
+
+        block_add_statement(block, stmt);
+    }
+
+    return 1;
+}
+
 static void free_runtime(script_runtime_t *rt) {
     free_stmt(rt->main);
     heap_free(rt);
-}
 
-void script_run(const char *path, int argc, char *argv[]) {
-    script_exit = 0;
-    script_should_exit = 0;
-
-    script_argc = argc;
-    script_argv = argv;
-
-    script_printfg = term_fg;
-    script_printbg = term_bg;
-
-    fio_t *file = fio_open(path, FIO_READ);
-    if (!file) return;
-
-    file_node_t node;
-    file_node(file->file, &node);
-
-    if (node.size == 0) {
-        script_exit = 1;
-        return;
-    }
-
-    script_token_t *token_head = tokenize(file);
-    if (!token_head) {
-        fio_close(file);
-        script_exit = 1;
-        return;
-    }
-    fio_close(file);
-
-    script_token_t *tokens = token_head;
-    script_runtime_t *rt = get_runtime();
-
-    while (token_head) {
-        script_stmt_t *stmt = parse_statement(&token_head);
-        if (!stmt)
-            goto cleanup;
-
-        block_add_statement(rt->main, stmt);
-    }
-    free_eval(eval_block(rt->main, rt->main));
-
-cleanup:
-    while (tokens) {
-        script_token_t *next = tokens->next;
-        free_token(tokens);
-        tokens = next;
-    }
-
-    free_runtime(rt);
     if (g_null) {
         heap_free(g_null);
         g_null = NULL;
@@ -4454,4 +4578,59 @@ cleanup:
         heap_free(g_false);
         g_false = NULL;
     }
+}
+
+static int get_tokens(const char *path, script_token_t **tokens) {
+    fio_t *file = fio_open(path, FIO_READ);
+    if (!file)
+        return 1;
+
+    file_node_t node;
+    file_node(file->file, &node);
+
+    if (node.size == 0)
+        return 2;
+
+    script_token_t *token_head = tokenize(file);
+    if (!token_head) {
+        fio_close(file);
+        return 3;
+    }
+    fio_close(file);
+
+    *tokens = token_head;
+    return 0;
+}
+
+void script_run(const char *path, int argc, char *argv[]) {
+    script_exit = 0;
+    script_should_exit = 0;
+
+    script_argc = argc;
+    script_argv = argv;
+
+    script_printfg = term_fg;
+    script_printbg = term_bg;
+
+    script_token_t *token_head = NULL;
+    if (get_tokens(path, &token_head)) {
+        script_exit = 1;
+        return;
+    }
+
+    script_token_t *tokens = token_head;
+    script_runtime_t *rt = get_runtime();
+    int status = load_runtime(rt->main, token_head);
+    if (!status)
+        goto cleanup;
+    free_eval(eval_block(rt->main, rt->main));
+
+cleanup:
+    while (tokens) {
+        script_token_t *next = tokens->next;
+        free_token(tokens);
+        tokens = next;
+    }
+
+    free_runtime(rt);
 }

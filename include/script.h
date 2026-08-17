@@ -48,6 +48,8 @@
 #define SCRIPT_TOKEN_CONTINUE   40 // continue
 #define SCRIPT_TOKEN_LSBRAC     41 // [
 #define SCRIPT_TOKEN_RSBRAC     42 // ]
+#define SCRIPT_TOKEN_INCLUDE    43 // include
+#define SCRIPT_TOKEN_DELETE     44 // delete
 
 #define SCRIPT_AST_BINOP        0
 #define SCRIPT_AST_LITERAL      1
@@ -67,11 +69,14 @@
 #define SCRIPT_STMT_FOR         9
 #define SCRIPT_STMT_BREAK       10
 #define SCRIPT_STMT_CONTINUE    11
+#define SCRIPT_STMT_INCLUDE     12
+#define SCRIPT_STMT_DELETE      13
 
 #define SCRIPT_EVAL_NONE     0
 #define SCRIPT_EVAL_RETURN   1
 #define SCRIPT_EVAL_BREAK    2
 #define SCRIPT_EVAL_CONTINUE 3
+#define SCRIPT_EVAL_INCLUDE  4
 
 #define SCRIPT_FUNC     0
 #define SCRIPT_NULL     1
@@ -98,12 +103,15 @@ typedef struct script_token {
 
 typedef struct script_env {
     script_var_t *var_head;
+    script_var_t *var_tail;
 } script_env_t;
 
 typedef struct script_var {
     char *name;
     script_node_t *value;
+    script_env_t *env;
     struct script_var *next;
+    struct script_var *prev;
 } script_var_t;
 
 typedef struct script_node {
@@ -158,6 +166,14 @@ typedef struct script_stmt {
         struct {
             script_node_t *node;
         } expr;
+
+        struct {
+            script_node_t *path;
+        } include_stmt;
+
+        struct {
+            script_node_t *name;
+        } delete_stmt;
 
         struct {
             script_node_t *expr;
