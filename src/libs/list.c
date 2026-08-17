@@ -13,13 +13,12 @@ int list_push(list_t *list, void *data) {
 
     node->data = data;
     node->next = NULL;
+    node->prev = list->tail;
 
-    if (list->tail) {
-        list->tail->prev = list->tail;
+    if (list->tail)
         list->tail->next = node;
-    } else {
+    else
         list->head = node;
-    }
 
     list->tail = node;
     list->size++;
@@ -33,6 +32,11 @@ void *list_pop(list_t *list) {
     void *data = node->data;
 
     list->head = node->next;
+    if (list->head)
+        list->head->prev = NULL;
+    else
+        list->tail = NULL;
+
     heap_free(node);
     list->size--;
 
@@ -42,9 +46,17 @@ void *list_pop(list_t *list) {
 void *list_get(list_t *list, size_t index) {
     if (index >= list->size) return NULL;
 
-    list_node_t *current = list->head;
-    for (size_t i = 0; i < index; i++) {
-        current = current->next;
+    list_node_t *current;
+    size_t size = list->size;
+
+    if (index <= size / 2) {
+        current = list->head;
+        for (size_t i = 0; i < index; i++)
+            current = current->next;
+    } else {
+        current = list->tail;
+        for (size_t i = size - 1; i > index; i--)
+            current = current->prev;
     }
 
     return current->data;
@@ -53,21 +65,28 @@ void *list_get(list_t *list, size_t index) {
 int list_remove(list_t *list, size_t index) {
     if (index >= list->size) return 1;
 
-    if (index == 0) {
-        list_pop(list);
-        return 0;
+    list_node_t *target;
+    size_t size = list->size;
+
+    if (index <= size / 2) {
+        target = list->head;
+        for (size_t i = 0; i < index; i++)
+            target = target->next;
+    } else {
+        target = list->tail;
+        for (size_t i = size - 1; i > index; i--)
+            target = target->prev;
     }
 
-    list_node_t *current = list->head;
-    for (size_t i = 0; i < index - 1; i++) {
-        current = current->next;
-    }
+    if (target->prev)
+        target->prev->next = target->next;
+    else
+        list->head = target->next;
 
-    list_node_t *target = current->next;
-    if (list->tail != current->next) {
-        current->next = target->next;
-        current->prev = target->prev;
-    }
+    if (target->next)
+        target->next->prev = target->prev;
+    else
+        list->tail = target->prev;
 
     heap_free(target);
     list->size--;
@@ -76,8 +95,15 @@ int list_remove(list_t *list, size_t index) {
 }
 
 void list_clear(list_t *list) {
-    while(list->size > 0)
-        list_pop(list);
+    list_node_t *current = list->head;
+    while (current) {
+        list_node_t *next = current->next;
+        heap_free(current);
+        current = next;
+    }
+
+    // for reset
+    list_init(list);
 }
 
 void list_free(list_t *list) {
