@@ -167,16 +167,45 @@ void heap_free(void *ptr) {
 }
 
 void *heap_realloc(void *ptr, size_t size) {
-    if (!ptr) return heap_alloc(size);
+    if (!ptr)
+        return heap_alloc(size);
+
     if (size == 0) {
         heap_free(ptr);
         return NULL;
     }
+
     block_t *block = heap_header(ptr);
     size = (size + 15) & ~15;
 
+    if (size <= block->size) {
+        heap_split(block, size);
+        return ptr;
+    }
+
+    if (block->next && block->next->is_free) {
+        block_t *next = block->next;
+        size_t next_size = block->size + sizeof(block_t) + next->size;
+
+        if (next_size >= size) {
+            if (block_tail == next)
+                block_tail = block;
+            if (block_current == next)
+                block_current = block;
+
+            block->size += next->size + sizeof(block_t);
+            block->next = next->next;
+            if (block->next)
+                block->next->prev = block;
+
+            heap_split(block, size);
+            return ptr;
+        }
+    }
+
     void *new = heap_alloc(size);
-    if (!new) return NULL;
+    if (!new)
+        return NULL;
 
     memcpy(new, ptr, block->size < size ? block->size : size);
     heap_free(ptr);
