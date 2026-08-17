@@ -4,8 +4,8 @@
 #include "color.h"
 #include "heap.h"
 
-static uint32_t *back_buffer = NULL;
-static uint32_t back_buffer_size = 0;
+uint32_t *back_buffer = NULL;
+uint32_t back_buffer_size = 0;
 
 static uint32_t *get_buffer() {
     return back_buffer ? back_buffer : screen_buffer;

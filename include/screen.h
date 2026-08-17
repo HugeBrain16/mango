@@ -6,6 +6,9 @@
 #include "multiboot.h"
 
 uint32_t *screen_buffer;
+uint32_t *back_buffer;
+size_t back_buffer_size;
+
 int screen_width;
 int screen_height;
 uint32_t screen_pitch;

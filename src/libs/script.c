@@ -21,6 +21,8 @@ static int script_argc = 0;
 static char **script_argv = NULL;
 static int script_printfg = COLOR_WHITE;
 static int script_printbg = COLOR_BLACK;
+static uint32_t *script_screen_buffer = NULL;
+static size_t script_screen_buffer_size = 0;
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -99,6 +101,7 @@ static script_node_t *call_cpu_name(script_node_t *node);
 static script_node_t *call_cpu_vendor(script_node_t *node);
 static script_node_t *call_cpu_family(script_node_t *node);
 static script_node_t *call_cpu_model(script_node_t *node);
+static script_node_t *call_screen_init(script_node_t *node);
 static script_node_t *call_screen_width(script_node_t *node);
 static script_node_t *call_screen_height(script_node_t *node);
 static script_node_t *call_screen_pitch(script_node_t *node);
@@ -169,6 +172,7 @@ static const script_builtin_entry_t builtins[] = {
     { "cpu_vendor", call_cpu_vendor },
     { "cpu_family", call_cpu_family },
     { "cpu_model", call_cpu_model },
+    { "screen_init", call_screen_init },
     { "screen_width", call_screen_width },
     { "screen_height", call_screen_height },
     { "screen_pitch", call_screen_pitch },
@@ -3371,6 +3375,22 @@ static script_node_t *call_color_rgb(script_node_t *node) {
         b->literal.int_value));
 }
 
+static script_node_t *call_screen_init(script_node_t *node) {
+    unused(node);
+
+    if (!script_screen_buffer) {
+        script_screen_buffer_size = (screen_pitch / sizeof(uint32_t)) * screen_height;
+        script_screen_buffer = heap_alloc(script_screen_buffer_size * sizeof(uint32_t));
+        memcpy(script_screen_buffer, screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
+    } else {
+        char msg[128];
+        strfmt(msg, "Warning: Screen is already initialized. (line: %d)\n", node->lineno);
+        term_write(msg);
+    }
+
+    return g_null;
+}
+
 static script_node_t *call_screen_width(script_node_t *node) {
     unused(node);
 
@@ -3406,41 +3426,55 @@ static script_node_t *call_screen_draw(script_node_t *node) {
         return NULL;
     }
 
-    script_node_t *x = node->call.argv[0];
-    script_node_t *y = node->call.argv[1];
-    script_node_t *c = node->call.argv[2];
+    script_node_t *nx = node->call.argv[0];
+    script_node_t *ny = node->call.argv[1];
+    script_node_t *nc = node->call.argv[2];
 
-    if (x->value_type != SCRIPT_INT) {
+    if (nx->value_type != SCRIPT_INT) {
         char msg[128];
-        script_node_t *type_name = node_type_name(x);
-        strfmt(msg, "Error: Function screen_draw() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        script_node_t *type_name = node_type_name(nx);
+        strfmt(msg, "Error: Function screen_draw() x expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
     }
 
-    if (y->value_type != SCRIPT_INT) {
+    if (ny->value_type != SCRIPT_INT) {
         char msg[128];
-        script_node_t *type_name = node_type_name(y);
-        strfmt(msg, "Error: Function screen_draw() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        script_node_t *type_name = node_type_name(ny);
+        strfmt(msg, "Error: Function screen_draw() y expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
     }
 
-    if (c->value_type != SCRIPT_INT) {
+    if (nc->value_type != SCRIPT_INT) {
         char msg[128];
-        script_node_t *type_name = node_type_name(c);
-        strfmt(msg, "Error: Function screen_draw() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        script_node_t *type_name = node_type_name(nc);
+        strfmt(msg, "Error: Function screen_draw() color expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         free_node(type_name);
         free_node(node);
         return NULL;
     }
 
-    screen_draw_pixel(x->literal.int_value, y->literal.int_value, c->literal.int_value, 0);
+    if (!script_screen_buffer) {
+        char msg[128];
+        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    int x = nx->literal.int_value;
+    int y = ny->literal.int_value;
+    int c = nc->literal.int_value;
+
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height)
+        script_screen_buffer[y * (screen_pitch / sizeof(uint32_t)) + x] = c;
+
     return g_null;
 }
 
@@ -3467,14 +3501,32 @@ static script_node_t *call_screen_clear(script_node_t *node) {
         return NULL;
     }
 
-    screen_clear(col->literal.int_value);
+    if (!script_screen_buffer) {
+        char msg[128];
+        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    size_t pixels = (screen_pitch / sizeof(uint32_t)) * screen_height;
+    for (size_t i = 0; i < pixels; i++)
+        script_screen_buffer[i] = col->literal.int_value;
     return g_null;
 }
 
 static script_node_t *call_screen_flush(script_node_t *node) {
     unused(node);
 
-    screen_flush();
+    if (!script_screen_buffer) {
+        char msg[128];
+        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    memcpy(back_buffer, script_screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
     return g_null;
 }
 
@@ -3961,9 +4013,13 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     copy_call.call.argv = eval_args;
 
     script_builtin_t builtin = builtin_get(name);
-    if (builtin)
+    if (builtin) {
         ret = builtin(&copy_call);
-    else {
+        if (!ret) {
+            script_exit = 1;
+            script_should_exit = 1;
+        }
+    } else {
         script_var_t *var = env_unscoped_find_var(block, name);
         if (var) {
             script_node_t *vv = var->value;
@@ -4016,7 +4072,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     for (size_t i = 0; i < call->call.argc; i++)
         free_node(eval_args[i]);
     heap_free(eval_args);
-    return (ret == NULL) ? g_null : ret;
+    return ret ? ret : g_null;
 }
 
 static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
@@ -4612,6 +4668,9 @@ void script_run(const char *path, int argc, char *argv[]) {
     script_printfg = term_fg;
     script_printbg = term_bg;
 
+    script_screen_buffer = NULL;
+    script_screen_buffer_size = 0;
+
     script_token_t *token_head = NULL;
     if (get_tokens(path, &token_head)) {
         script_exit = 1;
@@ -4630,6 +4689,12 @@ cleanup:
         script_token_t *next = tokens->next;
         free_token(tokens);
         tokens = next;
+    }
+
+    if (script_screen_buffer) {
+        heap_free(script_screen_buffer);
+        script_screen_buffer = NULL;
+        script_screen_buffer_size = 0;
     }
 
     free_runtime(rt);
