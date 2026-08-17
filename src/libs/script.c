@@ -4483,7 +4483,6 @@ static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
         tokens = next;
     }
 
-    free_stmt(module);
     return g_null;
 }
 

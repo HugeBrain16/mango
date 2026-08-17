@@ -8,6 +8,7 @@ if [[ "$1" == "disk" ]]; then
     python mangofs.py disk.img newfolder /system/config
     python mangofs.py disk.img newfolder /system/scripts
     python mangofs.py disk.img newfolder /system/assets
+    python mangofs.py disk.img newfolder /system/modules
     python mangofs.py disk.img newfile /system/init.sc
 
     for file in files/scripts/*; do
@@ -18,6 +19,11 @@ if [[ "$1" == "disk" ]]; then
     for file in files/assets/*; do
         echo "Adding $file..."
         python mangofs.py disk.img push $file /system/assets
+    done
+
+    for file in files/modules/*; do
+        echo "Adding $file..."
+        python mangofs.py disk.img push $file /system/modules
     done
 
     echo "Disk image bootstrapped."
