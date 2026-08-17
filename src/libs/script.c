@@ -2839,11 +2839,13 @@ static script_node_t *call_list_clear(script_node_t *node) {
     }
 
     if (list->literal.list) {
-        for (size_t i = 0; i < list->literal.list->size; i++) {
-            script_node_t *node = (script_node_t*)list_get(list->literal.list, i);
-            if (node) free_node(node);
+        list_node_t *current = list->literal.list->head;
+        while (current) {
+            list_node_t *next = current->next;
+            free_node((script_node_t*)current->data);
+            heap_free(current);
+            current = next;
         }
-        list_clear(list->literal.list);
     }
 
     return g_null;
@@ -3020,12 +3022,15 @@ static script_node_t *call_list_str(script_node_t *node) {
     if (list->literal.list) {
         string_t *str = string_init();
         string_putc(str, '[');
+
+        int first = 1;
         list_t *l = list->literal.list;
-        for (int i = 0; i < (int)l->size; i++) {
-            script_node_t *li = (script_node_t*)list_get(l, i);
+        list_node_t *current = l->head;
+        while (current) {
+            script_node_t *li = (script_node_t*)current->data;
             char *val = node_repr(li);
             if (val) {
-                if (i > 0)
+                if (!first)
                     string_puts(str, ", ");
 
                 char sym = '\0';
@@ -3042,7 +3047,10 @@ static script_node_t *call_list_str(script_node_t *node) {
                 if (sym)
                     string_putc(str, sym);
                 heap_free(val);
+
+                first = 0;
             }
+            current = current->next;
         }
         string_putc(str, ']');
 
@@ -3082,12 +3090,15 @@ static script_node_t *call_list_has(script_node_t *node) {
     if (list->literal.list && list->literal.list->size > 0) {
         list_t *l = list->literal.list;
 
-        for (int i = 0; i < (int)l->size; i++) {
-            script_node_t *li = list_get(l, i);
+        list_node_t *current = l->head;
+        while (current) {
+            script_node_t *li = (script_node_t*)current->data;
 
             script_node_t *cmp = node_cmp(li, item);
             if (node_istrue(cmp))
                 return cmp;
+
+            current = current->next;
         }
     }
 
