@@ -23,6 +23,7 @@ static int script_printfg = COLOR_WHITE;
 static int script_printbg = COLOR_BLACK;
 static uint32_t *script_screen_buffer = NULL;
 static size_t script_screen_buffer_size = 0;
+static list_t *script_modules = NULL;
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -4483,6 +4484,7 @@ static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
         tokens = next;
     }
 
+    list_push(script_modules, module);
     return g_null;
 }
 
@@ -4670,6 +4672,9 @@ void script_run(const char *path, int argc, char *argv[]) {
     script_screen_buffer = NULL;
     script_screen_buffer_size = 0;
 
+    script_modules = NULL;
+    list_init(script_modules);
+
     script_token_t *token_head = NULL;
     if (get_tokens(path, &token_head)) {
         script_exit = 1;
@@ -4695,6 +4700,10 @@ cleanup:
         script_screen_buffer = NULL;
         script_screen_buffer_size = 0;
     }
+
+    while (script_modules->size)
+        free_stmt((script_stmt_t*)list_pop(script_modules));
+    list_free(script_modules);
 
     free_runtime(rt);
 }
