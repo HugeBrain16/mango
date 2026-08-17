@@ -377,14 +377,23 @@ void term_handle_type(uint8_t scancode) {
         } else {
             strtrim(term_input);
             if (term_input[0] != '\0') {
-                while ((int)term_history->size >= term_history_max) {
-                    heap_free(list_pop(term_history));
+                int dupe = 0;
+                if (term_history->size > 0) {
+                    char *last = (char*)term_history->tail->data;
+                    if (!strcmp(term_input, last))
+                        dupe = 1;
                 }
 
-                size_t length = strlen(term_input) + 1;
-                char *line = heap_alloc(length);
-                strncpy(line, term_input, length);
-                list_push(term_history, line);
+                if (!dupe) {
+                    while ((int)term_history->size >= term_history_max) {
+                        heap_free(list_pop(term_history));
+                    }
+
+                    size_t length = strlen(term_input) + 1;
+                    char *line = heap_alloc(length);
+                    strncpy(line, term_input, length);
+                    list_push(term_history, line);
+                }
             }
             command_handle(term_input, 1);
         }
