@@ -4318,7 +4318,7 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
     script_stmt_t *current = stmt->child;
     while (current) {
         eval = eval_statement(block, current);
-        if (!eval)
+        if (!eval || !eval->node)
             break;
 
         if (eval->type == SCRIPT_EVAL_RETURN ||
@@ -4505,6 +4505,12 @@ static script_node_t *eval_delete(script_stmt_t *block, script_stmt_t *stmt) {
     script_var_t *var = env_unscoped_find_var(block, name);
     if (var)
         env_remove_var(block, var);
+    else {
+        char msg[128];
+        strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, stmt->lineno);
+        term_write(msg);
+        return NULL;
+    }
     return g_null;
 }
 
