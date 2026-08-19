@@ -45,6 +45,7 @@ static script_node_t *node_false();
 static script_stmt_t *parse_statement(script_token_t **token);
 static script_stmt_t *parse_statement_inner(script_token_t **token);
 static script_node_t *parse_expr(script_token_t **token);
+static script_node_t *parse_assignop(script_token_t **token);
 static script_node_t *parse_logic(script_token_t **token);
 static script_node_t *parse_comparison(script_token_t **token);
 static script_node_t *parse_addsub(script_token_t **token);
@@ -583,6 +584,32 @@ static script_token_t *lex_logicoperator(fio_t *file, char *c, size_t *lineno) {
     return token;
 }
 
+static script_token_t *lex_assignoperator(fio_t *file, char *c, size_t *lineno) {
+    script_token_t *token = create_token(SCRIPT_TOKEN_ADDASSIGN, *lineno);
+    token->value[0] = *c;
+    token->value[1] = '=';
+    token->value[2] = '\0';
+
+    switch (*c) {
+        case '+': token->type = SCRIPT_TOKEN_ADDASSIGN; break;
+        case '-': token->type = SCRIPT_TOKEN_SUBASSIGN; break;
+        case '*': token->type = SCRIPT_TOKEN_MULASSIGN; break;
+        case '/': token->type = SCRIPT_TOKEN_DIVASSIGN; break;
+        default: {
+            char msg[64];
+            strfmt(msg, "Error: Unexpected '%c' for assign operator (line: %d)\n", *c, *lineno);
+            term_write(msg);
+            free_token(token);
+            return NULL;
+        }
+    }
+
+    *c = fio_getc(file);
+    *c = fio_getc(file);
+
+    return token;
+}
+
 static script_token_t *tokenize(fio_t *file) {
     char c = fio_getc(file);
     size_t lineno = 1;
@@ -648,6 +675,14 @@ static script_token_t *tokenize(fio_t *file) {
             token = lex_logicoperator(file, &c, &lineno);
         } else if (c == '|' && next == '|') {
             token = lex_logicoperator(file, &c, &lineno);
+        } else if (c == '+' && next == '=') {
+            token = lex_assignoperator(file, &c, &lineno);
+        } else if (c == '-' && next == '=') {
+            token = lex_assignoperator(file, &c, &lineno);
+        } else if (c == '*' && next == '=') {
+            token = lex_assignoperator(file, &c, &lineno);
+        } else if (c == '/' && next == '=') {
+            token = lex_assignoperator(file, &c, &lineno);
         } else {
             token = lex_operator(c, &lineno);
             if (token) c = fio_getc(file);
@@ -1479,9 +1514,35 @@ static script_node_t *parse_logic(script_token_t **token) {
     return node;
 }
 
+static script_node_t *parse_assignop(script_token_t **token) {
+    if (!*token) return NULL;
+
+    script_node_t *node = parse_logic(token);
+
+    while (*token && (
+        (*token)->type == SCRIPT_TOKEN_ADDASSIGN ||
+        (*token)->type == SCRIPT_TOKEN_SUBASSIGN ||
+        (*token)->type == SCRIPT_TOKEN_MULASSIGN ||
+        (*token)->type == SCRIPT_TOKEN_DIVASSIGN)) {
+
+        uint8_t op = (*token)->type;
+        *token = (*token)->next;
+
+        script_node_t *right = parse_logic(token);
+        if (!right) {
+            free_node(node);
+            return NULL;
+        }
+
+        node = node_binop(op, node, right);
+    }
+
+    return node;
+}
+
 static script_node_t *parse_expr(script_token_t **token) {
     /* this already advances the token */
-    return parse_logic(token);
+    return parse_assignop(token);
 }
 
 static script_stmt_t *parse_declare(script_token_t **token) {
@@ -3564,6 +3625,8 @@ static script_node_t *call_screen_flush(script_node_t *node) {
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     script_node_t *left = binop->binop.left;
     script_node_t *right = binop->binop.right;
+    uint8_t op = binop->binop.op;
+
     int free_left = 0;
     int free_right = 0;
 
@@ -3588,7 +3651,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     if (left->value_type == SCRIPT_ID) {
         char *name = left->literal.str_value;
         script_var_t *var = env_unscoped_find_var(block, name);
-        if (free_left) free_node(left);
 
         if (!var) {
             char msg[64];
@@ -3597,6 +3659,106 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             return NULL;
         }
 
+        script_node_t *val = var->value;
+        int ltype = val->value_type;
+        int rtype = right->value_type;
+
+        if (ltype == SCRIPT_INT && rtype == SCRIPT_INT) {
+            int l = val->literal.int_value;
+            int r = right->literal.int_value;
+
+            int oped = 1;
+            if (op == SCRIPT_TOKEN_ADDASSIGN)
+                val->literal.int_value = l + r;
+            else if (op == SCRIPT_TOKEN_SUBASSIGN)
+                val->literal.int_value = l - r;
+            else if (op == SCRIPT_TOKEN_MULASSIGN)
+                val->literal.int_value = l * r;
+            else if (op == SCRIPT_TOKEN_DIVASSIGN)
+                val->literal.int_value = l / r;
+            else
+                oped = 0;
+
+            if (oped) {
+                val->value_type = SCRIPT_INT;
+
+                if (free_left) free_node(left);
+                if (free_right) free_node(right);
+                return node_clone(val);
+            }
+        } else if (ltype == SCRIPT_STR) {
+            val->value_type = SCRIPT_STR;
+
+            if (rtype == SCRIPT_STR && op == SCRIPT_TOKEN_ADDASSIGN) {
+                size_t left_len = strlen(val->literal.str_value);
+                size_t right_len = strlen(right->literal.str_value);
+                size_t size = left_len + right_len + 1;
+
+                char *old = val->literal.str_value;
+                val->literal.str_value = heap_alloc(size);
+                memcpy(val->literal.str_value, old, left_len);
+                memcpy(val->literal.str_value + left_len,
+                    right->literal.str_value, right_len + 1);
+                val->literal.str_size = size;
+                heap_free(old);
+
+                if (free_left) free_node(left);
+                if (free_right) free_node(right);
+                return node_clone(val);
+            } else if (rtype == SCRIPT_INT && op == SCRIPT_TOKEN_MULASSIGN) {
+                val->value_type = SCRIPT_STR;
+
+                int v = right->literal.int_value;
+                if (v < 0)
+                    v = 0;
+
+                size_t i = (size_t) v;
+                size_t size = (val->literal.str_size - 1) * i;
+                char *old = val->literal.str_value;
+                char **value = &val->literal.str_value;
+                *value = heap_alloc(size + 1);
+                memset(*value, 0, size + 1);
+
+                while (i > 0) {
+                    strcat(*value, old);
+                    i--;
+                }
+                val->literal.str_size = size + 1;
+                heap_free(old);
+
+                if (free_left) free_node(left);
+                if (free_right) free_node(right);
+                return node_clone(val);
+            }
+        } else if ((ltype == SCRIPT_INT || ltype == SCRIPT_FLOAT) &&
+                   (rtype == SCRIPT_INT || rtype == SCRIPT_FLOAT)) {
+            double l = (val->value_type == SCRIPT_FLOAT) ?
+                val->literal.float_value : val->literal.int_value;
+            double r = (right->value_type == SCRIPT_FLOAT) ?
+                right->literal.float_value : right->literal.int_value;
+
+            int oped = 1;
+            if (op == SCRIPT_TOKEN_ADDASSIGN)
+                val->literal.float_value = l + r;
+            else if (op == SCRIPT_TOKEN_SUBASSIGN)
+                val->literal.float_value = l - r;
+            else if (op == SCRIPT_TOKEN_MULASSIGN)
+                val->literal.float_value = l * r;
+            else if (op == SCRIPT_TOKEN_DIVASSIGN)
+                val->literal.float_value = l / r;
+            else
+                oped = 0;
+
+            if (oped) {
+                val->value_type = SCRIPT_FLOAT;
+
+                if (free_left) free_node(left);
+                if (free_right) free_node(right);
+                return node_clone(val);
+            }
+        }
+
+        if (free_left) free_node(left);
         left = var->value;
     }
     if (right->value_type == SCRIPT_ID) {
@@ -3614,7 +3776,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         right = var->value;
     }
 
-    uint8_t op = binop->binop.op;
     if (op == SCRIPT_TOKEN_AND) {
         if (node_istrue(left) && node_istrue(right)) {
             if (free_left) free_node(left);
@@ -3896,7 +4057,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
             if (r == 0) {
                 char msg[64];
-                strfmt(msg, "Error: Zero division (line: %d)\n", node->lineno);
+                strfmt(msg, "Error: Zero division (line: %d)\n", binop->lineno);
                 term_write(msg);
                 free_node(node);
                 return NULL;
@@ -3949,7 +4110,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                     v = 0;
 
                 size_t i = (size_t) v;
-                size_t size = right->literal.str_size * i;
+                size_t size = (right->literal.str_size - 1) * i;
                 char **value = &node->literal.str_value;
                 *value = heap_alloc(size + 1);
                 memset(*value, 0, size + 1);
@@ -3973,7 +4134,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                     v = 0;
 
                 size_t i = (size_t) v;
-                size_t size = left->literal.str_size * i;
+                size_t size = (left->literal.str_size - 1) * i;
                 char **value = &node->literal.str_value;
                 *value = heap_alloc(size + 1);
                 memset(*value, 0, size + 1);

@@ -50,6 +50,10 @@
 #define SCRIPT_TOKEN_RSBRAC     42 // ]
 #define SCRIPT_TOKEN_INCLUDE    43 // include
 #define SCRIPT_TOKEN_DELETE     44 // delete
+#define SCRIPT_TOKEN_ADDASSIGN  45 // +=
+#define SCRIPT_TOKEN_SUBASSIGN  46 // -=
+#define SCRIPT_TOKEN_MULASSIGN  47 // *=
+#define SCRIPT_TOKEN_DIVASSIGN  48 // /=
 
 #define SCRIPT_AST_BINOP        0
 #define SCRIPT_AST_LITERAL      1
