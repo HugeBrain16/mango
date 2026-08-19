@@ -592,11 +592,28 @@ static script_token_t *tokenize(fio_t *file) {
     int in_comment = 0;
 
     while (c != '\0') {
-        if (c == '#' && !in_comment)
+        if (c == '#' && !in_comment) {
+            if (fio_peek(file) == '-') {
+                in_comment = 2;
+
+                fio_getc(file);
+                c = fio_getc(file);
+                continue;
+            }
+
             in_comment = 1;
+        }
+
+        if (c == '-' && in_comment == 2 && fio_peek(file) == '#') {
+            in_comment = 0;
+
+            fio_getc(file);
+            c = fio_getc(file);
+            continue;
+        }
 
         if (c == '\n') {
-            if (in_comment)
+            if (in_comment == 1)
                 in_comment = 0;
 
             lineno++;
