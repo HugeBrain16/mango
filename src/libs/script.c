@@ -394,6 +394,7 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
     script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno);
     size_t i = 0;
     int is_float = 0;
+    char prev = '\0';
 
     if (*c == '-') {
         token->value[i++] = *c;
@@ -401,6 +402,18 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
     }
 
     do {
+        if (*c == '_') {
+            goto skip;
+        }
+
+        if (*c == '.' && prev == '_') {
+            char msg[64];
+            strfmt(msg, "Error: Unexpected number literal (line: %d)\n", *lineno);
+            term_write(msg);
+            free_token(token);
+            return NULL;
+        }
+
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
             token->size *= 2;
             token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
@@ -411,8 +424,18 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
         if (*c == '.')
             is_float++;
 
-        *c = fio_getc(file);
-    } while (isdigit(*c) || (*c == '.' && is_float < 2));
+        skip:
+            prev = *c;
+            *c = fio_getc(file);
+    } while (isdigit(*c) || *c == '_' || (*c == '.' && is_float < 2));
+
+    if (prev == '_') {
+        char msg[64];
+        strfmt(msg, "Error: Unexpected number literal (line: %d)\n", *lineno);
+        term_write(msg);
+        free_token(token);
+        return NULL;
+    }
 
     token->value[i] = '\0';
 
