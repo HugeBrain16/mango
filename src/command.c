@@ -817,11 +817,11 @@ static int command_printfile(int argc, char *argv[]) {
     return 0;
 }
 
-static int command_runscript(int argc, char *argv[]) {
+static int command_run(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc < 1) {
-        term_write("Usage: runscript <path>\n");
+        term_write("Usage: run <path>\n");
         return 1;
     }
 
@@ -1145,7 +1145,7 @@ static commands_t commands[] = {
     { "formatdisk" ,command_formatdisk },
     { "nodeinfo", command_nodeinfo },
     { "printfile", command_printfile },
-    { "runscript", command_runscript },
+    { "run", command_run },
     { "time", command_time },
     { "date", command_date },
     { "datetime", command_datetime },
