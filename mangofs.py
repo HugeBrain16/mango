@@ -150,11 +150,6 @@ class Disk:
 				else:
 					block = self.read_block(block.next)
 
-		if is_utf8(data):
-			block.data += b"\x00";
-			file.size += 1
-			self.write_block(block)
-
 		file.time_changed = date_packed()
 		self.write_node(file)
 
