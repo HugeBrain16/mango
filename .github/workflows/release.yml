@@ -1,0 +1,50 @@
+name: Releases
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: bash
+        run: |
+          dpkg --add-architecture i386
+          apt update -y && apt upgrade -y
+          apt install -y \
+          build-essential \
+          python3 \
+          python-is-python3 \
+          curl \
+          unzip \
+          wget \
+          qemu-utils \
+          grub-pc-bin \
+          grub-common \
+          xorriso \
+          libc6:i386
+          wget https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-linux.zip
+          unzip i686-elf-tools-linux.zip -d toolchain
+          source toolchain/init.sh
+          ./build
+          ./build disk
+
+      - name: Publish Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: preview
+          name: Preview Build
+          allowUpdates: true
+          prerelease: false
+          artifacts: |
+            mango.iso
+            disk.img
