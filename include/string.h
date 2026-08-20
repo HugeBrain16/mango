@@ -37,6 +37,7 @@ extern int isupalpha(char c);
 extern int islowalpha(char c);
 extern int isdigit(char c);
 extern int isprintable(char c);
+extern int isbase16(char c);
 extern size_t digitslen(int n);
 extern void intpad(char *dest, int num, size_t n, char c);
 

@@ -82,6 +82,10 @@ int isprintable(char c) {
     return (c >= 32 && c <= 126);
 }
 
+int isbase16(char c) {
+    return isdigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
 size_t strlen(const char *str) {
     size_t len = 0;
     while (str[len] != '\0')
