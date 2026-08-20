@@ -54,6 +54,7 @@
 #define SCRIPT_TOKEN_SUBASSIGN  46 // -=
 #define SCRIPT_TOKEN_MULASSIGN  47 // *=
 #define SCRIPT_TOKEN_DIVASSIGN  48 // /=
+#define SCRIPT_TOKEN_NEG        49 // !
 
 #define SCRIPT_AST_BINOP        0
 #define SCRIPT_AST_LITERAL      1

@@ -752,6 +752,12 @@ static script_token_t *tokenize(fio_t *file) {
             token = lex_assignoperator(file, &c, &lineno);
         } else if (c == '/' && next == '=') {
             token = lex_assignoperator(file, &c, &lineno);
+        } else if (c == '!') {
+            token = create_token(SCRIPT_TOKEN_NEG, lineno);
+            token->value[0] = '!';
+            token->value[1] = '\0';
+            token->size = 2;
+            if (token) c = fio_getc(file);
         } else {
             token = lex_operator(c, &lineno);
             if (token) c = fio_getc(file);
@@ -1386,6 +1392,15 @@ static void free_stmt(script_stmt_t *stmt) {
 
 static script_node_t *parse_factor(script_token_t **token) {
     if (!*token) return NULL;
+
+    if ((*token)->type == SCRIPT_TOKEN_NEG) {
+        *token = (*token)->next;
+
+        script_node_t *node = parse_call(token);
+        if (!node) return NULL;
+
+        return node_binop(SCRIPT_TOKEN_NEG, node, NULL);
+    }
 
     if ((*token)->type == SCRIPT_TOKEN_NUMBER ||
             (*token)->type == SCRIPT_TOKEN_STRING ||
@@ -3692,12 +3707,49 @@ static script_node_t *call_screen_flush(script_node_t *node) {
 /* ================== */
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
+    uint8_t op = binop->binop.op;
     script_node_t *left = binop->binop.left;
     script_node_t *right = binop->binop.right;
-    uint8_t op = binop->binop.op;
 
     int free_left = 0;
     int free_right = 0;
+
+    if (op == SCRIPT_TOKEN_NEG) {
+        script_node_t *val = binop->binop.left;
+
+        int free = 1;
+        if (val->node_type == SCRIPT_AST_BINOP)
+            val = eval_binop(block, val);
+        else if (val->node_type != SCRIPT_AST_LITERAL)
+            val = eval_expr(block, val);
+        else
+            free = 0;
+
+        if (!val)
+            return NULL;
+
+        if (val->value_type == SCRIPT_ID) {
+            char *name = val->literal.str_value;
+            script_var_t *var = env_unscoped_find_var(block, name);
+            if (free)
+                free_node(val);
+
+            if (!var) {
+                char msg[64];
+                strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
+                term_write(msg);
+                return NULL;
+            }
+
+            val = var->value;
+            free = 0;
+        }
+
+        script_node_t *node = node_istrue(val) ? g_false : g_true;
+        if (free)
+            free_node(val);
+        return node;
+    }
 
     if (left->node_type == SCRIPT_AST_BINOP) {
         left = eval_binop(block, left);
