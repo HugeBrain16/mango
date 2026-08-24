@@ -494,7 +494,7 @@ static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
     *c = fio_getc(file);
 
     int is_escaped = 0;
-    while ((*c != '"' || is_escaped) && *c != '\0') {
+    while ((*c != '"' || is_escaped) && *c != '\0' && *c != FIO_EOF) {
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
             token->size++;
             token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
@@ -685,7 +685,7 @@ static script_token_t *tokenize(fio_t *file) {
 
     int in_comment = 0;
 
-    while (c != '\0') {
+    while (c != '\0' && c != FIO_EOF) {
         if (c == '#' && !in_comment) {
             if (fio_peek(file) == '-') {
                 in_comment = 2;
