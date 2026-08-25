@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [[ "$1" == "fresh" ]]; then
+	rm disk.img
+fi
+
 test -f disk.img || ./build disk
 qemu-system-i386 \
 	-m 16M \

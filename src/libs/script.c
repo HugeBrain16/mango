@@ -24,6 +24,9 @@ static int script_printbg = COLOR_BLACK;
 static uint32_t *script_screen_buffer = NULL;
 static size_t script_screen_buffer_size = 0;
 static list_t *script_modules = NULL;
+static list_t *script_module_paths = NULL;
+static string_t *script_printcap = NULL;
+static int script_printcap_print = 1;
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -41,6 +44,7 @@ static void free_runtime(script_runtime_t *runtime);
 static script_node_t *node_null();
 static script_node_t *node_true();
 static script_node_t *node_false();
+static script_node_t *node_type_name(script_node_t *node);
 
 static script_stmt_t *parse_statement(script_token_t **token);
 static script_stmt_t *parse_statement_inner(script_token_t **token);
@@ -53,64 +57,71 @@ static script_node_t *parse_term(script_token_t **token);
 static script_node_t *parse_call(script_token_t **token);
 static script_node_t *parse_factor(script_token_t **token);
 
-static script_node_t *call_print(script_node_t *node);
-static script_node_t *call_println(script_node_t *node);
-static script_node_t *call_exec(script_node_t *node);
-static script_node_t *call_as_str(script_node_t *node);
-static script_node_t *call_as_int(script_node_t *node);
-static script_node_t *call_as_float(script_node_t *node);
-static script_node_t *call_type_name(script_node_t *node);
-static script_node_t *call_file_open(script_node_t *node);
-static script_node_t *call_file_close(script_node_t *node);
-static script_node_t *call_file_getc(script_node_t *node);
-static script_node_t *call_file_peek(script_node_t *node);
-static script_node_t *call_file_read(script_node_t *node);
-static script_node_t *call_file_write(script_node_t *node);
-static script_node_t *call_file_isfile(script_node_t *node);
-static script_node_t *call_file_isfolder(script_node_t *node);
-static script_node_t *call_file_list(script_node_t *node);
-static script_node_t *call_char_at(script_node_t *node);
-static script_node_t *call_sizeof(script_node_t *node);
-static script_node_t *call_input(script_node_t *node);
-static script_node_t *call_config_has(script_node_t *node);
-static script_node_t *call_config_get(script_node_t *node);
-static script_node_t *call_list_init(script_node_t *node);
-static script_node_t *call_list_clear(script_node_t *node);
-static script_node_t *call_list_push(script_node_t *node);
-static script_node_t *call_list_get(script_node_t *node);
-static script_node_t *call_list_pop(script_node_t *node);
-static script_node_t *call_list_remove(script_node_t *node);
-static script_node_t *call_list_str(script_node_t *node);
-static script_node_t *call_list_has(script_node_t *node);
-static script_node_t *call_sleep(script_node_t *node);
-static script_node_t *call_sys_ticks(script_node_t *node);
-static script_node_t *call_argc(script_node_t *node);
-static script_node_t *call_argv(script_node_t *node);
-static script_node_t *call_rand(script_node_t *node);
-static script_node_t *call_randrange(script_node_t *node);
-static script_node_t *call_color(script_node_t *node);
-static script_node_t *call_color_rgb(script_node_t *node);
-static script_node_t *call_color_setfg(script_node_t *node);
-static script_node_t *call_color_setbg(script_node_t *node);
-static script_node_t *call_color_reset(script_node_t *node);
-static script_node_t *call_sys_log(script_node_t *node);
-static script_node_t *call_exit(script_node_t *node);
-static script_node_t *call_ata_slot(script_node_t *node);
-static script_node_t *call_ata_serial(script_node_t *node);
-static script_node_t *call_ata_rev(script_node_t *node);
-static script_node_t *call_ata_model(script_node_t *node);
-static script_node_t *call_cpu_name(script_node_t *node);
-static script_node_t *call_cpu_vendor(script_node_t *node);
-static script_node_t *call_cpu_family(script_node_t *node);
-static script_node_t *call_cpu_model(script_node_t *node);
-static script_node_t *call_screen_init(script_node_t *node);
-static script_node_t *call_screen_width(script_node_t *node);
-static script_node_t *call_screen_height(script_node_t *node);
-static script_node_t *call_screen_pitch(script_node_t *node);
-static script_node_t *call_screen_scale(script_node_t *node);
-static script_node_t *call_screen_clear(script_node_t *node);
-static script_node_t *call_screen_draw(script_node_t *node);
-static script_node_t *call_screen_flush(script_node_t *node);
+static script_node_t *call_print(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_println(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_exec(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_as_str(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_type_name(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_close(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_isfile(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_isfolder(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_file_list(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_input(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_init(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_clear(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_pop(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_sleep(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_sys_ticks(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_argc(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_argv(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_rand(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_color(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_color_setfg(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_color_setbg(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_color_reset(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_sys_log(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_exit(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_ata_slot(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_ata_serial(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_ata_rev(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_ata_model(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_cpu_name(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_cpu_vendor(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_cpu_family(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_cpu_model(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_init(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_width(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_height(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_pitch(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_scale(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_printcap_init(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_printcap_close(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_printcap_get(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_internal_getname(script_stmt_t *block, script_node_t *node);
+static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t *node);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -145,7 +156,7 @@ static const script_builtin_entry_t builtins[] = {
     { "input", call_input },
     { "config_has", call_config_has },
     { "config_get", call_config_get },
-    { "list_init", call_list_init},
+    { "list_init", call_list_init },
     { "list_clear", call_list_clear },
     { "list_push", call_list_push },
     { "list_get", call_list_get },
@@ -182,6 +193,13 @@ static const script_builtin_entry_t builtins[] = {
     { "screen_clear", call_screen_clear },
     { "screen_draw", call_screen_draw },
     { "screen_flush", call_screen_flush },
+    { "printcap_init", call_printcap_init },
+    { "printcap_get", call_printcap_get },
+    { "printcap_close", call_printcap_close },
+    { "printcap_print", call_printcap_print },
+    { "internal_getvars", call_internal_getvars },
+    { "internal_getname", call_internal_getname },
+    { "internal_getvalue", call_internal_getvalue },
 };
 
 static script_node_t *g_null = NULL;
@@ -284,13 +302,26 @@ static char *node_repr(script_node_t *node) {
             }
             break;
         case SCRIPT_LIST:
+        case SCRIPT_VARLIST:
             {
                 list_t *list = node->literal.list;
-                buffer = heap_alloc(64);
+                buffer = heap_alloc(128);
 
-                if (list)
-                    strfmt(buffer, "[(0x%x) LIST=0x%x SIZE=%d ]",
-                        node, list, list->size);
+                if (list) {
+                    script_node_t *type_name = node_type_name(node);
+                    strfmt(buffer, "[(0x%x) TYPE=%s LIST=0x%x SIZE=%d ]",
+                        node, type_name->literal.str_value, list, list->size);
+                    free_node(type_name);
+                }
+            }
+            break;
+        case SCRIPT_VAR:
+            {
+                buffer = heap_alloc(strlen(node->var.name) + 64);
+                script_node_t *type_name = node_type_name(node->var.value);
+                strfmt(buffer, "[(0x%x) TYPE=%s NAME=%s ]",
+                    node, type_name->literal.str_value, node->var.name);
+                free_node(type_name);
             }
             break;
         case SCRIPT_FUNC:
@@ -359,8 +390,17 @@ static script_node_t *node_clone(script_node_t *node) {
             cloned->literal.file = node->literal.file;
             break;
         case SCRIPT_LIST:
+        case SCRIPT_VARLIST:
             cloned->literal.list = node->literal.list;
             break;
+        case SCRIPT_VAR:
+            {
+                size_t size = strlen(node->var.name) + 1;
+                cloned->var.name = heap_alloc(size);
+                memcpy(cloned->var.name, node->var.name, size);
+                cloned->var.value = node->var.value;
+                break;
+            }
     }
 
     return cloned;
@@ -1006,6 +1046,20 @@ static script_node_t *node_float(double n) {
     return node;
 }
 
+static script_node_t *node_var(char *name, script_node_t *value) {
+    script_node_t *node = node_null();
+    node->node_type = SCRIPT_AST_LITERAL;
+    node->value_type = SCRIPT_VAR;
+    node->lineno = 0;
+
+    size_t size = strlen(name) + 1;
+    node->var.name = heap_alloc(size);
+    memcpy(node->var.name, name, size);
+
+    node->var.value = value;
+    return node;
+}
+
 static int node_istrue(script_node_t *node) {
     if (!node) return 0;
 
@@ -1064,6 +1118,12 @@ static script_node_t *node_type_name(script_node_t *node) {
             break;
         case SCRIPT_LIST:
             str_value = "list";
+            break;
+        case SCRIPT_VAR:
+            str_value = "var";
+            break;
+        case SCRIPT_VARLIST:
+            str_value = "varlist";
             break;
     }
 
@@ -2024,39 +2084,51 @@ static script_stmt_t *parse_statement(script_token_t **token) {
     return stmt;
 }
 
-/* ==== built-ins ==== */
+/* ==== builtins ==== */
 
-static script_node_t *call_cpu_name(script_node_t *node) {
+static script_node_t *call_cpu_name(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_string(cpu_name);
     value->lineno = node->lineno;
     return value;
 }
 
-static script_node_t *call_cpu_vendor(script_node_t *node) {
+static script_node_t *call_cpu_vendor(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_string(cpu_vendor);
     value->lineno = node->lineno;
     return value;
 }
 
-static script_node_t *call_cpu_family(script_node_t *node) {
+static script_node_t *call_cpu_family(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_int(cpu_family);
     value->lineno = node->lineno;
     return value;
 }
 
-static script_node_t *call_cpu_model(script_node_t *node) {
+static script_node_t *call_cpu_model(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_int(cpu_model);
     value->lineno = node->lineno;
     return value;
 }
 
-static script_node_t *call_ata_slot(script_node_t *node) {
+static script_node_t *call_ata_slot(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_int(file_drive_slot());
     value->lineno = node->lineno;
     return value;
 }
 
-static script_node_t *call_ata_serial(script_node_t *node) {
+static script_node_t *call_ata_serial(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     drive_t drive;
     file_drive_spec(&drive);
 
@@ -2065,7 +2137,9 @@ static script_node_t *call_ata_serial(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_ata_rev(script_node_t *node) {
+static script_node_t *call_ata_rev(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     drive_t drive;
     file_drive_spec(&drive);
 
@@ -2074,7 +2148,9 @@ static script_node_t *call_ata_rev(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_ata_model(script_node_t *node) {
+static script_node_t *call_ata_model(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     drive_t drive;
     file_drive_spec(&drive);
 
@@ -2083,7 +2159,9 @@ static script_node_t *call_ata_model(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_exit(script_node_t *node) {
+static script_node_t *call_exit(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
     script_node_t **argv = node->call.argv;
 
@@ -2110,7 +2188,9 @@ static script_node_t *call_exit(script_node_t *node) {
     }
 }
 
-static script_node_t *call_exec(script_node_t *node) {
+static script_node_t *call_exec(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
     script_node_t **argv = node->call.argv;
 
@@ -2143,7 +2223,9 @@ static script_node_t *call_exec(script_node_t *node) {
     }
 }
 
-static script_node_t *call_print(script_node_t *node) {
+static script_node_t *call_print(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     for (size_t i = 0; i < node->call.argc; i++) {
         char *repr = node_repr(node->call.argv[i]);
 
@@ -2153,7 +2235,10 @@ static script_node_t *call_print(script_node_t *node) {
             term_fg = script_printfg;
             term_bg = script_printbg;
 
-            term_write(repr);
+            if (script_printcap_print)
+                term_write(repr);
+            if (script_printcap)
+                string_puts(script_printcap, repr);
 
             term_fg = fg;
             term_bg = bg;
@@ -2165,7 +2250,9 @@ static script_node_t *call_print(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_sys_log(script_node_t *node) {
+static script_node_t *call_sys_log(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     for (size_t i = 0; i < node->call.argc; i++) {
         char *repr = node_repr(node->call.argv[i]);
 
@@ -2178,13 +2265,22 @@ static script_node_t *call_sys_log(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_println(script_node_t *node) {
-    script_node_t *ret = call_print(node);
-    term_write("\n");
+static script_node_t *call_println(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *ret = call_print(block, node);
+
+    if (script_printcap_print)
+        term_write("\n");
+    if (script_printcap)
+        string_putc(script_printcap, '\n');
+
     return ret;
 }
 
-static script_node_t *call_as_str(script_node_t *node) {
+static script_node_t *call_as_str(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2197,7 +2293,9 @@ static script_node_t *call_as_str(script_node_t *node) {
 
     script_node_t *arg = node->call.argv[0];
     if (arg->value_type == SCRIPT_LIST)
-        return call_list_str(node);
+        return call_list_str(block, node);
+    else if (arg->value_type == SCRIPT_FUNC)
+        return node_string(arg->literal.func->func.name->literal.str_value);
 
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
@@ -2219,7 +2317,9 @@ static script_node_t *call_as_str(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_as_int(script_node_t *node) {
+static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2280,7 +2380,9 @@ static script_node_t *call_as_int(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_as_float(script_node_t *node) {
+static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2341,7 +2443,9 @@ static script_node_t *call_as_float(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_type_name(script_node_t *node) {
+static script_node_t *call_type_name(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2355,7 +2459,9 @@ static script_node_t *call_type_name(script_node_t *node) {
     return node_type_name(node->call.argv[0]);
 }
 
-static script_node_t *call_file_open(script_node_t *node) {
+static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -2403,7 +2509,9 @@ static script_node_t *call_file_open(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_file_close(script_node_t *node) {
+static script_node_t *call_file_close(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2432,7 +2540,9 @@ static script_node_t *call_file_close(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_file_getc(script_node_t *node) {
+static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2473,7 +2583,9 @@ static script_node_t *call_file_getc(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_file_peek(script_node_t *node) {
+static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2514,7 +2626,9 @@ static script_node_t *call_file_peek(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_file_read(script_node_t *node) {
+static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2573,7 +2687,9 @@ static script_node_t *call_file_read(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_file_write(script_node_t *node) {
+static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -2613,7 +2729,9 @@ static script_node_t *call_file_write(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_file_isfile(script_node_t *node) {
+static script_node_t *call_file_isfile(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc < 1) {
@@ -2642,7 +2760,9 @@ static script_node_t *call_file_isfile(script_node_t *node) {
     return g_false;
 }
 
-static script_node_t *call_file_isfolder(script_node_t *node) {
+static script_node_t *call_file_isfolder(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc < 1) {
@@ -2671,7 +2791,9 @@ static script_node_t *call_file_isfolder(script_node_t *node) {
     return g_false;
 }
 
-static script_node_t *call_file_list(script_node_t *node) {
+static script_node_t *call_file_list(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     script_node_t *path = NULL;
@@ -2692,7 +2814,7 @@ static script_node_t *call_file_list(script_node_t *node) {
             return g_null;
     }
 
-    script_node_t *list = call_list_init(node);
+    script_node_t *list = call_list_init(block, node);
 
     file_node_t target_node;
     uint32_t target = path ? file_get_node(path->literal.str_value) : file_current;
@@ -2713,7 +2835,9 @@ static script_node_t *call_file_list(script_node_t *node) {
     return list;
 }
 
-static script_node_t *call_char_at(script_node_t *node) {
+static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -2763,7 +2887,9 @@ static script_node_t *call_char_at(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_sizeof(script_node_t *node) {
+static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -2811,6 +2937,7 @@ static script_node_t *call_sizeof(script_node_t *node) {
                 break;
             }
         case SCRIPT_LIST:
+        case SCRIPT_VARLIST:
             {
                 value->literal.int_value = (int) arg->literal.list->size;
                 break;
@@ -2825,7 +2952,9 @@ static script_node_t *call_sizeof(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_input(script_node_t *node) {
+static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     char input[TERM_INPUT_SIZE];
@@ -2874,7 +3003,9 @@ static script_node_t *call_input(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_config_has(script_node_t *node) {
+static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -2914,7 +3045,9 @@ static script_node_t *call_config_has(script_node_t *node) {
     return g_false;
 }
 
-static script_node_t *call_config_get(script_node_t *node) {
+static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -2964,7 +3097,9 @@ static script_node_t *call_config_get(script_node_t *node) {
     return ret;
 }
 
-static script_node_t *call_list_init(script_node_t *node) {
+static script_node_t *call_list_init(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     list_t *list = heap_alloc(sizeof(list_t));
     list_init(list);
 
@@ -2977,7 +3112,9 @@ static script_node_t *call_list_init(script_node_t *node) {
     return ret;
 }
 
-static script_node_t *call_list_clear(script_node_t *node) {
+static script_node_t *call_list_clear(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3013,7 +3150,9 @@ static script_node_t *call_list_clear(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_list_pop(script_node_t *node) {
+static script_node_t *call_list_pop(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3045,7 +3184,9 @@ static script_node_t *call_list_pop(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_list_push(script_node_t *node) {
+static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -3075,7 +3216,9 @@ static script_node_t *call_list_push(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_list_get(script_node_t *node) {
+static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -3118,7 +3261,9 @@ static script_node_t *call_list_get(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_list_remove(script_node_t *node) {
+static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -3158,7 +3303,9 @@ static script_node_t *call_list_remove(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_list_str(script_node_t *node) {
+static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3225,7 +3372,9 @@ static script_node_t *call_list_str(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_list_has(script_node_t *node) {
+static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -3267,7 +3416,9 @@ static script_node_t *call_list_has(script_node_t *node) {
     return g_false;
 }
 
-static script_node_t *call_sleep(script_node_t *node) {
+static script_node_t *call_sleep(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3300,7 +3451,9 @@ static script_node_t *call_sleep(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_sys_ticks(script_node_t *node) {
+static script_node_t *call_sys_ticks(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     __asm__ volatile("sti");
     int ticks = (int)pit_ticks;
 
@@ -3313,7 +3466,9 @@ static script_node_t *call_sys_ticks(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_argc(script_node_t *node) {
+static script_node_t *call_argc(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
@@ -3323,7 +3478,9 @@ static script_node_t *call_argc(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_argv(script_node_t *node) {
+static script_node_t *call_argv(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3363,7 +3520,9 @@ static script_node_t *call_argv(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_rand(script_node_t *node) {
+static script_node_t *call_rand(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
@@ -3373,7 +3532,9 @@ static script_node_t *call_rand(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_randrange(script_node_t *node) {
+static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 2) {
@@ -3416,7 +3577,9 @@ static script_node_t *call_randrange(script_node_t *node) {
     return value;
 }
 
-static script_node_t *call_color_setfg(script_node_t *node) {
+static script_node_t *call_color_setfg(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3448,7 +3611,9 @@ static script_node_t *call_color_setfg(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_color_setbg(script_node_t *node) {
+static script_node_t *call_color_setbg(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3480,15 +3645,17 @@ static script_node_t *call_color_setbg(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_color_reset(script_node_t *node) {
-    unused(node);
+static script_node_t *call_color_reset(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     script_printfg = term_fg;
     script_printbg = term_bg;
     return g_null;
 }
 
-static script_node_t *call_color(script_node_t *node) {
+static script_node_t *call_color(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3514,7 +3681,9 @@ static script_node_t *call_color(script_node_t *node) {
     return node_int(color(name->literal.str_value));
 }
 
-static script_node_t *call_color_rgb(script_node_t *node) {
+static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 3) {
@@ -3549,8 +3718,8 @@ static script_node_t *call_color_rgb(script_node_t *node) {
         b->literal.int_value));
 }
 
-static script_node_t *call_screen_init(script_node_t *node) {
-    unused(node);
+static script_node_t *call_screen_init(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     if (!script_screen_buffer) {
         script_screen_buffer_size = (screen_pitch / sizeof(uint32_t)) * screen_height;
@@ -3565,31 +3734,33 @@ static script_node_t *call_screen_init(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_screen_width(script_node_t *node) {
-    unused(node);
+static script_node_t *call_screen_width(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     return node_int(screen_width);
 }
 
-static script_node_t *call_screen_height(script_node_t *node) {
-    unused(node);
+static script_node_t *call_screen_height(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     return node_int(screen_height);
 }
 
-static script_node_t *call_screen_pitch(script_node_t *node) {
-    unused(node);
+static script_node_t *call_screen_pitch(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     return node_int(screen_pitch);
 }
 
-static script_node_t *call_screen_scale(script_node_t *node) {
-    unused(node);
+static script_node_t *call_screen_scale(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     return node_float(screen_scale);
 }
 
-static script_node_t *call_screen_draw(script_node_t *node) {
+static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 3) {
@@ -3652,7 +3823,9 @@ static script_node_t *call_screen_draw(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_screen_clear(script_node_t *node) {
+static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
     size_t argc = node->call.argc;
 
     if (argc != 1) {
@@ -3689,8 +3862,8 @@ static script_node_t *call_screen_clear(script_node_t *node) {
     return g_null;
 }
 
-static script_node_t *call_screen_flush(script_node_t *node) {
-    unused(node);
+static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
 
     if (!script_screen_buffer) {
         char msg[128];
@@ -3703,6 +3876,162 @@ static script_node_t *call_screen_flush(script_node_t *node) {
     memcpy(back_buffer, script_screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
     return g_null;
 }
+
+static script_node_t *call_printcap_close(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
+
+    if (script_printcap)
+        string_free(script_printcap);
+    script_printcap = NULL;
+
+    return g_null;
+}
+
+static script_node_t *call_printcap_init(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    call_printcap_close(block, node);
+    script_printcap = string_init();
+
+    return g_null;
+}
+
+static script_node_t *call_printcap_get(script_stmt_t *block, script_node_t *node) {
+    unused(block); unused(node);
+
+    if (script_printcap)
+        return node_string(script_printcap->value);
+
+    return g_null;
+}
+
+static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function printcap_print() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *print = node->call.argv[0];
+
+    if (print->value_type != SCRIPT_BOOL) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(print);
+        strfmt(msg, "Error: Function printcap_print() expects bool, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    script_printcap_print = print->literal.int_value;
+
+    return g_null;
+}
+
+static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t *node) {
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function internal_getvars() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *type = node->call.argv[0];
+
+    if (type->value_type != SCRIPT_STR && type->value_type != SCRIPT_NULL) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(type);
+        strfmt(msg, "Error: Function internal_getvars() expects null or str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *list = call_list_init(block, node);
+    list->value_type = SCRIPT_VARLIST;
+
+    script_stmt_t *parent = block;
+    while (parent) {
+        script_var_t *var = parent->block.env->var_head;
+        while (var) {
+            script_node_t *type_name = node_type_name(var->value);
+            if (type->value_type == SCRIPT_NULL || (type->value_type == SCRIPT_STR && node_istrue(node_cmp(type, type_name))))
+                list_push(list->literal.list, node_var(var->name, var->value));
+            var = var->next;
+        }
+        parent = parent->parent;
+    }
+
+    return list;
+}
+
+static script_node_t *call_internal_getname(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function internal_getname() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *var = node->call.argv[0];
+
+    if (var->value_type != SCRIPT_VAR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(var);
+        strfmt(msg, "Error: Function internal_getname() expects var, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    return node_string(var->var.name);
+}
+
+static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function internal_getvalue() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        free_node(node);
+        return NULL;
+    }
+
+    script_node_t *var = node->call.argv[0];
+
+    if (var->value_type != SCRIPT_VAR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(var);
+        strfmt(msg, "Error: Function internal_getvalue() expects var, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        free_node(type_name);
+        free_node(node);
+        return NULL;
+    }
+
+    return node_clone(var->var.value);
+}
+
 
 /* ================== */
 
@@ -3763,10 +4092,36 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
     if (left->node_type != SCRIPT_AST_LITERAL) {
         left = eval_expr(block, left);
         free_left = 1;
+        
+        if (!left)
+            return NULL;
     }
     if (right->node_type != SCRIPT_AST_LITERAL) {
         right = eval_expr(block, right);
         free_right = 1;
+
+        if (!right) {
+            if (free_left)
+                free_node(left);
+
+            return NULL;
+        }
+    }
+
+    if (right->value_type == SCRIPT_ID) {
+        char *rname = right->literal.str_value;
+        script_var_t *rvar = env_unscoped_find_var(block, rname);
+        if (free_right) free_node(right);
+
+        if (!rvar) {
+            char msg[64];
+            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", rname, binop->lineno);
+            term_write(msg);
+            return NULL;
+        }
+
+        right = rvar->value;
+        free_right = 0;
     }
 
     if (left->value_type == SCRIPT_ID) {
@@ -3881,20 +4236,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 
         if (free_left) free_node(left);
         left = var->value;
-    }
-    if (right->value_type == SCRIPT_ID) {
-        char *name = right->literal.str_value;
-        script_var_t *var = env_unscoped_find_var(block, name);
-        if (free_right) free_node(right);
-
-        if (!var) {
-            char msg[64];
-            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
-            term_write(msg);
-            return NULL;
-        }
-
-        right = var->value;
     }
 
     if (op == SCRIPT_TOKEN_AND) {
@@ -4325,7 +4666,7 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
 
     script_builtin_t builtin = builtin_get(name);
     if (builtin) {
-        ret = builtin(&copy_call);
+        ret = builtin(block, &copy_call);
         if (!ret) {
             script_exit = 1;
             script_should_exit = 1;
@@ -4398,10 +4739,8 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
     }
 
     script_node_t *idx = eval_expr(block, index->index.index);
-    if (!idx) {
-        free_node(index);
+    if (!idx)
         return NULL;
-    }
 
     switch (var->value->value_type) {
         case SCRIPT_STR:
@@ -4411,7 +4750,7 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
                     char msg[64];
                     strfmt(msg, "Error: Index expects 'int' type (line: %d)\n", index->lineno);
                     term_write(msg);
-                    free_node(index);
+                    free_node(idx);
                     return NULL;
                 }
 
@@ -4425,45 +4764,44 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
                     value->literal.str_value[0] = string->literal.str_value[idx->literal.int_value];
                     value->literal.str_value[1] = '\0';
 
+                    free_node(idx);
                     return value;
                 } else {
-                    char msg[64];
-                    strfmt(msg, "Error: Index out of bounds (line: %d)\n", index->lineno);
-                    term_write(msg);
-                    free_node(index);
-                    return NULL;
+                    free_node(idx);
+                    return g_null;
                 }
 
                 break;
             }
         case SCRIPT_LIST:
+        case SCRIPT_VARLIST:
             {
                 list_t *list = var->value->literal.list;
                 if (!list) {
                     char msg[64];
                     strfmt(msg, "Error: List is not initialized (line: %d)\n", index->lineno);
                     term_write(msg);
-                    free_node(index);
+                    free_node(idx);
+                    return NULL;
                 }
 
                 if (idx->value_type != SCRIPT_INT) {
                     char msg[64];
                     strfmt(msg, "Error: Index expects 'int' type (line: %d)\n", index->lineno);
                     term_write(msg);
-                    free_node(index);
+                    free_node(idx);
                     return NULL;
                 }
 
                 if (idx->literal.int_value >= 0 && idx->literal.int_value < (int)list->size) {
                     script_node_t *value = (script_node_t*)list_get(list, (size_t)idx->literal.int_value);
-                    if (value)
+                    if (value) {
+                        free_node(idx);
                         return node_clone(value);
+                    }
                 } else {
-                    char msg[64];
-                    strfmt(msg, "Error: Index out of bounds (line: %d)\n", index->lineno);
-                    term_write(msg);
-                    free_node(index);
-                    return NULL;
+                    free_node(idx);
+                    return g_null;
                 }
 
                 break;
@@ -4475,7 +4813,6 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
     strfmt(msg, "Error: Cannot index a '%s' type (line: %d)\n", type->literal.str_value, index->lineno);
     term_write(msg);
     free_node(type);
-    free_node(index);
     return NULL;
 }
 
@@ -4617,8 +4954,8 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
     script_stmt_t *current = stmt->child;
     while (current) {
         eval = eval_statement(block, current);
-        if (!eval || !eval->node)
-            break;
+        if (!eval)
+            return NULL;
 
         if (eval->type == SCRIPT_EVAL_RETURN ||
             eval->type == SCRIPT_EVAL_BREAK ||
@@ -4631,11 +4968,9 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
         current = current->next;
     }
 
-    if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
-        eval->type = SCRIPT_EVAL_NONE;
-        eval->node = NULL;
-    }
+    eval = heap_alloc(sizeof(script_eval_t));
+    eval->type = SCRIPT_EVAL_NONE;
+    eval->node = NULL;
 
     return eval;
 }
@@ -4673,21 +5008,28 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
             break;
 
         eval = eval_statement(scope, stmt->while_stmt.body);
+        if (!eval) {
+            free_stmt(scope);
+            return NULL;
+        }
+
         env_reset(scope->block.env);
 
-        if (eval) {
-            if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
-                free_stmt(scope);
-                return eval;
-            } else if (eval->type == SCRIPT_EVAL_BREAK) {
-                free_eval(eval);
-                eval = NULL;
-                break;
-            } else if (eval->type == SCRIPT_EVAL_CONTINUE) {
-                free_eval(eval);
-                eval = NULL;
-                continue;
-            }
+        if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
+            free_stmt(scope);
+            return eval;
+        }
+
+        if (eval->type == SCRIPT_EVAL_BREAK) {
+            free_eval(eval);
+            eval = NULL;
+            break;
+        }
+
+        if (eval->type == SCRIPT_EVAL_CONTINUE) {
+            free_eval(eval);
+            eval = NULL;
+            continue;
         }
 
         free_eval(eval);
@@ -4722,21 +5064,28 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
             break;
 
         eval = eval_statement(scopescope, stmt->for_stmt.body);
+        if (!eval) {
+            free_stmt(scope);
+            free_stmt(scopescope);
+            return NULL;
+        }
         env_reset(scopescope->block.env);
 
-        if (eval) {
-            if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
-                free_stmt(scope);
-                free_stmt(scopescope);
-                return eval;
-            } else if (eval->type == SCRIPT_EVAL_BREAK) {
-                free_eval(eval);
-                eval = NULL;
-                break;
-            } else if (eval->type == SCRIPT_EVAL_CONTINUE) {
-                free_eval(eval);
-                eval = NULL;
-            }
+        if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
+            free_stmt(scope);
+            free_stmt(scopescope);
+            return eval;
+        }
+
+        if (eval->type == SCRIPT_EVAL_BREAK) {
+            free_eval(eval);
+            eval = NULL;
+            break;
+        }
+
+        if (eval->type == SCRIPT_EVAL_CONTINUE) {
+            free_eval(eval);
+            eval = NULL;
         }
 
         free_eval(eval);
@@ -4764,14 +5113,35 @@ static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
         root = root->parent;
 
     script_token_t *tokens = NULL;
-    int token_status = get_tokens(stmt->include_stmt.path->literal.str_value, &tokens);
-    if (!tokens)
-        return NULL;
+    script_node_t *npath = stmt->include_stmt.path;
 
+    char *path = heap_alloc(FILE_MAX_PATH + FILE_MAX_NAME);
+    memcpy(path, npath->literal.str_value, npath->literal.str_size);
+
+    if (!file_path_isfile(path))
+        strfmt(path, "/system/modules/%s", npath->literal.str_value);
+
+    for (size_t i = 0; i < script_module_paths->size; i++) {
+        char *p = (char*)list_get(script_module_paths, i);
+
+        if (!strcmp(p, path)) {
+            heap_free(path);
+            return g_null;
+        }
+    }
+
+    int token_status = get_tokens(path, &tokens);
     if (token_status == 1) {
         char msg[128];
         strfmt(msg, "Error: File not found (line: %d)\n", stmt->lineno);
         term_write(msg);
+        return NULL;
+    }
+
+    if (!tokens) {
+        if (token_status == 2)
+            return g_null;
+
         return NULL;
     }
 
@@ -4795,6 +5165,7 @@ static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
     }
 
     list_push(script_modules, module);
+    list_push(script_module_paths, path);
     return g_null;
 }
 
@@ -4851,35 +5222,71 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
             eval->node = NULL;
             break;
         case SCRIPT_STMT_DECLARE:
-            eval = heap_alloc(sizeof(script_eval_t));
-            eval->type = SCRIPT_EVAL_NONE;
-            eval->node = eval_declare(block, stmt);
-            break;
+            {
+                script_node_t *node = eval_declare(block, stmt);
+                if (!node)
+                    return NULL;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_DEFINE:
-            eval = heap_alloc(sizeof(script_eval_t));
-            eval->type = SCRIPT_EVAL_NONE;
-            eval->node = eval_define(block, stmt);
-            break;
+            {
+                script_node_t *node = eval_define(block, stmt);
+                if (!node)
+                    return NULL;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_ASSIGN:
-            eval = heap_alloc(sizeof(script_eval_t));
-            eval->type = SCRIPT_EVAL_NONE;
-            eval->node = eval_assign(block, stmt);
-            break;
+            {
+                script_node_t *node = eval_assign(block, stmt);
+                if (!node)
+                    return NULL;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_FUNC:
-            eval = heap_alloc(sizeof(script_eval_t));
-            eval->type = SCRIPT_EVAL_NONE;
-            eval->node = eval_func(block, stmt);
-            break;
+            {
+                script_node_t *node = eval_func(block, stmt);
+                if (!node)
+                    return NULL;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_INCLUDE:
-            eval = heap_alloc(sizeof(script_eval_t));
-            eval->type = SCRIPT_EVAL_NONE;
-            eval->node = eval_include(block, stmt);
-            break;
+            {
+                script_node_t *node = eval_include(block, stmt);
+                if (!node)
+                    return NULL;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_DELETE:
-            eval = heap_alloc(sizeof(script_eval_t));
-            eval->type = SCRIPT_EVAL_NONE;
-            eval->node = eval_delete(block, stmt);
-            break;
+            {
+                script_node_t *node = eval_delete(block, stmt);
+                if (!node)
+                    return NULL;
+
+                eval = heap_alloc(sizeof(script_eval_t));
+                eval->type = SCRIPT_EVAL_NONE;
+                eval->node = node;
+                break;
+            }
         case SCRIPT_STMT_BLOCK:
             return eval_block(block, stmt);
         case SCRIPT_STMT_IF:
@@ -4989,7 +5396,11 @@ void script_run(const char *path, int argc, char *argv[]) {
     script_screen_buffer_size = 0;
 
     script_modules = NULL;
+    script_module_paths = NULL;
+    script_modules = heap_alloc(sizeof(list_t));
+    script_module_paths = heap_alloc(sizeof(list_t));
     list_init(script_modules);
+    list_init(script_module_paths);
 
     script_token_t *token_head = NULL;
     if (get_tokens(path, &token_head)) {
@@ -5020,6 +5431,10 @@ cleanup:
     while (script_modules->size)
         free_stmt((script_stmt_t*)list_pop(script_modules));
     list_free(script_modules);
+
+    while (script_module_paths->size)
+        heap_free((char*)list_pop(script_module_paths));
+    list_free(script_module_paths);
 
     free_runtime(rt);
 }

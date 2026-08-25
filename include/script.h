@@ -92,6 +92,8 @@
 #define SCRIPT_BOOL     6
 #define SCRIPT_FILE     7
 #define SCRIPT_LIST     8
+#define SCRIPT_VAR      9
+#define SCRIPT_VARLIST  10
 
 typedef struct script_var script_var_t;
 typedef struct script_env script_env_t;
@@ -155,6 +157,11 @@ typedef struct script_node {
             struct script_node *var;
             struct script_node *index;
         } index;
+
+        struct {
+            char *name;
+            struct script_node *value;
+        } var;
     };
 } script_node_t;
 
@@ -226,7 +233,7 @@ typedef struct {
     script_node_t *node;
 } script_eval_t;
 
-typedef script_node_t *(*script_builtin_t)(script_node_t*);
+typedef script_node_t *(*script_builtin_t)(script_stmt_t *block, script_node_t *node);
 typedef struct {
     const char *name;
     script_builtin_t func;
