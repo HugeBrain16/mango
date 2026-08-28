@@ -124,6 +124,12 @@ func mangotest_string_split_trailing() {
 		split[3] == "";
 }
 
+func mangotest_string_trim() {
+	let sample = string_trim("\n\t  meow\n\t  ");
+
+	return sample == "meow";
+}
+
 test_init();
 test_colors();
 test_report("mangotest_report.txt");

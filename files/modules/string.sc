@@ -65,3 +65,45 @@ func string_split(string, token, count) {
 
 	return result;
 }
+
+func string_iswhitespace(char) {
+	return char == " " || char == "\n" || char == "\t";
+}
+
+func string_ltrim(string) {
+	let slen = sizeof(string);
+
+	let i = 0;
+	let buf = "";
+
+	while (string_iswhitespace(string[i]))
+		i += 1;
+
+	while (i < slen) {
+		buf += string[i];
+		i += 1;
+	}
+
+	return buf;
+}
+
+func string_rtrim(string) {
+	let slen = sizeof(string);
+
+	let i = slen - 1;
+	let buf = "";
+
+	while (string_iswhitespace(string[i]))
+		i -= 1;
+
+	while (i >= 0) {
+		buf = string[i] + buf;
+		i -= 1;
+	}
+
+	return buf;
+}
+
+func string_trim(string) {
+	return string_rtrim(string_ltrim(string));
+}
