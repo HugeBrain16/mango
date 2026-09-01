@@ -151,6 +151,7 @@ typedef struct script_node {
             struct script_node *func;
             struct script_node **argv;
             size_t argc;
+            int builtin;
         } call;
 
         struct {

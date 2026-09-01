@@ -4,6 +4,7 @@ let __test_cases;
 let __test_passed;
 let __test_failed;
 let __test_colors;
+let __test_timed;
 let __test_report;
 let __test_buffer;
 
@@ -34,6 +35,10 @@ func test_init() {
 
 func test_colors() {
 	__test_colors = true;
+}
+
+func test_timed() {
+	__test_timed = true;
 }
 
 func test_add(fn) {
@@ -70,7 +75,16 @@ func test_run() {
 
 			printcap_init();
 			printcap_print(false);
+
+			let start;
+			let end;
+
+			if (__test_timed)
+				start = sys_perf();
 			let result = fn();
+			if (__test_timed)
+				end = sys_perf();
+
 			let output = printcap_get();
 			printcap_print(true);
 			printcap_close();
@@ -99,6 +113,9 @@ func test_run() {
 					color_reset();
 				test_writeln(" (" + as_str(no) + "/" + as_str(cases) + ")");
 			}
+
+			if (__test_timed)
+				test_writeln("Took: " + as_str((end - start) * 1000) + "ms");
 		}
 
 		test_writeln("=== Summary ===");

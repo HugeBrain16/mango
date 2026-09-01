@@ -17,8 +17,21 @@ void *memchr(const void *ptr, int value, size_t size) {
 void *memset(void *bufptr, int value, size_t size) {
     unsigned char *buf = (unsigned char *) bufptr;
 
-    for (size_t i = 0; i < size; i++)
-        buf[i] = (unsigned char) value;
+    uint32_t data =
+        ((uint32_t)value) |
+        ((uint32_t)value << 8) |
+        ((uint32_t)value << 16) |
+        ((uint32_t)value << 24);
+
+    while (size >= 4) {
+        *(uint32_t*)buf = data;
+
+        buf += 4;
+        size -= 4;
+    }
+
+    while (size--)
+        *buf++ = value;
 
     return bufptr;
 }
@@ -38,25 +51,55 @@ int memcmp(const void *aptr, const void *bptr, size_t size) {
 }
 
 void *memcpy(void* restrict destptr, const void* restrict srcptr, size_t size) {
-    unsigned char *dest = (unsigned char *) destptr;
-    const unsigned char *src = (const unsigned char *) srcptr;
+    unsigned char *dest = destptr;
+    const unsigned char *src = srcptr;
 
-    for (size_t i = 0; i < size; i++)
-        dest[i] = src[i];
+    while (size >= 4) {
+        *(uint32_t*)dest = *(const uint32_t*)src;
 
-    return dest;
+        dest += 4;
+        src += 4;
+        size -= 4;
+    }
+
+    while (size--)
+        *dest++ = *src++;
+
+    return destptr;
 }
 
 void *memmove(void *destptr, const void *srcptr, size_t size) {
-    unsigned char *dest = (unsigned char *) destptr;
-    const unsigned char *src = (const unsigned char *) srcptr;
+    unsigned char *dest = destptr;
+    const unsigned char *src = srcptr;
+
+    if (dest == src)
+        return destptr;
 
     if (dest < src) {
-        for (size_t i = 0; i < size; i++)
-            dest[i] = src[i];
+        while (size >= 4) {
+            *(uint32_t *)dest = *(const uint32_t *)src;
+
+            dest += 4;
+            src += 4;
+            size -= 4;
+        }
+
+        while (size--)
+            *dest++ = *src++;
     } else {
-        for (size_t i = size; i > 0; i--)
-            dest[i - 1] = src[i - 1];
+        dest += size;
+        src += size;
+
+        while (size >= 4) {
+            *(uint32_t *)dest = *(const uint32_t *)src;
+
+            dest -= 4;
+            src -= 4;
+            size -= 4;
+        }
+
+        while (size--)
+            *--dest = *--src;
     }
 
     return destptr;

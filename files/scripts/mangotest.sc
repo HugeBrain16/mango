@@ -8,23 +8,33 @@ func mangotest_index() {
 	return a[0] == b[0];
 }
 
+func mangotest_underscore_values() {
+	let var;
+	let result = true;
+
+	var = 1_000;
+	result = result && var == 1000 && var == 1_000 && type_name(var) == "int";
+
+	return result;
+}
+
 func mangotest_assign() {
 	let var;
-	let result;
+	let result = true;
 
-	result = var == null && type_name(var) == "null";
+	result = result && var == null && type_name(var) == "null";
 
 	var = 10;
-	result = var == 10 && type_name(var) == "int";
+	result = result && var == 10 && type_name(var) == "int";
 
 	var = "abcd";
-	result = var == "abcd" && type_name(var) == "str";
+	result = result && var == "abcd" && type_name(var) == "str";
 
 	var = 1.8;
-	result = var == 1.8 && type_name(var) == "float";
+	result = result && var == 1.8 && type_name(var) == "float";
 
 	var = true;
-	result = var == true && type_name(var) == "bool";
+	result = result && var == true && type_name(var) == "bool";
 
 	return result;
 }
@@ -68,7 +78,7 @@ func mangotest_assignmul() {
 func mangotest_assignmul_string() {
 	let x = "abc";
 
-	return (x *= 2) == "abcabc";
+	return (x *= 6) == "abcabcabcabcabcabc";
 }
 
 func mangotest_assigndiv() {
@@ -125,9 +135,29 @@ func mangotest_string_split_trailing() {
 }
 
 func mangotest_string_trim() {
-	let sample = string_trim("\n\t  meow\n\t  ");
+	let sample = "\n\t  meow\n\t  ";
 
-	return sample == "meow";
+	let left = string_ltrim(sample);
+	let right = string_rtrim(sample);
+	let both = string_trim(sample);
+
+	return left == "meow\n\t  " && right == "\n\t  meow" && both == "meow";
+}
+
+func mangotest_string_append() {
+	let val = "";
+
+	for (let i = 0; i <= 10; i += 1) {
+		if (i < 10)
+			val += "0";
+
+		val += as_str(i);
+
+		if (i < 10)
+			val += " ";
+	}
+
+	return val == "00 01 02 03 04 05 06 07 08 09 10";
 }
 
 test_init();

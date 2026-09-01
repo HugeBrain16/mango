@@ -57,71 +57,76 @@ static script_node_t *parse_term(script_token_t **token);
 static script_node_t *parse_call(script_token_t **token);
 static script_node_t *parse_factor(script_token_t **token);
 
-static script_node_t *call_print(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_println(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_exec(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_as_str(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_type_name(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_close(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_isfile(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_isfolder(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_file_list(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_input(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_init(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_clear(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_pop(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_sleep(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_sys_ticks(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_argc(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_argv(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_rand(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_color(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_color_setfg(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_color_setbg(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_color_reset(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_sys_log(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_exit(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_ata_slot(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_ata_serial(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_ata_rev(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_ata_model(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_cpu_name(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_cpu_vendor(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_cpu_family(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_cpu_model(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_init(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_width(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_height(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_pitch(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_scale(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_printcap_init(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_printcap_close(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_printcap_get(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_internal_getname(script_stmt_t *block, script_node_t *node);
-static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t *node);
+#define DEF_CALL(n) \
+    static script_node_t *call_##n(script_stmt_t *block, script_node_t *node)
+
+DEF_CALL(print);
+DEF_CALL(println);
+DEF_CALL(exec);
+DEF_CALL(as_str);
+DEF_CALL(as_int);
+DEF_CALL(as_float);
+DEF_CALL(type_name);
+DEF_CALL(file_open);
+DEF_CALL(file_close);
+DEF_CALL(file_getc);
+DEF_CALL(file_peek);
+DEF_CALL(file_read);
+DEF_CALL(file_write);
+DEF_CALL(file_isfile);
+DEF_CALL(file_isfolder);
+DEF_CALL(file_list);
+DEF_CALL(char_at);
+DEF_CALL(sizeof);
+DEF_CALL(input);
+DEF_CALL(config_has);
+DEF_CALL(config_get);
+DEF_CALL(list_init);
+DEF_CALL(list_clear);
+DEF_CALL(list_push);
+DEF_CALL(list_get);
+DEF_CALL(list_pop);
+DEF_CALL(list_remove);
+DEF_CALL(list_str);
+DEF_CALL(list_has);
+DEF_CALL(sleep);
+DEF_CALL(sys_ticks);
+DEF_CALL(sys_tps);
+DEF_CALL(sys_log);
+DEF_CALL(sys_perf);
+DEF_CALL(argc);
+DEF_CALL(argv);
+DEF_CALL(rand);
+DEF_CALL(randrange);
+DEF_CALL(color);
+DEF_CALL(color_rgb);
+DEF_CALL(color_setfg);
+DEF_CALL(color_setbg);
+DEF_CALL(color_reset);
+DEF_CALL(exit);
+DEF_CALL(ata_slot);
+DEF_CALL(ata_serial);
+DEF_CALL(ata_rev);
+DEF_CALL(ata_model);
+DEF_CALL(cpu_name);
+DEF_CALL(cpu_vendor);
+DEF_CALL(cpu_family);
+DEF_CALL(cpu_model);
+DEF_CALL(screen_init);
+DEF_CALL(screen_width);
+DEF_CALL(screen_height);
+DEF_CALL(screen_pitch);
+DEF_CALL(screen_scale);
+DEF_CALL(screen_clear);
+DEF_CALL(screen_draw);
+DEF_CALL(screen_flush);
+DEF_CALL(printcap_init);
+DEF_CALL(printcap_close);
+DEF_CALL(printcap_get);
+DEF_CALL(printcap_print);
+DEF_CALL(internal_getvars);
+DEF_CALL(internal_getname);
+DEF_CALL(internal_getvalue);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -134,86 +139,151 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt);
 static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
 
-static const script_builtin_entry_t builtins[] = {
-    { "print", call_print },
-    { "println", call_println },
-    { "exec", call_exec },
-    { "as_str", call_as_str },
-    { "as_int", call_as_int },
-    { "as_float", call_as_float },
-    { "type_name", call_type_name },
-    { "file_open", call_file_open },
-    { "file_close", call_file_close },
-    { "file_getc", call_file_getc },
-    { "file_peek", call_file_peek },
-    { "file_read", call_file_read },
-    { "file_write", call_file_write },
-    { "file_isfile", call_file_isfile },
-    { "file_isfolder", call_file_isfolder },
-    { "file_list", call_file_list },
-    { "char_at", call_char_at },
-    { "sizeof", call_sizeof },
-    { "input", call_input },
-    { "config_has", call_config_has },
-    { "config_get", call_config_get },
-    { "list_init", call_list_init },
-    { "list_clear", call_list_clear },
-    { "list_push", call_list_push },
-    { "list_get", call_list_get },
-    { "list_pop", call_list_pop },
-    { "list_remove", call_list_remove },
-    { "list_str", call_list_str },
-    { "list_has", call_list_has },
-    { "sleep", call_sleep },
-    { "sys_ticks", call_sys_ticks },
-    { "argc", call_argc },
-    { "argv", call_argv },
-    { "rand", call_rand },
-    { "randrange", call_randrange },
-    { "color", call_color },
-    { "color_rgb", call_color_rgb },
-    { "color_setfg", call_color_setfg },
-    { "color_setbg", call_color_setbg },
-    { "color_reset", call_color_reset },
-    { "sys_log", call_sys_log },
-    { "exit", call_exit },
-    { "ata_slot", call_ata_slot },
-    { "ata_serial", call_ata_serial },
-    { "ata_rev", call_ata_rev },
-    { "ata_model", call_ata_model },
-    { "cpu_name", call_cpu_name },
-    { "cpu_vendor", call_cpu_vendor },
-    { "cpu_family", call_cpu_family },
-    { "cpu_model", call_cpu_model },
-    { "screen_init", call_screen_init },
-    { "screen_width", call_screen_width },
-    { "screen_height", call_screen_height },
-    { "screen_pitch", call_screen_pitch },
-    { "screen_scale", call_screen_scale },
-    { "screen_clear", call_screen_clear },
-    { "screen_draw", call_screen_draw },
-    { "screen_flush", call_screen_flush },
-    { "printcap_init", call_printcap_init },
-    { "printcap_get", call_printcap_get },
-    { "printcap_close", call_printcap_close },
-    { "printcap_print", call_printcap_print },
-    { "internal_getvars", call_internal_getvars },
-    { "internal_getname", call_internal_getname },
-    { "internal_getvalue", call_internal_getvalue },
+typedef enum call {
+    CALL_PRINT,
+    CALL_PRINTLN,
+    CALL_EXEC,
+    CALL_AS_STR,
+    CALL_AS_INT,
+    CALL_AS_FLOAT,
+    CALL_TYPE_NAME,
+    CALL_FILE_OPEN,
+    CALL_FILE_CLOSE,
+    CALL_FILE_GETC,
+    CALL_FILE_PEEK,
+    CALL_FILE_READ,
+    CALL_FILE_WRITE,
+    CALL_FILE_ISFILE,
+    CALL_FILE_ISFOLDER,
+    CALL_FILE_LIST,
+    CALL_CHAR_AT,
+    CALL_SIZEOF,
+    CALL_INPUT,
+    CALL_CONFIG_HAS,
+    CALL_CONFIG_GET,
+    CALL_LIST_INIT,
+    CALL_LIST_CLEAR,
+    CALL_LIST_PUSH,
+    CALL_LIST_GET,
+    CALL_LIST_POP,
+    CALL_LIST_REMOVE,
+    CALL_LIST_STR,
+    CALL_LIST_HAS,
+    CALL_SLEEP,
+    CALL_SYS_TICKS,
+    CALL_SYS_TPS,
+    CALL_SYS_LOG,
+    CALL_SYS_PERF,
+    CALL_ARGC,
+    CALL_ARGV,
+    CALL_RAND,
+    CALL_RANDRANGE,
+    CALL_COLOR,
+    CALL_COLOR_RGB,
+    CALL_COLOR_SETFG,
+    CALL_COLOR_SETBG,
+    CALL_COLOR_RESET,
+    CALL_EXIT,
+    CALL_ATA_SLOT,
+    CALL_ATA_SERIAL,
+    CALL_ATA_REV,
+    CALL_ATA_MODEL,
+    CALL_CPU_NAME,
+    CALL_CPU_VENDOR,
+    CALL_CPU_FAMILY,
+    CALL_CPU_MODEL,
+    CALL_SCREEN_INIT,
+    CALL_SCREEN_WIDTH,
+    CALL_SCREEN_HEIGHT,
+    CALL_SCREEN_PITCH,
+    CALL_SCREEN_SCALE,
+    CALL_SCREEN_CLEAR,
+    CALL_SCREEN_DRAW,
+    CALL_SCREEN_FLUSH,
+    CALL_PRINTCAP_INIT,
+    CALL_PRINTCAP_GET,
+    CALL_PRINTCAP_CLOSE,
+    CALL_PRINTCAP_PRINT,
+    CALL_INTERNAL_GETVARS,
+    CALL_INTERNAL_GETNAME,
+    CALL_INTERNAL_GETVALUE,
+
+    CALL_E_COUNT,
+} call_e;
+
+static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
+    [CALL_PRINT]             = { "print",        call_print },
+    [CALL_PRINTLN]           = { "println",      call_println },
+    [CALL_EXEC]              = { "exec",         call_exec },
+    [CALL_AS_STR]            = { "as_str",       call_as_str },
+    [CALL_AS_INT]            = { "as_int",       call_as_int },
+    [CALL_AS_FLOAT]          = { "as_float",     call_as_float },
+    [CALL_TYPE_NAME]         = { "type_name",    call_type_name },
+    [CALL_FILE_OPEN]         = { "file_open",    call_file_open },
+    [CALL_FILE_CLOSE]        = { "file_close",   call_file_close },
+    [CALL_FILE_GETC]         = { "file_getc",    call_file_getc },
+    [CALL_FILE_PEEK]         = { "file_peek",    call_file_peek },
+    [CALL_FILE_READ]         = { "file_read",    call_file_read },
+    [CALL_FILE_WRITE]        = { "file_write",   call_file_write },
+    [CALL_FILE_ISFILE]       = { "file_isfile",  call_file_isfile },
+    [CALL_FILE_ISFOLDER]     = { "file_isfolder",call_file_isfolder },
+    [CALL_FILE_LIST]         = { "file_list",    call_file_list },
+    [CALL_CHAR_AT]           = { "char_at",      call_char_at },
+    [CALL_SIZEOF]            = { "sizeof",       call_sizeof },
+    [CALL_INPUT]             = { "input",        call_input },
+    [CALL_CONFIG_HAS]        = { "config_has",   call_config_has },
+    [CALL_CONFIG_GET]        = { "config_get",   call_config_get },
+    [CALL_LIST_INIT]         = { "list_init",    call_list_init },
+    [CALL_LIST_CLEAR]        = { "list_clear",   call_list_clear },
+    [CALL_LIST_PUSH]         = { "list_push",    call_list_push },
+    [CALL_LIST_GET]          = { "list_get",     call_list_get },
+    [CALL_LIST_POP]          = { "list_pop",     call_list_pop },
+    [CALL_LIST_REMOVE]       = { "list_remove",  call_list_remove },
+    [CALL_LIST_STR]          = { "list_str",     call_list_str },
+    [CALL_LIST_HAS]          = { "list_has",     call_list_has },
+    [CALL_SLEEP]             = { "sleep",        call_sleep },
+    [CALL_SYS_TICKS]         = { "sys_ticks",    call_sys_ticks },
+    [CALL_SYS_TPS]           = { "sys_tps",      call_sys_tps },
+    [CALL_SYS_LOG]           = { "sys_log",      call_sys_log },
+    [CALL_SYS_PERF]          = { "sys_perf",     call_sys_perf },
+    [CALL_ARGC]              = { "argc",         call_argc },
+    [CALL_ARGV]              = { "argv",         call_argv },
+    [CALL_RAND]              = { "rand",         call_rand },
+    [CALL_RANDRANGE]         = { "randrange",    call_randrange },
+    [CALL_COLOR]             = { "color",        call_color },
+    [CALL_COLOR_RGB]         = { "color_rgb",    call_color_rgb },
+    [CALL_COLOR_SETFG]       = { "color_setfg",  call_color_setfg },
+    [CALL_COLOR_SETBG]       = { "color_setbg",  call_color_setbg },
+    [CALL_COLOR_RESET]       = { "color_reset",  call_color_reset },
+    [CALL_EXIT]              = { "exit",         call_exit },
+    [CALL_ATA_SLOT]          = { "ata_slot",     call_ata_slot },
+    [CALL_ATA_SERIAL]        = { "ata_serial",   call_ata_serial },
+    [CALL_ATA_REV]           = { "ata_rev",      call_ata_rev },
+    [CALL_ATA_MODEL]         = { "ata_model",    call_ata_model },
+    [CALL_CPU_NAME]          = { "cpu_name",     call_cpu_name },
+    [CALL_CPU_VENDOR]        = { "cpu_vendor",   call_cpu_vendor },
+    [CALL_CPU_FAMILY]        = { "cpu_family",   call_cpu_family },
+    [CALL_CPU_MODEL]         = { "cpu_model",    call_cpu_model },
+    [CALL_SCREEN_INIT]       = { "screen_init",   call_screen_init },
+    [CALL_SCREEN_WIDTH]      = { "screen_width",  call_screen_width },
+    [CALL_SCREEN_HEIGHT]     = { "screen_height", call_screen_height },
+    [CALL_SCREEN_PITCH]      = { "screen_pitch",  call_screen_pitch },
+    [CALL_SCREEN_SCALE]      = { "screen_scale",  call_screen_scale },
+    [CALL_SCREEN_CLEAR]      = { "screen_clear",  call_screen_clear },
+    [CALL_SCREEN_DRAW]       = { "screen_draw",   call_screen_draw },
+    [CALL_SCREEN_FLUSH]      = { "screen_flush",  call_screen_flush },
+    [CALL_PRINTCAP_INIT]     = { "printcap_init",  call_printcap_init },
+    [CALL_PRINTCAP_GET]      = { "printcap_get",   call_printcap_get },
+    [CALL_PRINTCAP_CLOSE]    = { "printcap_close", call_printcap_close },
+    [CALL_PRINTCAP_PRINT]    = { "printcap_print", call_printcap_print },
+    [CALL_INTERNAL_GETVARS]  = { "internal_getvars",  call_internal_getvars },
+    [CALL_INTERNAL_GETNAME]  = { "internal_getname",  call_internal_getname },
+    [CALL_INTERNAL_GETVALUE] = { "internal_getvalue", call_internal_getvalue },
 };
 
 static script_node_t *g_null = NULL;
 static script_node_t *g_true = NULL;
 static script_node_t *g_false = NULL;
-
-static script_builtin_t builtin_get(const char *name) {
-    for (size_t i = 0; i < sizeof(builtins) / sizeof(builtins[0]); i++) {
-        if (!strcmp(builtins[i].name, name))
-            return builtins[i].func;
-    }
-
-    return NULL;
-}
 
 static script_node_t *node_cmp(script_node_t *n1, script_node_t *n2) {
     int cmp = 0;
@@ -1168,9 +1238,9 @@ static script_node_t *node_literal(script_token_t *token) {
         char **value = &node->literal.str_value;
         size_t size = strlen(token->value) + 1;
 
-        node->literal.str_size = size;
         *value = heap_alloc(size);
         unescape(*value, token->value, size);
+        node->literal.str_size = strlen(*value) + 1;
     }
 
     return node;
@@ -1198,6 +1268,11 @@ static script_node_t *node_call(script_node_t *func, script_node_t **argv, size_
     node->call.func = func;
     node->call.argv = argv;
     node->call.argc = argc;
+    node->call.builtin = -1;
+    for (int i = 0; i < CALL_E_COUNT; i++) {
+        if (!strcmp(builtins[i].name, func->literal.str_value))
+            node->call.builtin = i;
+    }
 
     return node;
 }
@@ -3457,12 +3532,31 @@ static script_node_t *call_sys_ticks(script_stmt_t *block, script_node_t *node) 
     __asm__ volatile("sti");
     int ticks = (int)pit_ticks;
 
-    script_node_t *value = node_null();
-    value->node_type = SCRIPT_AST_LITERAL;
-    value->value_type = SCRIPT_INT;
+    script_node_t *value = node_int(ticks);
     value->lineno = node->lineno;
-    value->literal.int_value = ticks;
+    return value;
+}
 
+static script_node_t *call_sys_tps(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    __asm__ volatile("sti");
+    int tps = (int)pit_hz;
+
+    script_node_t *value = node_int(tps);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_sys_perf(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    __asm__ volatile("sti");
+    int ticks = (int)pit_ticks;
+    int tps = (int)pit_hz;
+
+    script_node_t *value = node_float((double)ticks / tps);
+    value->lineno = node->lineno;
     return value;
 }
 
@@ -4175,6 +4269,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 memcpy(val->literal.str_value, old, left_len);
                 memcpy(val->literal.str_value + left_len,
                     right->literal.str_value, right_len + 1);
+                val->literal.str_value[size] = '\0';
                 val->literal.str_size = size;
                 heap_free(old);
 
@@ -4475,11 +4570,13 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             size_t left_len = strlen(left->literal.str_value);
             size_t right_len = strlen(right->literal.str_value);
             size_t size = left_len + right_len + 1;
+
             node->literal.str_value = heap_alloc(size);
             memcpy(node->literal.str_value,
                 left->literal.str_value, left_len);
             memcpy(node->literal.str_value + left_len,
                 right->literal.str_value, right_len + 1);
+            node->literal.str_value[size] = '\0';
             node->literal.str_size = size;
 
             if (free_left) free_node(left);
@@ -4664,9 +4761,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
     script_node_t copy_call = *call;
     copy_call.call.argv = eval_args;
 
-    script_builtin_t builtin = builtin_get(name);
-    if (builtin) {
-        ret = builtin(block, &copy_call);
+    if (call->call.builtin >= 0 && call->call.builtin < CALL_E_COUNT) {
+        ret = builtins[call->call.builtin].func(block, &copy_call);
         if (!ret) {
             script_exit = 1;
             script_should_exit = 1;

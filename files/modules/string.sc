@@ -67,7 +67,7 @@ func string_split(string, token, count) {
 }
 
 func string_iswhitespace(char) {
-	return char == " " || char == "\n" || char == "\t";
+	return char == " " || char == "\n" || char == "\t" || char == "\r";
 }
 
 func string_ltrim(string) {
@@ -76,7 +76,7 @@ func string_ltrim(string) {
 	let i = 0;
 	let buf = "";
 
-	while (string_iswhitespace(string[i]))
+	while (i < slen && string_iswhitespace(string[i]))
 		i += 1;
 
 	while (i < slen) {
@@ -90,10 +90,12 @@ func string_ltrim(string) {
 func string_rtrim(string) {
 	let slen = sizeof(string);
 
+	if (slen == 0) return "";
+
 	let i = slen - 1;
 	let buf = "";
 
-	while (string_iswhitespace(string[i]))
+	while (i >= 0 && string_iswhitespace(string[i]))
 		i -= 1;
 
 	while (i >= 0) {
