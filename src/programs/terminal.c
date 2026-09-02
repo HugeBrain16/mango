@@ -372,7 +372,7 @@ void term_handle_type(uint8_t scancode) {
         term_input_pos = 0;
 
         if (term_input_buffer != NULL) {
-            strcpy(term_input_buffer, term_input);
+            memcpy(term_input_buffer, term_input, strlen(term_input));
             term_input_buffer = NULL;
         } else {
             strtrim(term_input);
