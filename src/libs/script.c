@@ -13,6 +13,7 @@
 #include "screen.h"
 #include "cpu.h"
 #include "unit.h"
+#include "keyboard.h"
 
 int script_exit = 0;
 
@@ -3061,7 +3062,10 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
     int bg = term_bg;
     term_fg = script_printfg;
     term_bg = script_printbg;
+
+    keyboard_mode = KEYBOARD_MODE_TERM;
     term_get_input(prompt == NULL ? "" : prompt, input, sizeof(input));
+    keyboard_mode = KEYBOARD_MODE_SCRIPT;
 
     term_fg = fg;
     term_bg = bg;
@@ -5478,7 +5482,30 @@ static int get_tokens(const char *path, script_token_t **tokens) {
     return 0;
 }
 
+void script_handle_type(uint8_t scancode) {
+    if (keyboard_ctrl) {
+        char c = scancode_to_char(scancode);
+
+        if (!keyboard_shift) {
+            if (c == 'c') {
+                script_should_exit = 1;
+
+                if (term_input_buffer) {
+                    term_input_buffer = NULL;
+
+                    term_input_cursor = 0;
+                    term_input_pos = 0;
+                    term_input[0] = '\0';
+                }
+            }
+        }
+    }
+}
+
 void script_run(const char *path, int argc, char *argv[]) {
+    int kmode = keyboard_mode;
+    keyboard_mode = KEYBOARD_MODE_SCRIPT;
+
     script_exit = 0;
     script_should_exit = 0;
 
@@ -5499,13 +5526,16 @@ void script_run(const char *path, int argc, char *argv[]) {
     list_init(script_module_paths);
 
     script_token_t *token_head = NULL;
+    script_token_t *tokens = NULL;
+    script_runtime_t *rt = NULL;
+
     if (get_tokens(path, &token_head)) {
         script_exit = 1;
-        return;
+        goto cleanup;
     }
 
-    script_token_t *tokens = token_head;
-    script_runtime_t *rt = get_runtime();
+    tokens = token_head;
+    rt = get_runtime();
     int status = load_runtime(rt->main, token_head);
     if (!status)
         goto cleanup;
@@ -5532,5 +5562,8 @@ cleanup:
         heap_free((char*)list_pop(script_module_paths));
     list_free(script_module_paths);
 
-    free_runtime(rt);
+    if (rt)
+        free_runtime(rt);
+
+    keyboard_mode = kmode;
 }
