@@ -125,6 +125,7 @@ typedef struct script_node {
     uint8_t node_type;
     uint8_t value_type;
     size_t lineno;
+    int ref;
 
     struct script_node *parent;
     struct script_node *head;
