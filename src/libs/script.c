@@ -131,6 +131,7 @@ DEF_CALL(printcap_print);
 DEF_CALL(internal_getvars);
 DEF_CALL(internal_getname);
 DEF_CALL(internal_getvalue);
+DEF_CALL(internal_getrefcount);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -211,6 +212,7 @@ typedef enum call {
     CALL_INTERNAL_GETVARS,
     CALL_INTERNAL_GETNAME,
     CALL_INTERNAL_GETVALUE,
+    CALL_INTERNAL_GETREFCOUNT,
 
     CALL_E_COUNT,
 } call_e;
@@ -283,6 +285,7 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_INTERNAL_GETVARS]  = { "internal_getvars",  call_internal_getvars },
     [CALL_INTERNAL_GETNAME]  = { "internal_getname",  call_internal_getname },
     [CALL_INTERNAL_GETVALUE] = { "internal_getvalue", call_internal_getvalue },
+    [CALL_INTERNAL_GETREFCOUNT] = { "internal_getrefcount", call_internal_getrefcount },
 };
 
 static script_node_t *g_null = NULL;
@@ -4094,6 +4097,21 @@ static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t
     }
 
     return ref_node(var->var.value);
+}
+
+static script_node_t *call_internal_getrefcount(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function internal_getrefcount() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    return node_int(node->call.argv[0]->ref);
 }
 
 
