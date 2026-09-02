@@ -2301,7 +2301,6 @@ static script_node_t *call_exit(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function exit() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2315,7 +2314,6 @@ static script_node_t *call_exit(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function exit() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(name);
-        unref_node(node);
         return NULL;
     }
 }
@@ -2330,7 +2328,6 @@ static script_node_t *call_exec(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function exec() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2350,7 +2347,6 @@ static script_node_t *call_exec(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function exec() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(name);
-        unref_node(node);
         return NULL;
     }
 }
@@ -2419,7 +2415,6 @@ static script_node_t *call_as_str(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function as_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2458,7 +2453,6 @@ static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function as_int() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2521,7 +2515,6 @@ static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function as_float() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2584,7 +2577,6 @@ static script_node_t *call_type_name(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function type_name() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2600,7 +2592,6 @@ static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function file_open() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2613,7 +2604,6 @@ static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function file_open() arg 1 expects string argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2623,7 +2613,6 @@ static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function file_open() arg 2 expects string argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2650,7 +2639,6 @@ static script_node_t *call_file_close(script_stmt_t *block, script_node_t *node)
         char msg[64];
         strfmt(msg, "Error: Function file_close() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2662,7 +2650,6 @@ static script_node_t *call_file_close(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function file_open() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2681,7 +2668,6 @@ static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function file_getc() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2693,7 +2679,6 @@ static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function file_getc() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2724,7 +2709,6 @@ static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function file_peek() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2736,7 +2720,6 @@ static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function file_peek() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2767,7 +2750,6 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function file_read() requires at least 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2782,7 +2764,6 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function file_read() arg 1 expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2792,7 +2773,6 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function file_read() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2828,7 +2808,6 @@ static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node)
         char msg[64];
         strfmt(msg, "Error: Function file_write() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2841,7 +2820,6 @@ static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function file_write() arg 1 expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2851,7 +2829,6 @@ static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function file_write() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2870,7 +2847,6 @@ static script_node_t *call_file_isfile(script_stmt_t *block, script_node_t *node
         char msg[64];
         strfmt(msg, "Error: Function file_isfile() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2882,7 +2858,6 @@ static script_node_t *call_file_isfile(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function file_isfile() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2901,7 +2876,6 @@ static script_node_t *call_file_isfolder(script_stmt_t *block, script_node_t *no
         char msg[64];
         strfmt(msg, "Error: Function file_isfolder() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2913,7 +2887,6 @@ static script_node_t *call_file_isfolder(script_stmt_t *block, script_node_t *no
         strfmt(msg, "Error: Function file_isfolder() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2938,7 +2911,6 @@ static script_node_t *call_file_list(script_stmt_t *block, script_node_t *node) 
             strfmt(msg, "Error: Function file_list() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
             term_write(msg);
             unref_node(type_name);
-            unref_node(node);
             return NULL;
         }
 
@@ -2976,7 +2948,6 @@ static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function char_at() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -2989,7 +2960,6 @@ static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function char_at() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -2999,7 +2969,6 @@ static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function char_at() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3028,7 +2997,6 @@ static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function sizeof() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3100,7 +3068,6 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
             strfmt(msg, "Error: Function input() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
             term_write(msg);
             unref_node(type_name);
-            unref_node(node);
             return NULL;
         }
 
@@ -3110,7 +3077,6 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function input() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3144,7 +3110,6 @@ static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node)
         char msg[64];
         strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3157,7 +3122,6 @@ static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3167,7 +3131,6 @@ static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3186,7 +3149,6 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
         char msg[64];
         strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3199,7 +3161,6 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3209,7 +3170,6 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3253,7 +3213,6 @@ static script_node_t *call_list_clear(script_stmt_t *block, script_node_t *node)
         char msg[64];
         strfmt(msg, "Error: Function list_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3265,7 +3224,6 @@ static script_node_t *call_list_clear(script_stmt_t *block, script_node_t *node)
         strfmt(msg, "Error: Function list_clear() expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3291,7 +3249,6 @@ static script_node_t *call_list_pop(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function list_pop() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3303,7 +3260,6 @@ static script_node_t *call_list_pop(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function list_pop() expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3325,7 +3281,6 @@ static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function list_push() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3338,7 +3293,6 @@ static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function list_push() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3357,7 +3311,6 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function list_get() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3370,7 +3323,6 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function list_get() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3380,7 +3332,6 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function list_get() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3402,7 +3353,6 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
         char msg[64];
         strfmt(msg, "Error: Function list_remove() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3415,7 +3365,6 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function list_remove() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3425,7 +3374,6 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function list_remove() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3444,7 +3392,6 @@ static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function list_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3456,7 +3403,6 @@ static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function list_str() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3513,7 +3459,6 @@ static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function list_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3526,7 +3471,6 @@ static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function list_has() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3557,7 +3501,6 @@ static script_node_t *call_sleep(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function sleep() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3569,7 +3512,6 @@ static script_node_t *call_sleep(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function sleep() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3638,7 +3580,6 @@ static script_node_t *call_argv(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function argv() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3650,7 +3591,6 @@ static script_node_t *call_argv(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function argv() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3692,7 +3632,6 @@ static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function randrange() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3705,7 +3644,6 @@ static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function randrange() arg 1 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3715,7 +3653,6 @@ static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) 
         strfmt(msg, "Error: Function randrange() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3737,7 +3674,6 @@ static script_node_t *call_color_setfg(script_stmt_t *block, script_node_t *node
         char msg[64];
         strfmt(msg, "Error: Function color_setfg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3749,7 +3685,6 @@ static script_node_t *call_color_setfg(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function color_setfg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3771,7 +3706,6 @@ static script_node_t *call_color_setbg(script_stmt_t *block, script_node_t *node
         char msg[64];
         strfmt(msg, "Error: Function color_setbg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3783,7 +3717,6 @@ static script_node_t *call_color_setbg(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function color_setbg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3813,7 +3746,6 @@ static script_node_t *call_color(script_stmt_t *block, script_node_t *node) {
         char msg[64];
         strfmt(msg, "Error: Function color() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3825,7 +3757,6 @@ static script_node_t *call_color(script_stmt_t *block, script_node_t *node) {
         strfmt(msg, "Error: Function color() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3841,7 +3772,6 @@ static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node) 
         char msg[64];
         strfmt(msg, "Error: Function color_rgb() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3854,7 +3784,6 @@ static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node) 
             strfmt(msg, "Error: Function color_rgba() arg %d expects int, got %s (line: %d)\n", i + 1, type_name->literal.str_value, node->lineno);
             term_write(msg);
             unref_node(type_name);
-            unref_node(node);
             return NULL;
         }
     }
@@ -3918,7 +3847,6 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
         char msg[64];
         strfmt(msg, "Error: Function screen_draw() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3932,7 +3860,6 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function screen_draw() x expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3942,7 +3869,6 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function screen_draw() y expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3952,7 +3878,6 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
         strfmt(msg, "Error: Function screen_draw() color expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -3960,7 +3885,6 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
         char msg[128];
         strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3983,7 +3907,6 @@ static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *nod
         char msg[64];
         strfmt(msg, "Error: Function screen_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -3995,7 +3918,6 @@ static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *nod
         strfmt(msg, "Error: Function screen_clear() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -4003,7 +3925,6 @@ static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *nod
         char msg[128];
         strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -4020,7 +3941,6 @@ static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *nod
         char msg[128];
         strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -4065,7 +3985,6 @@ static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *n
         char msg[64];
         strfmt(msg, "Error: Function printcap_print() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -4077,7 +3996,6 @@ static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *n
         strfmt(msg, "Error: Function printcap_print() expects bool, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -4093,7 +4011,6 @@ static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t 
         char msg[64];
         strfmt(msg, "Error: Function internal_getvars() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -4105,7 +4022,6 @@ static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t 
         strfmt(msg, "Error: Function internal_getvars() expects null or str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -4137,7 +4053,6 @@ static script_node_t *call_internal_getname(script_stmt_t *block, script_node_t 
         char msg[64];
         strfmt(msg, "Error: Function internal_getname() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -4149,7 +4064,6 @@ static script_node_t *call_internal_getname(script_stmt_t *block, script_node_t 
         strfmt(msg, "Error: Function internal_getname() expects var, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
@@ -4165,7 +4079,6 @@ static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t
         char msg[64];
         strfmt(msg, "Error: Function internal_getvalue() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
         term_write(msg);
-        unref_node(node);
         return NULL;
     }
 
@@ -4177,7 +4090,6 @@ static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t
         strfmt(msg, "Error: Function internal_getvalue() expects var, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
         term_write(msg);
         unref_node(type_name);
-        unref_node(node);
         return NULL;
     }
 
