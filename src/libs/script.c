@@ -1493,7 +1493,7 @@ static void free_node(script_node_t *node) {
 
     switch (node->node_type) {
         case SCRIPT_AST_LITERAL:
-            switch (node->node_type) {
+            switch (node->value_type) {
                 case SCRIPT_STR:
                 case SCRIPT_ID:
                     heap_free(node->literal.str_value);
