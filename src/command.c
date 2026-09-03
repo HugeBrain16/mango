@@ -23,6 +23,7 @@
 #include "desktop.h"
 #include "media.h"
 #include "modules.h"
+#include "net.h"
 #include <external/spng/spng.h>
 
 #define MINIMP3_NO_SIMD
@@ -1115,6 +1116,18 @@ static int command_exit(int argc, char *argv[]) {
     return 0;
 }
 
+static int command_netinfo(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    char mac[20];
+    net_mac(mac);
+
+    term_write("MAC = ");
+    term_write(mac);
+    term_write("\n");
+    return 0;
+}
+
 typedef int (*command_t)(int, char**);
 typedef struct {
     const char *name;
@@ -1157,6 +1170,7 @@ static commands_t commands[] = {
     { "meminfo", command_meminfo },
     { "desktop", command_desktop },
     { "exit", command_exit },
+    { "netinfo", command_netinfo }
 };
 
 int command_handle(char *command, int printprompt) {

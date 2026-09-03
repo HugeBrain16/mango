@@ -10,6 +10,7 @@
 #include "rtc.h"
 #include "sound.h"
 #include "mouse.h"
+#include "net.h"
 
 static idt_entry_t idt[256];
 static idt_ptr_t idt_ptr;
@@ -154,4 +155,5 @@ void irq_handler(int_frame_t *frame) {
     else if (irq == 12) mouse_handle();
     else if (irq == 8) rtc_handle();
     else if (irq == sound_irq) sound_handle();
+    else if (irq == net_irq) net_handle();
 }

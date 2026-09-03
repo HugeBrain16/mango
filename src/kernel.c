@@ -30,6 +30,7 @@
 #include "fio.h"
 #include "mouse.h"
 #include "desktop.h"
+#include "net.h"
 
 char early_boot[128] = {0};
 int boot_logging = 1;
@@ -234,6 +235,8 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         string_puts(boot_log, msg);
         log(msg);
     }
+
+    net_init();
 
     msg = "[ INFO ] Initialization complete!\n";
     string_puts(boot_log, msg);
