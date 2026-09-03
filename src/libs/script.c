@@ -4261,7 +4261,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 memcpy(val->literal.str_value, old, left_len);
                 memcpy(val->literal.str_value + left_len,
                     right->literal.str_value, right_len + 1);
-                val->literal.str_value[size] = '\0';
                 val->literal.str_size = size;
                 heap_free(old);
 
@@ -4568,7 +4567,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 left->literal.str_value, left_len);
             memcpy(node->literal.str_value + left_len,
                 right->literal.str_value, right_len + 1);
-            node->literal.str_value[size] = '\0';
             node->literal.str_size = size;
 
             if (free_left) unref_node(left);
