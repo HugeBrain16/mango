@@ -1145,21 +1145,6 @@ static script_node_t *node_var(char *name, script_node_t *value) {
     return node;
 }
 
-static int node_isprimitive(script_node_t *node) {
-    if (!node) return 0;
-
-    switch (node->value_type) {
-        case SCRIPT_BOOL:
-        case SCRIPT_STR:
-        case SCRIPT_INT:
-        case SCRIPT_FLOAT:
-        case SCRIPT_NULL:
-            return 1;
-    }
-
-    return 0;
-}
-
 static int node_istrue(script_node_t *node) {
     if (!node) return 0;
 
@@ -4222,6 +4207,20 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         }
 
         script_node_t *val = var->value;
+
+        int mutate =
+            op == SCRIPT_TOKEN_ADDASSIGN ||
+            op == SCRIPT_TOKEN_SUBASSIGN ||
+            op == SCRIPT_TOKEN_MULASSIGN ||
+            op == SCRIPT_TOKEN_DIVASSIGN;
+
+        if (mutate && val->ref > 1) {
+            script_node_t *copy = node_clone(val);
+            unref_node(val);
+            var->value = copy;
+            val = copy;
+        }
+
         int ltype = val->value_type;
         int rtype = right->value_type;
 
@@ -4912,9 +4911,6 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
                     term_write(msg);
                     return NULL;
                 }
-
-                if (node_isprimitive(var->value))
-                    return node_clone(var->value);
 
                 return ref_node(var->value);
             }
