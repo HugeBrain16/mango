@@ -133,9 +133,8 @@ static void term_redraw_cursor(int hide) {
 }
 
 void term_write(const char *text) {
-    if (keyboard_mode != KEYBOARD_MODE_TERM) return;
-
-    term_clear_cursor();
+    if (keyboard_mode == KEYBOARD_MODE_TERM)
+        term_clear_cursor();
 
     for (const char *p = text; *p != '\0'; p++) {
         char c = *p;
@@ -332,6 +331,9 @@ void term_handle_type(uint8_t scancode) {
 
     if (c != '\n') {
         if (term_input_cursor >= TERM_INPUT_SIZE)
+            return;
+
+        if (keyboard_ctrl)
             return;
 
         term_clear_cursor();

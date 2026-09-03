@@ -5,6 +5,7 @@
 #include "editor.h"
 #include "desktop.h"
 #include "kernel.h"
+#include "script.h"
 
 int keyboard_shift = 0;
 int keyboard_ctrl = 0;
@@ -60,10 +61,31 @@ void keyboard_handle() {
     if (!boot_status)
         return;
 
-    if (keyboard_mode == KEYBOARD_MODE_TERM)
-        term_handle_type(scancode);
-    else if (keyboard_mode == KEYBOARD_MODE_EDIT)
-        edit_handle_type(scancode);
-    else if (keyboard_mode == KEYBOARD_MODE_DESKTOP)
-        desktop_handle_type(scancode);
+    switch (keyboard_mode) {
+        case KEYBOARD_MODE_TERM:
+        {
+            term_handle_type(scancode);
+
+            // assume script runtime is calling input()
+            if (term_input_buffer)
+                script_handle_type(scancode);
+
+            break;
+        }
+        case KEYBOARD_MODE_EDIT:
+        {
+            edit_handle_type(scancode);
+            break;
+        }
+        case KEYBOARD_MODE_DESKTOP:
+        {
+            desktop_handle_type(scancode);
+            break;
+        }
+        case KEYBOARD_MODE_SCRIPT:
+        {
+            script_handle_type(scancode);
+            break;
+        }
+    }
 }

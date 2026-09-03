@@ -242,6 +242,7 @@ typedef struct {
 } script_builtin_entry_t;
 
 extern int script_exit;
+extern void script_handle_type(uint8_t scancode);
 extern void script_run(const char *path, int argc, char *argv[]);
 
 #endif
