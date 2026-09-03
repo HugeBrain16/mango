@@ -4915,7 +4915,7 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
                 return ref_node(var->value);
             }
 
-            return node_clone(expr);
+            return ref_node(expr);
         case SCRIPT_AST_BINOP:
             return eval_binop(block, expr);
         case SCRIPT_AST_CALL:
