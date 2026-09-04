@@ -150,11 +150,11 @@ void irq_handler(int_frame_t *frame) {
     uint8_t irq = frame->vector - 32;
 
     if (irq == 0) pit_handle();
-    else if (irq == 1) keyboard_handle();
-    else if (irq == 12) mouse_handle();
-    else if (irq == 8) rtc_handle();
-    else if (irq == sound_irq) sound_handle();
-    else if (irq == net_irq) net_handle();
+    if (irq == 1) keyboard_handle();
+    if (irq == 12) mouse_handle();
+    if (irq == 8) rtc_handle();
+    if (irq == sound_irq) sound_handle();
+    if (irq == net_irq) net_handle();
 
     pic_eoi(irq);
 }

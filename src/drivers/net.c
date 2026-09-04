@@ -94,9 +94,11 @@ void net_handle() {
             outw(ioaddr + RTL8139_REG_ISR, status);
 
             if (status & RTL8139_STATUS_TxOK)
-                log("[ DEBUG ] (NET) Packet sent.\n");
-            else if (status & RTL8139_STATUS_RxOK)
-                log("[ DEBUG ] (NET) Packet received.\n");
+                rtl8139_tx_handle();
+
+            if (status & RTL8139_STATUS_RxOK)
+                rtl8139_rx_handle();
+
             break;
         }
     }
@@ -127,30 +129,9 @@ void net_broadcast(void *payload, size_t size) {
             uint16_t ioaddr = net_ioaddr();
             memcpy(net_tx_buffer, &packet, packet_size);
 
-            if (rtl8139_tx_pair > 3)
-                rtl8139_tx_pair = 0;
-
             uint8_t tsad;
             uint8_t tsd;
-            switch (rtl8139_tx_pair) {
-                case 0:
-                    tsad = RTL8139_REG_TSAD0;
-                    tsd = RTL8139_REG_TSD0;
-                    break;
-                case 1:
-                    tsad = RTL8139_REG_TSAD1;
-                    tsd = RTL8139_REG_TSD1;
-                    break;
-                case 2:
-                    tsad = RTL8139_REG_TSAD2;
-                    tsd = RTL8139_REG_TSD2;
-                    break;
-                case 3:
-                    tsad = RTL8139_REG_TSAD3;
-                    tsd = RTL8139_REG_TSD3;
-                    break;
-            }
-            rtl8139_tx_pair++;
+            rtl8139_get_tx_pair(&tsad, &tsd);
 
             outl(ioaddr + tsad, (uint32_t)(uintptr_t)net_tx_buffer);
 

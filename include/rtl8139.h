@@ -43,6 +43,12 @@
 #define RTL8139_RULES 0xf // AB+AM+APM+AAP
 
 typedef uint32_t rtl8139_tx_status_t;
-int rtl8139_tx_pair = 0;
+
+extern int rtl8139_tx_pair;
+
+extern void rtl8139_tx_handle();
+extern void rtl8139_rx_handle();
+extern void rtl8139_get_tx_pair(uint8_t *tsad, uint8_t *tsd);
+extern void rtl8139_tx_pair_rotate();
 
 #endif
