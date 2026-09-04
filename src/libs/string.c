@@ -449,10 +449,10 @@ void strfmt(char *dest, const char *fmt, ...) {
 
                 int j = 0;
                 for (const char *p = arg; *p != '\0'; p++) {
-                    if (j < sub) {
+                    if (j >= 8 - sub)
                         dest[i++] = *p;
-                        j++;
-                    }
+
+                    j++;
                 }
                 f += skip;
             } else if (type == '%') {
