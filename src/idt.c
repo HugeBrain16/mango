@@ -148,7 +148,6 @@ void exception_handler(int_frame_t *frame) {
 
 void irq_handler(int_frame_t *frame) {
     uint8_t irq = frame->vector - 32;
-    pic_eoi(irq);
 
     if (irq == 0) pit_handle();
     else if (irq == 1) keyboard_handle();
@@ -156,4 +155,6 @@ void irq_handler(int_frame_t *frame) {
     else if (irq == 8) rtc_handle();
     else if (irq == sound_irq) sound_handle();
     else if (irq == net_irq) net_handle();
+
+    pic_eoi(irq);
 }

@@ -1120,11 +1120,19 @@ static int command_netinfo(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     char mac[20];
-    net_mac(mac);
+    net_mac_str(mac);
 
     term_write("MAC = ");
     term_write(mac);
     term_write("\n");
+    return 0;
+}
+
+static int command_nettest(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    const char *msg = "hello from mango";
+    net_broadcast((void*)msg, strlen(msg) + 1);
     return 0;
 }
 
@@ -1170,7 +1178,8 @@ static commands_t commands[] = {
     { "meminfo", command_meminfo },
     { "desktop", command_desktop },
     { "exit", command_exit },
-    { "netinfo", command_netinfo }
+    { "netinfo", command_netinfo },
+    { "nettest", command_nettest },
 };
 
 int command_handle(char *command, int printprompt) {

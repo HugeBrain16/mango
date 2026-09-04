@@ -12,6 +12,6 @@ qemu-system-i386 \
 	-cdrom mango.iso \
 	-audiodev alsa,id=snd0 -device ac97,audiodev=snd0 \
 	-drive file=disk.img,format=raw \
-	-netdev user,id=net0 \
+	-netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
 	-device rtl8139,netdev=net0 \
 	-serial stdio -s
