@@ -40,11 +40,22 @@
 #define RTL8139_TS_TUN (1 << 14) // transmit underrun
 #define RTL8139_TS_OWN (1 << 13) // set this to 0 if descriptor is complete
 
+#define RTL8139_RS_MAR (1 << 15)
+#define RTL8139_RS_PAM (1 << 14)
+#define RTL8139_RS_BAR (1 << 13)
+#define RTL8139_RS_ISE (1 << 5)
+#define RTL8139_RS_RUNT (1 << 4) // <= 64 bytes packet
+#define RTL8139_RS_LONG (1 << 3) // > 4k bytes packet
+#define RTL8139_RS_CRC (1 << 2) // CRC error
+#define RTL8139_RS_FAE (1 << 1) // frame alignment error
+#define RTL8139_RS_ROK (1 << 0)
+
 #define RTL8139_RULES 0xf // AB+AM+APM+AAP
 
 typedef uint32_t rtl8139_tx_status_t;
 
 extern int rtl8139_tx_pair;
+extern int rtl8139_icmp_seq;
 
 extern void rtl8139_tx_handle();
 extern void rtl8139_rx_handle();

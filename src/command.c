@@ -1120,10 +1120,16 @@ static int command_netinfo(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
     char mac[20];
-    net_mac_str(mac);
+    char ip[16];
+    net_mac_str(mac, net_mac);
+    net_ip_str(ip, net_ip);
 
     term_write("MAC = ");
     term_write(mac);
+    term_write("\n");
+
+    term_write("IP = ");
+    term_write(ip);
     term_write("\n");
     return 0;
 }
@@ -1131,8 +1137,31 @@ static int command_netinfo(int argc, char *argv[]) {
 static int command_nettest(int argc, char *argv[]) {
     unused(argc); unused(argv);
 
-    const char *msg = "hello from mango";
-    net_broadcast((void*)msg, strlen(msg) + 1);
+    uint8_t ip[4] = {192, 168, 122, 1};
+    net_arp_request(ip);
+    return 0;
+}
+
+static int command_ping(int argc, char *argv[]) {
+    if (argc == 1) {
+        uint8_t ip[4];
+        char *ipstr = argv[0];
+        strtrim(ipstr);
+
+        const char *msg = "hello from mango";
+
+        if (net_ip_fromstr(ip, ipstr)) {
+            net_ipv4_icmp(
+                net_ip,
+                ip,
+                NET_ICMP_ECHO,
+                NULL,
+                NULL,
+                msg,
+                strlen(msg) + 1);
+        }
+    } else
+        term_write("Usage: ping <ip>\n");
     return 0;
 }
 
@@ -1180,6 +1209,7 @@ static commands_t commands[] = {
     { "exit", command_exit },
     { "netinfo", command_netinfo },
     { "nettest", command_nettest },
+    { "ping", command_ping },
 };
 
 int command_handle(char *command, int printprompt) {

@@ -41,7 +41,7 @@ if command -v ccache >/dev/null 2>&1; then
 fi
 CC="$CC i686-elf-gcc"
 
-CFLAGS="-std=gnu99 -ffreestanding -O3 -g -Wall -Wextra -fstack-protector"
+CFLAGS="-std=gnu99 -ffreestanding -O3 -g -Wall -Wextra -fstack-protector -Wno-strict-aliasing"
 
 DIR="$(mktemp -t mango.XXXX -d)"
 CRTI="$DIR/crti.o"
