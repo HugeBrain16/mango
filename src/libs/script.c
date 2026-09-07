@@ -14,6 +14,7 @@
 #include "cpu.h"
 #include "unit.h"
 #include "keyboard.h"
+#include "serial.h"
 
 int script_exit = 0;
 
@@ -67,6 +68,7 @@ static script_node_t *parse_factor(script_token_t **token);
 
 DEF_CALL(print);
 DEF_CALL(println);
+DEF_CALL(serial_write);
 DEF_CALL(exec);
 DEF_CALL(as_str);
 DEF_CALL(as_int);
@@ -148,6 +150,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt);
 typedef enum call {
     CALL_PRINT,
     CALL_PRINTLN,
+    CALL_SERIAL_WRITE,
     CALL_EXEC,
     CALL_AS_STR,
     CALL_AS_INT,
@@ -221,6 +224,7 @@ typedef enum call {
 static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_PRINT]             = { "print",        call_print },
     [CALL_PRINTLN]           = { "println",      call_println },
+    [CALL_SERIAL_WRITE]      = { "serial_write", call_serial_write },
     [CALL_EXEC]              = { "exec",         call_exec },
     [CALL_AS_STR]            = { "as_str",       call_as_str },
     [CALL_AS_INT]            = { "as_int",       call_as_int },
@@ -1487,6 +1491,18 @@ static void free_node(script_node_t *node) {
                     heap_free(node->var.name);
                     unref_node(node->var.value);
                     break;
+                case SCRIPT_LIST:
+                    if (node->literal.list) {
+                        list_node_t *current = node->literal.list->head;
+                        while (current) {
+                            list_node_t *next = current->next;
+                            unref_node((script_node_t*)current->data);
+                            heap_free(current);
+                            current = next;
+                        }
+                        heap_free(node->literal.list);
+                    }
+                    break;
             }
             break;
         case SCRIPT_AST_BINOP:
@@ -2385,6 +2401,21 @@ static script_node_t *call_sys_log(script_stmt_t *block, script_node_t *node) {
 
         if (repr) {
             log(repr);
+            heap_free(repr);
+        }
+    }
+
+    return g_null;
+}
+
+static script_node_t *call_serial_write(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    for (size_t i = 0; i < node->call.argc; i++) {
+        char *repr = node_repr(node->call.argv[i]);
+
+        if (repr) {
+            serial_write(repr);
             heap_free(repr);
         }
     }
@@ -3947,6 +3978,7 @@ static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *nod
     }
 
     memcpy(back_buffer, script_screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
+    screen_flush();
     return g_null;
 }
 
@@ -5111,8 +5143,8 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
             free_stmt(scope);
             return NULL;
         }
-
         env_reset(scope->block.env);
+        __asm__ volatile("sti");
 
         if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
             free_stmt(scope);
@@ -5169,6 +5201,7 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
             return NULL;
         }
         env_reset(scopescope->block.env);
+        __asm__ volatile("sti");
 
         if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
             free_stmt(scope);
