@@ -1624,59 +1624,69 @@ static script_node_t *parse_call(script_token_t **token) {
     script_node_t *node = parse_factor(token);
     if (!node || !*token) return node;
 
-    if ((*token)->type == SCRIPT_TOKEN_LPAREN) {
-        *token = (*token)->next;
+    while (*token) {
+        if ((*token)->type == SCRIPT_TOKEN_LPAREN) {
+            *token = (*token)->next;
 
-        size_t argc = 0;
-        script_node_t **argv = NULL;
+            size_t argc = 0;
+            script_node_t **argv = NULL;
 
-        if ((*token)->type != SCRIPT_TOKEN_RPAREN) {
-            while (1) {
-                script_node_t *arg = parse_expr(token);
-                if (!arg) {
-                    for (size_t i = 0; i < argc; i++)
-                        unref_node(argv[i]);
-                    heap_free(argv);
-                    unref_node(node);
-                    return NULL;
+            if ((*token)->type != SCRIPT_TOKEN_RPAREN) {
+                while (1) {
+                    script_node_t *arg = parse_expr(token);
+                    if (!arg) {
+                        for (size_t i = 0; i < argc; i++)
+                            unref_node(argv[i]);
+                        heap_free(argv);
+                        unref_node(node);
+                        return NULL;
+                    }
+
+                    argv = heap_realloc(argv, (argc + 1) * sizeof(*argv));
+                    argv[argc++] = arg;
+
+                    if ((*token)->type == SCRIPT_TOKEN_COMMA) {
+                        *token = (*token)->next;
+                        continue;
+                    }
+
+                    break;
                 }
-
-                argv = heap_realloc(argv, (argc + 1) * sizeof(*argv));
-                argv[argc++] = arg;
-
-                if ((*token)->type == SCRIPT_TOKEN_COMMA) {
-                    *token = (*token)->next;
-                    continue;
-                }
-
-                break;
             }
-        }
 
-        if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-            char msg[64];
-            strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-            term_write(msg);
-            return NULL;
-        }
-        *token = (*token)->next;
+            if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
+                char msg[64];
+                strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
+                term_write(msg);
+                for (size_t i = 0; i < argc; i++)
+                    unref_node(argv[i]);
+                heap_free(argv);
+                unref_node(node);
+                return NULL;
+            }
+            *token = (*token)->next;
 
-        return node_call(node, argv, argc);
-    } else if ((*token)->type == SCRIPT_TOKEN_LSBRAC) {
-        *token = (*token)->next;
+            node = node_call(node, argv, argc);
+        } else if ((*token)->type == SCRIPT_TOKEN_LSBRAC) {
+            *token = (*token)->next;
 
-        script_node_t *index = parse_expr(token);
-        if (!node) return node;
+            script_node_t *index = parse_expr(token);
+            if (!index) {
+                unref_node(node);
+                return NULL;
+            }
 
-        if (!*token || (*token)->type != SCRIPT_TOKEN_RSBRAC) {
-            char msg[64];
-            strfmt(msg, "Error: expected ']' (line: %d)\n", *token ? (*token)->lineno : 0);
-            term_write(msg);
-            return NULL;
-        }
-        *token = (*token)->next;
+            if (!*token || (*token)->type != SCRIPT_TOKEN_RSBRAC) {
+                char msg[64];
+                strfmt(msg, "Error: expected ']' (line: %d)\n", *token ? (*token)->lineno : 0);
+                term_write(msg);
+                unref_node(node);
+                return NULL;
+            }
+            *token = (*token)->next;
 
-        return node_index(node, index);
+            node = node_index(node, index);
+        } else break;
     }
 
     return node;
@@ -4809,23 +4819,32 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
 }
 
 static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
-    char *varname = index->index.var->literal.str_value;
-    script_var_t *var = env_unscoped_find_var(block, varname);
-    if (!var) {
-        char msg[64];
-        strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", varname, index->lineno);
-        term_write(msg);
-        return NULL;
+    script_node_t *node;
+
+    if (index->index.var->value_type == SCRIPT_ID) {
+        char *varname = index->index.var->literal.str_value;
+        script_var_t *var = env_unscoped_find_var(block, varname);
+        if (!var) {
+            char msg[64];
+            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", varname, index->lineno);
+            term_write(msg);
+            return NULL;
+        }
+        node = var->value;
+    } else {
+        node = eval_expr(block, index->index.var);
+        if (!node)
+            return NULL;
     }
 
     script_node_t *idx = eval_expr(block, index->index.index);
     if (!idx)
         return NULL;
 
-    switch (var->value->value_type) {
+    switch (node->value_type) {
         case SCRIPT_STR:
             {
-                script_node_t *string = var->value;
+                script_node_t *string = node;
                 if (idx->value_type != SCRIPT_INT) {
                     char msg[64];
                     strfmt(msg, "Error: Index expects 'int' type (line: %d)\n", index->lineno);
@@ -4856,7 +4875,7 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
         case SCRIPT_LIST:
         case SCRIPT_VARLIST:
             {
-                list_t *list = var->value->literal.list;
+                list_t *list = node->literal.list;
                 if (!list) {
                     char msg[64];
                     strfmt(msg, "Error: List is not initialized (line: %d)\n", index->lineno);
@@ -4889,7 +4908,7 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
     }
 
     char msg[128];
-    script_node_t *type = node_type_name(var->value);
+    script_node_t *type = node_type_name(node);
     strfmt(msg, "Error: Cannot index a '%s' type (line: %d)\n", type->literal.str_value, index->lineno);
     term_write(msg);
     unref_node(type);
