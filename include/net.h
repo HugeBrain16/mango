@@ -24,6 +24,7 @@
 #define NET_ARP_REP 0x02
 
 #define NET_IPPT_ICMP 1
+#define NET_IPPT_UDP 17
 
 #define NET_ICMP_ECHO 8
 #define NET_ICMP_ECHO_REPLY 0
@@ -90,6 +91,13 @@ typedef struct net_icmp_echo {
 	uint16_t id;
 	uint16_t seq;
 } net_icmp_echo_t;
+
+typedef struct net_udp {
+	uint16_t srcport;
+	uint16_t dstport;
+	uint16_t length;
+	uint16_t checksum;
+} net_udp_t;
 
 extern pci_device_t net_dev;
 extern int net_status;

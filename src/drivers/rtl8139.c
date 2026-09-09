@@ -125,6 +125,30 @@ void rtl8139_rx_handle() {
                 ipv4.checksum = ntohw(ipv4.checksum);
 
                 switch (ipv4.protocol) {
+                    case NET_IPPT_UDP:
+                    {
+                        uint8_t *udp_payload = &packet.payload[20];
+
+                        net_udp_t udp;
+                        memcpy(&udp, udp_payload, sizeof(net_udp_t));
+
+                        /*
+                        size_t data_len = ntohw(udp.length) - sizeof(net_udp_t);
+                        char data[data_len + 1];
+                        memcpy(data, udp_payload + sizeof(net_udp_t), data_len);
+                        data[data_len] = '\0';
+                        */
+
+                        char msg[64];
+                        char src[16];
+                        char dst[16];
+                        net_ip_str(src, ipv4.src);
+                        net_ip_str(dst, ipv4.dst);
+                        strfmt(msg, "[ DEBUG ] (NET:IPv4) UDP Received:\n\tsrc=%s\n\tdst=%s\n\tsrcport=%d\n\tdstport=%d\n\tlength=%d\n",
+                            src, dst, ntohw(udp.srcport), ntohw(udp.dstport), ntohw(udp.length));
+                        serial_write(msg);
+                        break;
+                    }
                     case NET_IPPT_ICMP:
                     {
                         uint8_t *icmp_payload = &packet.payload[20];
