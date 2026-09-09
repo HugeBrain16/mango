@@ -1,4 +1,6 @@
-let __box_structname = 0;
+include "struct.sc";
+
+let box_isstruct = struct_isstruct;
 
 let __box_vector2d_x = 1;
 let __box_vector2d_y = 2;
@@ -11,13 +13,6 @@ func box_isnumeric(val) {
 	let type = type_name(val);
 
 	return (type == "int" || type == "float");
-}
-
-func box_isstruct(val, name) {
-	if (type_name(val) != "list") return false;
-	if (type_name(val[__box_structname]) != "str") return false;
-
-	return val[__box_structname] == name;
 }
 
 func box_vector2d(x, y) {

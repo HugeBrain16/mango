@@ -109,3 +109,18 @@ func string_rtrim(string) {
 func string_trim(string) {
 	return string_rtrim(string_ltrim(string));
 }
+
+func string_sub(str, n) {
+	let slen = sizeof(str);
+
+	if (slen < n)
+		return "";
+
+	let res = "";
+	for (let i = 0; i < sizeof(str); i += 1) {
+		if (i + 1 > n)
+			res += str[i];
+	}
+
+	return res;
+}
