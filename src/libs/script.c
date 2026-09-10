@@ -3101,8 +3101,7 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
             return NULL;
         }
 
-        prompt = heap_alloc(arg->literal.str_size);
-        memcpy(prompt, arg->literal.str_value, arg->literal.str_size);
+        prompt = arg->literal.str_value;
     } else if (argc > 1) {
         char msg[64];
         strfmt(msg, "Error: Function input() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
@@ -3121,7 +3120,6 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
 
     term_fg = fg;
     term_bg = bg;
-    heap_free(prompt);
 
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
