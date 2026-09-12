@@ -5595,5 +5595,6 @@ cleanup:
     if (rt)
         free_runtime(rt);
 
-    keyboard_mode = kmode;
+    if (keyboard_mode == KEYBOARD_MODE_SCRIPT)
+        keyboard_mode = kmode;
 }
