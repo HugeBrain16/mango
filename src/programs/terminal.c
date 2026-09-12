@@ -319,6 +319,11 @@ static void term_handle_history(int direction) {
 }
 
 void term_handle_type(uint8_t scancode) {
+    if (scancode == KEY_ESC && desktop_active && term_session) {
+        term_session = 0;
+        return desktop_init();
+    }
+
     if (scancode == KEY_ARROW_LEFT) return term_handle_left();
     else if (scancode == KEY_ARROW_RIGHT) return term_handle_right();
     else if (scancode == KEY_ARROW_UP) return term_handle_history(1);
