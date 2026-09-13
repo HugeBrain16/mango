@@ -1,6 +1,6 @@
 #include "gdt.h"
 
-static gdt_entry_t gdt[5];
+static gdt_entry_t gdt[3];
 static gdt_descriptor_t gdt_ptr;
 
 void gdt_init() {

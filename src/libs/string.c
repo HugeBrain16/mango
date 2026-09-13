@@ -91,10 +91,10 @@ void *memmove(void *destptr, const void *srcptr, size_t size) {
         src += size;
 
         while (size >= 4) {
-            *(uint32_t *)dest = *(const uint32_t *)src;
-
             dest -= 4;
             src -= 4;
+
+            *(uint32_t *)dest = *(const uint32_t *)src;
             size -= 4;
         }
 
