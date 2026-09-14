@@ -6,8 +6,8 @@ x86 monolithic kernel hobby os.
 
 references:
 - [guides](https://github.com/HugeBrain16/mango/wiki/Guides)
-- [scripting](https://github.com/Hugebrain16/mango/wiki/Scripting)
 - [shell commands](https://github.com/HugeBrain16/mango/wiki/Programs#Shell)
+- [scripting](https://github.com/Hugebrain16/mango/wiki/Scripting)
 
 [learn more](https://github.com/HugeBrain16/mango/wiki)
 
