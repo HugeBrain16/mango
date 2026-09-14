@@ -54,9 +54,9 @@ typedef struct {
     char model[41];
 } drive_t;
 
-uint16_t file_port;
-uint8_t file_drive;
-uint32_t file_current;
+extern uint16_t file_port;
+extern uint8_t file_drive;
+extern uint32_t file_current;
 extern int file_drive_status;
 
 extern int file_init(uint16_t base, uint8_t drive);

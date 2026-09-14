@@ -9,6 +9,10 @@ volatile uint32_t pit_ticks = 0;
 static uint32_t last_second = 0;
 int pit_hz = 0;
 
+uint32_t uptime_seconds = 0;
+uint32_t uptime_minutes = 0;
+uint32_t uptime_hours = 0;
+
 void pit_handle() {
     pit_ticks++;
 

@@ -12,9 +12,9 @@ typedef struct block {
     struct block *prev;
 } block_t;
 
-uint8_t *heap_start;
-uint8_t *heap_end;
-uint8_t *heap_current;
+extern uint8_t *heap_start;
+extern uint8_t *heap_end;
+extern uint8_t *heap_current;
 
 extern block_t *block_head;
 extern block_t *block_current;

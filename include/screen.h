@@ -5,14 +5,14 @@
 #include <stdint.h>
 #include "multiboot.h"
 
-uint32_t *screen_buffer;
-uint32_t *back_buffer;
-size_t back_buffer_size;
+extern uint32_t *screen_buffer;
+extern uint32_t *back_buffer;
+extern size_t back_buffer_size;
 
-int screen_width;
-int screen_height;
-uint32_t screen_pitch;
-float screen_scale;
+extern int screen_width;
+extern int screen_height;
+extern uint32_t screen_pitch;
+extern float screen_scale;
 
 extern void screen_init(multiboot_info_t *mbi);
 extern void screen_init_back_buffer();

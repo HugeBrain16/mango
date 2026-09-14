@@ -74,10 +74,10 @@ typedef struct {
     char aml[];
 } dsdt_t;
 
-rsdp_t *acpi_rsdp;
-rsdt_t *acpi_rsdt;
-fadt_t *acpi_fadt;
-dsdt_t *acpi_dsdt;
+extern rsdp_t *acpi_rsdp;
+extern rsdt_t *acpi_rsdt;
+extern fadt_t *acpi_fadt;
+extern dsdt_t *acpi_dsdt;
 
 extern void acpi_init();
 extern rsdp_t *acpi_find_rsdp();

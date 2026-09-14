@@ -13,6 +13,13 @@
 #include "command.h"
 #include "desktop.h"
 
+uint32_t edit_node = 0;
+char *edit_buffer = NULL;
+size_t edit_pos = 0;
+size_t edit_cursor = 0;
+int edit_x = 0;
+int edit_y = 0;
+
 static uint32_t cursor_ticks = 0;
 static int cursor_visible = 0;
 static int edit_column = 0;

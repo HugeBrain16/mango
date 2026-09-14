@@ -15,6 +15,15 @@
 #include "script.h"
 #include "desktop.h"
 
+int term_input_cursor = 0;
+int term_input_pos = 0;
+int term_prompt = 0;
+char term_input[TERM_INPUT_SIZE] = {0};
+char *term_input_buffer = 0;
+int term_x = 0;
+int term_y = 0;
+int term_fg = 0;
+int term_bg = 0;
 int term_session = 0;
 
 static uint32_t cursor_ticks = 0;
