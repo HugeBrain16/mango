@@ -4,6 +4,11 @@
 #include "pit.h"
 #include "kernel.h"
 
+rsdp_t *acpi_rsdp = NULL;
+rsdt_t *acpi_rsdt = NULL;
+fadt_t *acpi_fadt = NULL;
+dsdt_t *acpi_dsdt = NULL;
+
 rsdp_t *acpi_find_rsdp() {
 	uint32_t ebda = *(uint16_t*)0x40E << 4;
 	for (uint32_t i = ebda; i < ebda + 1024; i += 16) {

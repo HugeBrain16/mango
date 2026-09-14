@@ -32,7 +32,7 @@ jobs:
           grub-common \
           xorriso \
           libc6:i386
-          wget https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-linux.zip
+          wget https://github.com/lordmilko/i686-elf-tools/releases/download/15.2.0/i686-elf-tools-linux.zip
           unzip i686-elf-tools-linux.zip -d toolchain
           source toolchain/init.sh
           ./build

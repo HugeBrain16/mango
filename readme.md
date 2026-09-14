@@ -2,14 +2,19 @@
 
 ![mango](https://i.imgur.com/5RssEB5.png)
 
-features include:
-- basic shell & terminal. list of [commands](https://github.com/HugeBrain16/mango/wiki/Programs#shell)
-- custom filesystem
-- text editor
-- experimental user environment (user scripts, init script & system customizations)
-- scripting, [see here](https://github.com/HugeBrain16/mango/wiki/Scripting)
+x86 monolithic kernel hobby os.
 
-install i686-elf toolchain (Binutils, GCC, GDB) into "toolchain" folder
+references:
+- [guides](https://github.com/HugeBrain16/mango/wiki/Guides)
+- [scripting](https://github.com/Hugebrain16/mango/wiki/Scripting)
+- [shell commands](https://github.com/HugeBrain16/mango/wiki/Programs#Shell)
+
+[learn more](https://github.com/HugeBrain16/mango/wiki)
+
+## Building
+
+1. install i686-elf toolchain (Binutils, GCC, GDB) into "toolchain" folder
+2. run:
 ```sh
 source toolchain/init.sh
 ./build

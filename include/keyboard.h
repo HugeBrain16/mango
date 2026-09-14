@@ -24,9 +24,9 @@
 
 #define KEYBOARD_TAB_LENGTH 2
 
-int keyboard_shift;
-int keyboard_ctrl;
-int keyboard_mode;
+extern int keyboard_shift;
+extern int keyboard_ctrl;
+extern int keyboard_mode;
 
 extern char scancode_to_char(uint8_t scancode);
 extern void keyboard_handle();

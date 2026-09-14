@@ -7,6 +7,9 @@
 #include "rtc.h"
 #include "kernel.h"
 
+uint16_t file_port = 0;
+uint8_t file_drive = 0;
+uint32_t file_current = 0;
 int file_drive_status = FILE_DRIVE_UNSET;
 
 void file_read_sb(file_superblock_t *sb) {

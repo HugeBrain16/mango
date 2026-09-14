@@ -5,6 +5,10 @@
 #define KB(x) ((x) << 10)
 #define MB(x) ((x) << 20)
 
+uint8_t *heap_start = NULL;
+uint8_t *heap_end = NULL;
+uint8_t *heap_current = NULL;
+
 static uint32_t init_page_tables[4][1024] __attribute__((aligned(4096)));
 static int table_index = 0;
 block_t *block_head = NULL;

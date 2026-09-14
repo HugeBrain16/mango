@@ -16,16 +16,16 @@
 #define TERM_DRAW_DEFAULT 1
 #define TERM_DRAW_NOCLEAR 2
 
-int term_input_cursor;
-int term_input_pos;
-int term_prompt;
-char term_input[TERM_INPUT_SIZE];
-char *term_input_buffer;
-int term_x;
-int term_y;
-int term_fg;
-int term_bg;
-int term_session;
+extern int term_input_cursor;
+extern int term_input_pos;
+extern int term_prompt;
+extern char term_input[TERM_INPUT_SIZE];
+extern char *term_input_buffer;
+extern int term_x;
+extern int term_y;
+extern int term_fg;
+extern int term_bg;
+extern int term_session;
 
 extern void term_init(int draw);
 extern void term_write(const char *msg);

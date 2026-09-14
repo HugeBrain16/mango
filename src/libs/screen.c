@@ -4,8 +4,14 @@
 #include "color.h"
 #include "heap.h"
 
+uint32_t *screen_buffer = NULL;
 uint32_t *back_buffer = NULL;
-uint32_t back_buffer_size = 0;
+size_t back_buffer_size = 0;
+
+int screen_width = 0;
+int screen_height = 0;
+uint32_t screen_pitch = 0;
+float screen_scale = 0;
 
 static uint32_t *get_buffer() {
     return back_buffer ? back_buffer : screen_buffer;
