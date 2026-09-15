@@ -3,6 +3,7 @@
 *.psf
 *.img
 *.tar*
+*.log
 toolchain/*
 !toolchain/init.sh
 files/scripts/meow.sc
