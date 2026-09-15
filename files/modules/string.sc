@@ -3,7 +3,7 @@ func string_startswith(string, value) {
 	let vlen = sizeof(value);
 
 	if (vlen > slen)
-		false;
+		return false;
 
 	for (let i = 0; i < vlen; i += 1) {
 		if (string[i] != value[i])
