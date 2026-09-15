@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-if [[ "$1" == "fresh" ]]; then
-	rm disk.img
-fi
-
 test -f disk.img || ./build disk
 qemu-system-i386 \
 	-m 16M \
@@ -14,4 +10,4 @@ qemu-system-i386 \
 	-drive file=disk.img,format=raw \
 	-netdev bridge,id=net0,br=virbr0 \
 	-device rtl8139,netdev=net0 \
-	-serial stdio -s
+	-serial stdio -s $@
