@@ -41,7 +41,7 @@ static const uint8_t NET_MAC_BROADCAST[6] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 static const uint8_t NET_IP_BROADCAST[4] = {
-	192, 168, 122, 255
+	255, 255, 255, 255
 };
 
 typedef struct net_packet {
