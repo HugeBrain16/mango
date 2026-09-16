@@ -12,6 +12,8 @@ uint8_t net_rx_buffer[NET_BUFFER_SIZE] = {0};
 uint8_t net_tx_buffer[NET_BUFFER_SIZE] = {0};
 uint8_t net_mac[6];
 uint8_t net_ip[4] = {192, 168, 122, 2};
+uint8_t net_mask[4] = {255, 255, 255, 0};
+uint8_t net_gateway[4] = {192, 168, 122, 1};
 list_t *net_arp_cache = NULL;
 
 int net_dev_id(pci_device_t *dev) {
@@ -122,6 +124,15 @@ void net_mac_str(char *dest, const uint8_t mac[6]) {
 
 void net_ip_str(char *dest, const uint8_t ip[4]) {
     strfmt(dest, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+}
+
+int net_ip_local(uint8_t ip[4]) {
+    for (int i = 0; i < 4; i++) {
+        if ((ip[i] & net_mask[i]) != (net_ip[i] & net_mask[i]))
+            return 0;
+    }
+
+    return 1;
 }
 
 void net_send(uint16_t ethertype, const uint8_t mac[6], void *payload, size_t size) {
@@ -274,12 +285,19 @@ void net_ipv4_icmp(
     memcpy(payload, &ipv4, sizeof(net_ipv4_t));
     memcpy(payload + sizeof(net_ipv4_t), icmp_header, icmp_length);
 
-    net_arp_cache_resolve(dst);
-    net_arp_entry_t target;
-    // no wait on resolving, figure out a way to wait (by not halting)
-    memcpy(&target, net_arp_cache_find(dst), sizeof(net_arp_entry_t));
+    uint8_t *resolve = dst;
+    if (!net_ip_local(dst))
+        resolve = net_gateway;
+    net_arp_cache_resolve(resolve);
 
-    net_send(NET_PT_IPV4, target.mac, payload, sizeof(payload));
+    // wait properly rather than hlt. this doesnt even work for some reason
+    /*
+    while (!net_arp_cache_find(resolve))
+         __asm__ volatile("hlt");
+    */
+
+    net_arp_entry_t *target = net_arp_cache_find(resolve);
+    net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
 }
 
 int net_ip_fromstr(uint8_t ip[4], const char *str) {

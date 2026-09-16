@@ -106,6 +106,8 @@ extern uint8_t net_rx_buffer[NET_BUFFER_SIZE];
 extern uint8_t net_tx_buffer[NET_BUFFER_SIZE];
 extern uint8_t net_mac[];
 extern uint8_t net_ip[];
+extern uint8_t net_mask[];
+extern uint8_t net_gateway[];
 extern list_t *net_arp_cache;
 
 extern void net_init();
@@ -113,6 +115,7 @@ extern void net_handle();
 extern int net_dev_id(pci_device_t *dev);
 extern const char *net_dev_name(int id);
 extern uint16_t net_ioaddr();
+extern int net_ip_local(uint8_t ip[4]);
 extern void net_mac_str(char *dest, const uint8_t mac[6]);
 extern void net_ip_str(char *dest, const uint8_t ip[4]);
 extern int net_ip_fromstr(uint8_t ip[4], const char *ipstr);

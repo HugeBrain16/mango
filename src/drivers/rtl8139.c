@@ -139,6 +139,7 @@ void rtl8139_rx_handle() {
                         data[data_len] = '\0';
                         */
 
+                        /*
                         char msg[64];
                         char src[16];
                         char dst[16];
@@ -147,6 +148,7 @@ void rtl8139_rx_handle() {
                         strfmt(msg, "[ DEBUG ] (NET:IPv4) UDP Received:\n\tsrc=%s\n\tdst=%s\n\tsrcport=%d\n\tdstport=%d\n\tlength=%d\n",
                             src, dst, ntohw(udp.srcport), ntohw(udp.dstport), ntohw(udp.length));
                         serial_write(msg);
+                        */
                         break;
                     }
                     case NET_IPPT_ICMP:
