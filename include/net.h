@@ -139,5 +139,12 @@ extern void net_ipv4_icmp(
     const uint16_t *seq,
     const void *data,
     size_t data_length);
+extern void net_ipv4_udp(
+    const uint8_t src[4],
+    const uint8_t dst[4],
+    const uint16_t srcport,
+    const uint16_t dstport,
+    const void *data,
+    size_t data_length);
 
 #endif

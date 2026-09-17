@@ -315,6 +315,53 @@ void net_ipv4_icmp(
     net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
 }
 
+void net_ipv4_udp(
+    const uint8_t src[4],
+    const uint8_t dst[4],
+    const uint16_t srcport,
+    const uint16_t dstport,
+    const void *data,
+    size_t data_length) 
+{
+    size_t udp_length = sizeof(net_udp_t) + data_length;
+    uint8_t udp_header[udp_length];
+
+    net_ipv4_t ipv4 = {0};
+
+    ipv4.ihl = NET_IPV4_DEFAULT;
+    ipv4.length = htonw(sizeof(net_ipv4_t) + udp_length);
+    ipv4.lifetime = 64;
+    ipv4.protocol = NET_IPPT_UDP;
+    memcpy(ipv4.src, src, 4);
+    memcpy(ipv4.dst, dst, 4);
+
+    ipv4.checksum = 0;
+    ipv4.checksum = net_checksum(&ipv4, sizeof(net_ipv4_t));
+
+    net_udp_t udp = {0};
+    udp.srcport = htonw(srcport);
+    udp.dstport = htonw(dstport);
+    udp.length = htonw(udp_length);
+
+    memcpy(udp_header, &udp, sizeof(net_udp_t));
+    memcpy(udp_header + sizeof(net_udp_t), data, data_length);
+
+    uint16_t udp_checksum = net_checksum(udp_header, udp_length);
+    memcpy(udp_header + offsetof(net_udp_t, checksum), &udp_checksum, sizeof(udp_checksum));
+
+    uint8_t payload[sizeof(net_ipv4_t) + udp_length];
+    memcpy(payload, &ipv4, sizeof(net_ipv4_t));
+    memcpy(payload + sizeof(net_ipv4_t), udp_header, udp_length);
+
+    uint8_t *resolve = dst;
+    if (!net_ip_local(dst))
+        resolve = net_gateway;
+    net_arp_cache_resolve(resolve);
+
+    net_arp_entry_t *target = net_arp_cache_find(resolve);
+    net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
+}
+
 int net_ip_fromstr(uint8_t ip[4], const char *str) {
     char part[4];
 
