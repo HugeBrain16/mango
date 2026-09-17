@@ -45,11 +45,16 @@ static const uint8_t NET_IP_BROADCAST[4] = {
 };
 
 typedef struct net_packet {
-	uint8_t dest_mac[6];
+	uint8_t dst_mac[6];
 	uint8_t src_mac[6];
 	uint16_t ethertype;
 	uint8_t payload[NET_PAYLOAD_SIZE];
 } net_packet_t;
+
+typedef struct net_tx {
+	net_packet_t *packet;
+	size_t size;
+} net_tx_t;
 
 typedef struct net_arp {
 	uint16_t htype;
@@ -109,13 +114,15 @@ extern uint8_t net_ip[];
 extern uint8_t net_mask[];
 extern uint8_t net_gateway[];
 extern list_t *net_arp_cache;
+extern list_t *net_queue;
 
 extern void net_init();
 extern void net_handle();
+extern void net_poll();
 extern int net_dev_id(pci_device_t *dev);
 extern const char *net_dev_name(int id);
 extern uint16_t net_ioaddr();
-extern int net_ip_local(uint8_t ip[4]);
+extern int net_ip_local(const uint8_t ip[4]);
 extern void net_mac_str(char *dest, const uint8_t mac[6]);
 extern void net_ip_str(char *dest, const uint8_t ip[4]);
 extern int net_ip_fromstr(uint8_t ip[4], const char *ipstr);

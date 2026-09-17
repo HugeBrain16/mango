@@ -1134,14 +1134,6 @@ static int command_netinfo(int argc, char *argv[]) {
     return 0;
 }
 
-static int command_nettest(int argc, char *argv[]) {
-    unused(argc); unused(argv);
-
-    uint8_t ip[4] = {192, 168, 122, 1};
-    net_arp_request(ip);
-    return 0;
-}
-
 static int command_ping(int argc, char *argv[]) {
     if (argc == 1) {
         uint8_t ip[4];
@@ -1208,7 +1200,6 @@ static commands_t commands[] = {
     { "desktop", command_desktop },
     { "exit", command_exit },
     { "netinfo", command_netinfo },
-    { "nettest", command_nettest },
     { "ping", command_ping },
 };
 

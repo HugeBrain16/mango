@@ -266,6 +266,9 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     for (;;) {
         if (keyboard_mode == KEYBOARD_MODE_DESKTOP)
             desktop_update();
+        if (net_status && net_queue->size)
+            net_poll();
+
         __asm__ volatile("hlt");
     }
 }

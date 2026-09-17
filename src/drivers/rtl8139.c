@@ -58,7 +58,7 @@ void rtl8139_rx_handle() {
 
         net_packet_t packet;
         for (int i = 0; i < 6; i++) {
-            packet.dest_mac[i] = eth[i];
+            packet.dst_mac[i] = eth[i];
             packet.src_mac[i] = eth[6 + i];
         }
         packet.ethertype = ntohw(*(uint16_t*)&eth[12]);
