@@ -3,6 +3,7 @@
 #include "serial.h"
 #include "string.h"
 #include "io.h"
+#include "heap.h"
 
 int rtl8139_tx_pair = 0;
 int rtl8139_icmp_seq = 0;
@@ -85,6 +86,7 @@ void rtl8139_rx_handle() {
                         {
                             if (memcmp(arp.dstp, net_ip, 4) == 0) {
                                 net_arp_cache_add(arp.srcp, arp.srch);
+                                net_deferred_flush(arp.srcp, arp.srch);
 
                                 char msg[64];
                                 char mac[20];
@@ -101,6 +103,7 @@ void rtl8139_rx_handle() {
                         case NET_ARP_REP:
                         {
                             net_arp_cache_add(arp.srcp, arp.srch);
+                            net_deferred_flush(arp.srcp, arp.srch);
 
                             char msg[64];
                             char mac[20];

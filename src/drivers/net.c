@@ -17,6 +17,7 @@ uint8_t net_mask[4] = {255, 255, 255, 0};
 uint8_t net_gateway[4] = {192, 168, 122, 1};
 list_t *net_arp_cache = NULL;
 list_t *net_queue = NULL;
+list_t *net_deferred = NULL;
 
 int net_dev_id(pci_device_t *dev) {
     if (dev->vendor_id == 0x10EC && dev->device_id == 0x8139)
@@ -90,8 +91,10 @@ void net_init() {
 
     net_arp_cache = heap_alloc(sizeof(list_t));
     net_queue = heap_alloc(sizeof(list_t));
+    net_deferred = heap_alloc(sizeof(list_t));
     list_init(net_arp_cache);
     list_init(net_queue);
+    list_init(net_deferred);
 
     net_irq = pci_device_read(&net_dev, 0, PCI_REG_INT) & 0xFF;
     pic_unmask(net_irq);
@@ -143,9 +146,11 @@ void net_poll() {
     net_tx_t *tx = (net_tx_t*)list_pop(net_queue);
     if (!tx) return;
 
+    /*
     char msg[64];
     strfmt(msg, "[ DEBUG ] (NET) Poll Tx:\n\tpacket=0x%x\n\tsize=%d\n", tx->packet, tx->size);
     serial_write(msg);
+    */
 
     switch (net_dev_id(&net_dev)) {
         case NET_DEV_RTL8139:
@@ -169,6 +174,21 @@ void net_poll() {
     heap_free(tx);
 }
 
+void net_deferred_flush(const uint8_t ip[4], const uint8_t mac[6]) {
+    size_t i = 0;
+    while (i < net_deferred->size) {
+        net_tx2_t *tx2 = (net_tx2_t*)list_get(net_deferred, i);
+        if (memcmp(ip, tx2->ip, 4) == 0) {
+            memcpy(tx2->tx->packet->dst_mac, mac, 6);
+            list_remove(net_deferred, i);
+            list_push(net_queue, tx2->tx);
+            heap_free(tx2);
+        } else {
+            i++;
+        }
+    }
+}
+
 void net_send(uint16_t ethertype, const uint8_t mac[6], void *payload, size_t size) {
     net_packet_t *packet = heap_alloc(sizeof(net_packet_t));
     packet->ethertype = htonw(ethertype);
@@ -182,6 +202,25 @@ void net_send(uint16_t ethertype, const uint8_t mac[6], void *payload, size_t si
     tx->size = packet_size;
 
     list_push(net_queue, tx);
+}
+
+void net_deferred_send(uint16_t ethertype, const uint8_t ip[4], void *payload, size_t size) {
+    net_packet_t *packet = heap_alloc(sizeof(net_packet_t));
+    packet->ethertype = htonw(ethertype);
+    memset(packet->dst_mac, 0, 6);
+    memcpy(packet->src_mac, net_mac, 6);
+    memcpy(packet->payload, payload, size);
+
+    size_t packet_size = 14 + size;
+    net_tx_t *tx = heap_alloc(sizeof(net_tx_t));
+    tx->packet = packet;
+    tx->size = packet_size;
+
+    net_tx2_t *tx2 = heap_alloc(sizeof(net_tx2_t));
+    tx2->tx = tx;
+    memcpy(tx2->ip, ip, 4);
+
+    list_push(net_deferred, tx2);
 }
 
 void net_arp_reply(const uint8_t dst_ip[4], const uint8_t dst_mac[6]) {
@@ -309,10 +348,13 @@ void net_ipv4_icmp(
     uint8_t *resolve = dst;
     if (!net_ip_local(dst))
         resolve = net_gateway;
-    net_arp_cache_resolve(resolve);
 
     net_arp_entry_t *target = net_arp_cache_find(resolve);
-    net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
+    if (target)
+        return net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
+
+    net_deferred_send(NET_PT_IPV4, resolve, payload, sizeof(payload));
+    net_arp_cache_resolve(resolve);
 }
 
 void net_ipv4_udp(
@@ -356,10 +398,13 @@ void net_ipv4_udp(
     uint8_t *resolve = dst;
     if (!net_ip_local(dst))
         resolve = net_gateway;
-    net_arp_cache_resolve(resolve);
 
     net_arp_entry_t *target = net_arp_cache_find(resolve);
-    net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
+    if (target)
+        return net_send(NET_PT_IPV4, target->mac, payload, sizeof(payload));
+
+    net_deferred_send(NET_PT_IPV4, resolve, payload, sizeof(payload));
+    net_arp_cache_resolve(resolve);
 }
 
 int net_ip_fromstr(uint8_t ip[4], const char *str) {

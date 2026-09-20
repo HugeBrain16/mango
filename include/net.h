@@ -56,6 +56,11 @@ typedef struct net_tx {
 	size_t size;
 } net_tx_t;
 
+typedef struct net_tx2 {
+	net_tx_t *tx;
+	uint8_t ip[4];
+} net_tx2_t;
+
 typedef struct net_arp {
 	uint16_t htype;
 	uint16_t ptype;
@@ -115,6 +120,7 @@ extern uint8_t net_mask[];
 extern uint8_t net_gateway[];
 extern list_t *net_arp_cache;
 extern list_t *net_queue;
+extern list_t *net_deferred;
 
 extern void net_init();
 extern void net_handle();
@@ -127,6 +133,8 @@ extern void net_mac_str(char *dest, const uint8_t mac[6]);
 extern void net_ip_str(char *dest, const uint8_t ip[4]);
 extern int net_ip_fromstr(uint8_t ip[4], const char *ipstr);
 extern void net_send(uint16_t ethertype, const uint8_t mac[6], void *payload, size_t size);
+extern void net_deferred_send(uint16_t ethertype, const uint8_t ip[4], void *payload, size_t size);
+extern void net_deferred_flush(const uint8_t ip[4], const uint8_t mac[6]);
 extern void net_arp_reply(const uint8_t dst_ip[4], const uint8_t dst_mac[6]);
 extern void net_arp_request(const uint8_t ip[4]);
 extern net_arp_entry_t *net_arp_cache_find(const uint8_t ip[4]);
