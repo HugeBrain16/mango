@@ -3,7 +3,6 @@
 #include "serial.h"
 #include "string.h"
 #include "io.h"
-#include "heap.h"
 
 int rtl8139_tx_pair = 0;
 int rtl8139_icmp_seq = 0;

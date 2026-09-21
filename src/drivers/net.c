@@ -1,10 +1,12 @@
 #include "net.h"
 #include "kernel.h"
 #include "io.h"
-#include "rtl8139.h"
 #include "pic.h"
 #include "heap.h"
 #include "serial.h"
+
+#include "rtl8139.h"
+#include "rtl8029.h"
 
 pci_device_t net_dev;
 int net_status = NET_STATUS_NONE;
@@ -22,6 +24,8 @@ list_t *net_deferred = NULL;
 int net_dev_id(pci_device_t *dev) {
     if (dev->vendor_id == 0x10EC && dev->device_id == 0x8139)
         return NET_DEV_RTL8139;
+    if (dev->vendor_id == 0x10EC && dev->device_id == 0x8029)
+        return NET_DEV_RTL8029;
 
     return 0;
 }
@@ -30,6 +34,8 @@ const char *net_dev_name(int id) {
     switch (id) {
         case NET_DEV_RTL8139:
             return "RTL8139";
+        case NET_DEV_RTL8029:
+            return "RTL8029";
         default:
             return "Unknown";
     }
@@ -85,6 +91,32 @@ void net_init() {
             for (int i = 0; i < 6; i++)
                 net_mac[i] = inb(ioaddr + RTL8139_REG_MAC6 + i);
 
+            break;
+        }
+        case NET_DEV_RTL8029:
+        {
+            uint16_t ioaddr = net_ioaddr();
+            rtl8029_page(0);
+            outb(ioaddr + RTL8029_REG_CR, RTL8029_CR_STP);
+            outb(ioaddr + RTL8029_REG_TCR, 0x0);
+            outb(ioaddr + RTL8029_REG_RCR, RTL8029_RULES);
+            outb(ioaddr + RTL8029_REG_DCR, RTL8029_DCR_LS);
+            outb(ioaddr + RTL8029_REG_PSTART, RTL8029_RXSTART);
+            outb(ioaddr + RTL8029_REG_PSTOP, RTL8029_RXEND);
+            outb(ioaddr + RTL8029_REG_BNRY, RTL8029_RXSTART);
+            outb(ioaddr + RTL8029_REG_TPSR, RTL8029_TXSTART);
+
+            rtl8029_page(1);
+            outb(ioaddr + RTL8029_REG_CURR, RTL8029_RXSTART + 1);
+
+            char prom[6 * 2];
+            rtl8029_read(prom, 6 * 2, 0);
+
+            rtl8029_page(1);
+            for (int i = 0; i < 6; i++) {
+                net_mac[i] = prom[i * 2];
+                outb(ioaddr + RTL8029_REG_MAC6 + i, net_mac[i]);
+            }
             break;
         }
     }

@@ -8,6 +8,7 @@
 #include "list.h"
 
 #define NET_DEV_RTL8139 1
+#define NET_DEV_RTL8029 2
 
 #define NET_STATUS_NONE 0
 #define NET_STATUS_INIT 1
