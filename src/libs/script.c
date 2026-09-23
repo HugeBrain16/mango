@@ -15,6 +15,8 @@
 #include "unit.h"
 #include "keyboard.h"
 #include "serial.h"
+#include "net.h"
+#include <stdint.h>
 
 int script_exit = 0;
 
@@ -29,6 +31,7 @@ static list_t *script_modules = NULL;
 static list_t *script_module_paths = NULL;
 static string_t *script_printcap = NULL;
 static int script_printcap_print = 1;
+static int script_clear_net_cap = 0;
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -135,6 +138,8 @@ DEF_CALL(internal_getvars);
 DEF_CALL(internal_getname);
 DEF_CALL(internal_getvalue);
 DEF_CALL(internal_getrefcount);
+DEF_CALL(net_cap_udp);
+DEF_CALL(net_send_udp);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -217,6 +222,8 @@ typedef enum call {
     CALL_INTERNAL_GETNAME,
     CALL_INTERNAL_GETVALUE,
     CALL_INTERNAL_GETREFCOUNT,
+    CALL_NET_CAP_UDP,
+    CALL_NET_SEND_UDP,
 
     CALL_E_COUNT,
 } call_e;
@@ -291,6 +298,8 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_INTERNAL_GETNAME]  = { "internal_getname",  call_internal_getname },
     [CALL_INTERNAL_GETVALUE] = { "internal_getvalue", call_internal_getvalue },
     [CALL_INTERNAL_GETREFCOUNT] = { "internal_getrefcount", call_internal_getrefcount },
+    [CALL_NET_CAP_UDP] = { "net_cap_udp", call_net_cap_udp },
+    [CALL_NET_SEND_UDP] = { "net_send_udp", call_net_send_udp },
 };
 
 static script_node_t *g_null = NULL;
@@ -2232,6 +2241,101 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 }
 
 /* ==== builtins ==== */
+
+static script_node_t *call_net_send_udp(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+    if (argc != 3) {
+        char msg[64];
+        strfmt(msg, "Error: Function net_send_udp() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    script_node_t *addr = node->call.argv[0];
+    script_node_t *port = node->call.argv[1];
+    script_node_t *data = node->call.argv[2];
+
+    if (addr->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(addr);
+        strfmt(msg, "Error: Function net_send_udp() arg 1 expects str argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (port->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(port);
+        strfmt(msg, "Error: Function net_send_udp() arg 2 expects int argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (data->value_type != SCRIPT_STR) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(data);
+        strfmt(msg, "Error: Function net_send_udp() arg 3 expects str argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    uint8_t target[4];
+    if (!net_ip_fromstr(target, addr->literal.str_value)) {
+        char msg[128];
+        strfmt(msg, "Error: Address is invalid (line: %d)", node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    net_ipv4_udp(
+        net_ip, target,
+        0, port->literal.int_value,
+        data->literal.str_value, data->literal.str_size
+    );
+    return g_null;
+}
+
+static script_node_t *call_net_cap_udp(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+    if (argc != 2) {
+        char msg[64];
+        strfmt(msg, "Error: Function net_cap_udp() takes 2 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    script_node_t *srcport = node->call.argv[0];
+    script_node_t *dstport = node->call.argv[1];
+
+    if (srcport->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(srcport);
+        strfmt(msg, "Error: Function net_cap_udp() arg 1 expects int argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (dstport->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(dstport);
+        strfmt(msg, "Error: Function net_cap_udp() arg 2 expects int argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    net_cap_udp(srcport->literal.int_value, dstport->literal.int_value);
+    script_clear_net_cap = 1;
+    return g_null;
+}
 
 static script_node_t *call_cpu_name(script_stmt_t *block, script_node_t *node) {
     unused(block);
@@ -5594,6 +5698,14 @@ cleanup:
 
     if (rt)
         free_runtime(rt);
+
+    if (script_clear_net_cap) {
+        while (net_cap->size)
+            net_cap_free(list_pop(net_cap));
+
+        net_cap_rule = (net_cap_rule_t){0};
+        script_clear_net_cap = 0;
+    }
 
     if (keyboard_mode == KEYBOARD_MODE_SCRIPT)
         keyboard_mode = kmode;

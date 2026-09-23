@@ -5,6 +5,8 @@
 #include "pic.h"
 #include "heap.h"
 #include "serial.h"
+#include <stddef.h>
+#include <stdint.h>
 
 pci_device_t net_dev;
 int net_status = NET_STATUS_NONE;
@@ -18,6 +20,8 @@ uint8_t net_gateway[4] = {192, 168, 122, 1};
 list_t *net_arp_cache = NULL;
 list_t *net_queue = NULL;
 list_t *net_deferred = NULL;
+list_t *net_cap = NULL;
+net_cap_rule_t net_cap_rule;
 
 int net_dev_id(pci_device_t *dev) {
     if (dev->vendor_id == 0x10EC && dev->device_id == 0x8139)
@@ -92,15 +96,33 @@ void net_init() {
     net_arp_cache = heap_alloc(sizeof(list_t));
     net_queue = heap_alloc(sizeof(list_t));
     net_deferred = heap_alloc(sizeof(list_t));
+    net_cap = heap_alloc(sizeof(list_t));
     list_init(net_arp_cache);
     list_init(net_queue);
     list_init(net_deferred);
+    list_init(net_cap);
 
     net_irq = pci_device_read(&net_dev, 0, PCI_REG_INT) & 0xFF;
     pic_unmask(net_irq);
 }
 
+void net_cap_free(net_cap_t *cap) {
+    if (!cap) return;
+
+    switch (cap->type) {
+        case NET_IPPT_UDP:
+        {
+            heap_free(cap->udp.header);
+            heap_free(cap->udp.payload);
+            break;
+        }
+    }
+    heap_free(cap);
+}
+
 void net_handle() {
+    net_cap_t *cap = NULL;
+
     switch (net_dev_id(&net_dev)) {
         case NET_DEV_RTL8139:
         {
@@ -112,11 +134,50 @@ void net_handle() {
                 rtl8139_tx_handle();
 
             if (status & RTL8139_STATUS_RxOK)
-                rtl8139_rx_handle();
+                cap = rtl8139_rx_handle();
 
             break;
         }
     }
+
+    if (!cap) return;
+
+    if (cap->type != net_cap_rule.type) {
+        net_cap_free(cap);
+        return;
+    }
+
+    switch (cap->type) {
+        case NET_IPPT_UDP:
+        {
+            uint16_t cap_srcport = cap->udp.header->srcport;
+            uint16_t cap_dstport = cap->udp.header->dstport;
+            uint16_t rul_srcport = net_cap_rule.udp.srcport;
+            uint16_t rul_dstport = net_cap_rule.udp.dstport;
+
+            // 0 = capture all
+            if ((rul_srcport == 0 || cap_srcport == net_cap_rule.udp.srcport) &&
+                (rul_dstport == 0 || cap_dstport == net_cap_rule.udp.dstport))
+                list_push(net_cap, cap);
+            else
+                net_cap_free(cap);
+            break;
+        }
+
+        default:
+            net_cap_free(cap);
+            break;
+    }
+}
+
+void net_cap_udp(uint16_t srcport, uint16_t dstport) {
+    net_cap_rule = (net_cap_rule_t){
+        .type = NET_IPPT_UDP,
+        .udp = {
+            .srcport = srcport,
+            .dstport = dstport,
+        },
+    };
 }
 
 void net_mac_str(char *dest, const uint8_t mac[6]) {
@@ -345,7 +406,7 @@ void net_ipv4_icmp(
     memcpy(payload, &ipv4, sizeof(net_ipv4_t));
     memcpy(payload + sizeof(net_ipv4_t), icmp_header, icmp_length);
 
-    uint8_t *resolve = dst;
+    const uint8_t *resolve = dst;
     if (!net_ip_local(dst))
         resolve = net_gateway;
 
@@ -395,7 +456,7 @@ void net_ipv4_udp(
     memcpy(payload, &ipv4, sizeof(net_ipv4_t));
     memcpy(payload + sizeof(net_ipv4_t), udp_header, udp_length);
 
-    uint8_t *resolve = dst;
+    const uint8_t *resolve = dst;
     if (!net_ip_local(dst))
         resolve = net_gateway;
 

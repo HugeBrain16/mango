@@ -1,6 +1,7 @@
 #ifndef RTL8139_H
 #define RTL8139_H
 
+#include "net.h"
 #include <stdint.h>
 
 #define RTL8139_REG_MAC6 0x00 // mac addr start
@@ -58,7 +59,7 @@ extern int rtl8139_tx_pair;
 extern int rtl8139_icmp_seq;
 
 extern void rtl8139_tx_handle();
-extern void rtl8139_rx_handle();
+extern net_cap_t *rtl8139_rx_handle();
 extern void rtl8139_get_tx_pair(uint8_t *tsad, uint8_t *tsd);
 extern void rtl8139_tx_pair_rotate();
 

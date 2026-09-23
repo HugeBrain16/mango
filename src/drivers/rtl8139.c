@@ -4,6 +4,8 @@
 #include "string.h"
 #include "io.h"
 #include "heap.h"
+#include <iso646.h>
+#include <stdint.h>
 
 int rtl8139_tx_pair = 0;
 int rtl8139_icmp_seq = 0;
@@ -47,8 +49,10 @@ void rtl8139_tx_handle() {
     rtl8139_tx_pair_rotate();
 }
 
-void rtl8139_rx_handle() {
+net_cap_t *rtl8139_rx_handle() {
     uint16_t ioaddr = net_ioaddr();
+
+    net_cap_t *cap = NULL;
 
     while (!(inb(ioaddr + RTL8139_REG_CMD) & 0x01)) {
         uint8_t *rx = &net_rx_buffer[rtl8139_rx_cursor];
@@ -88,6 +92,7 @@ void rtl8139_rx_handle() {
                                 net_arp_cache_add(arp.srcp, arp.srch);
                                 net_deferred_flush(arp.srcp, arp.srch);
 
+                                /*
                                 char msg[64];
                                 char mac[20];
                                 char ip[16];
@@ -95,6 +100,7 @@ void rtl8139_rx_handle() {
                                 net_ip_str(ip, arp.srcp);
                                 strfmt(msg, "[ DEBUG ] (NET:ARP) Request from:\n\tmac=%s\n\tip=%s\n", mac, ip);
                                 serial_write(msg);
+                                */
 
                                 net_arp_reply(arp.srcp, arp.srch);
                             }
@@ -105,6 +111,7 @@ void rtl8139_rx_handle() {
                             net_arp_cache_add(arp.srcp, arp.srch);
                             net_deferred_flush(arp.srcp, arp.srch);
 
+                            /*
                             char msg[64];
                             char mac[20];
                             char ip[16];
@@ -112,6 +119,8 @@ void rtl8139_rx_handle() {
                             net_ip_str(ip, arp.srcp);
                             strfmt(msg, "[ DEBUG ] (NET:ARP) Reply from:\n\tmac=%s\n\tip=%s\n", mac, ip);
                             serial_write(msg);
+                            */
+
                             break;
                         }
                     }
@@ -132,15 +141,20 @@ void rtl8139_rx_handle() {
                     {
                         uint8_t *udp_payload = &packet.payload[20];
 
-                        net_udp_t udp;
-                        memcpy(&udp, udp_payload, sizeof(net_udp_t));
+                        net_udp_t *udp = heap_alloc(sizeof(net_udp_t));
+                        memcpy(udp, udp_payload, sizeof(net_udp_t));
+                        udp->srcport = ntohw(udp->srcport);
+                        udp->dstport = ntohw(udp->dstport);
+                        udp->length = ntohw(udp->length);
 
-                        /*
-                        size_t data_len = ntohw(udp.length) - sizeof(net_udp_t);
-                        char data[data_len + 1];
-                        memcpy(data, udp_payload + sizeof(net_udp_t), data_len);
-                        data[data_len] = '\0';
-                        */
+                        size_t data_len = udp->length - sizeof(net_udp_t);
+                        void *payload = heap_alloc(data_len);
+                        memcpy(payload, udp_payload + sizeof(net_udp_t), data_len);
+
+                        cap = heap_alloc(sizeof(net_cap_t));
+                        cap->type = NET_IPPT_UDP;
+                        cap->udp.header = udp;
+                        cap->udp.payload = payload;
 
                         /*
                         char msg[64];
@@ -174,11 +188,13 @@ void rtl8139_rx_handle() {
                                 uint16_t id = ntohw(icmp_echo.id);
                                 uint16_t seq = ntohw(icmp_echo.seq);
 
+                                /*
                                 char msg[64 + data_len];
                                 char src[16];
                                 net_ip_str(src, ipv4.src);
                                 strfmt(msg, "[ DEBUG ] (NET:IPv4) Ping requested:\n\tsrc=%s\n\tdata=%s\n", src, (char*)data);
                                 serial_write(msg);
+                                */
 
                                 net_ipv4_icmp(
                                     net_ip,
@@ -199,11 +215,13 @@ void rtl8139_rx_handle() {
                                 uint8_t data[data_len];
                                 memcpy(data, packet.payload + sizeof(net_ipv4_t) + sizeof(net_icmp_t) + sizeof(net_icmp_echo_t), data_len);
 
+                                /*
                                 char msg[64 + data_len];
                                 char src[16];
                                 net_ip_str(src, ipv4.src);
                                 strfmt(msg, "[ DEBUG ] (NET:IPv4) Ping received:\n\tsrc=%s\n\tdata=%s\n", src, (char*)data);
                                 serial_write(msg);
+                                */
                                 break;
                             }
                         }
@@ -222,4 +240,6 @@ void rtl8139_rx_handle() {
         rtl8139_rx_cursor = (rtl8139_rx_cursor + 3) & ~3; // align 4 bytes
         outw(ioaddr + RTL8139_REG_CAPR, rtl8139_rx_cursor - 16);
     }
+
+    return cap;
 }

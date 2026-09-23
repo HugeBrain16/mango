@@ -109,6 +109,26 @@ typedef struct net_udp {
 	uint16_t checksum;
 } net_udp_t;
 
+typedef struct net_cap {
+	uint8_t type;
+	union {
+		struct {
+			net_udp_t *header;
+			void *payload;
+		} udp;
+	};
+} net_cap_t;
+
+typedef struct net_cap_rule {
+	uint8_t type;
+	union {
+		struct {
+			uint16_t srcport;
+			uint16_t dstport;
+		} udp;
+	};
+} net_cap_rule_t;
+
 extern pci_device_t net_dev;
 extern int net_status;
 extern int net_irq;
@@ -121,6 +141,8 @@ extern uint8_t net_gateway[];
 extern list_t *net_arp_cache;
 extern list_t *net_queue;
 extern list_t *net_deferred;
+extern list_t *net_cap;
+extern net_cap_rule_t net_cap_rule;
 
 extern void net_init();
 extern void net_handle();
@@ -154,5 +176,7 @@ extern void net_ipv4_udp(
     const uint16_t dstport,
     const void *data,
     size_t data_length);
+extern void net_cap_udp(uint16_t srcport, uint16_t dstport);
+extern void net_cap_free(net_cap_t *cap);
 
 #endif

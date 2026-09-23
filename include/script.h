@@ -94,6 +94,7 @@
 #define SCRIPT_LIST     8
 #define SCRIPT_VAR      9
 #define SCRIPT_VARLIST  10
+#define SCRIPT_BYTES    11
 
 typedef struct script_var script_var_t;
 typedef struct script_env script_env_t;
