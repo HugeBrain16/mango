@@ -140,6 +140,8 @@ DEF_CALL(internal_getvalue);
 DEF_CALL(internal_getrefcount);
 DEF_CALL(net_cap_udp);
 DEF_CALL(net_send_udp);
+DEF_CALL(net_cap_get);
+DEF_CALL(net_cap_clear);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -224,6 +226,8 @@ typedef enum call {
     CALL_INTERNAL_GETREFCOUNT,
     CALL_NET_CAP_UDP,
     CALL_NET_SEND_UDP,
+    CALL_NET_CAP_GET,
+    CALL_NET_CAP_CLEAR,
 
     CALL_E_COUNT,
 } call_e;
@@ -300,6 +304,8 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_INTERNAL_GETREFCOUNT] = { "internal_getrefcount", call_internal_getrefcount },
     [CALL_NET_CAP_UDP] = { "net_cap_udp", call_net_cap_udp },
     [CALL_NET_SEND_UDP] = { "net_send_udp", call_net_send_udp },
+    [CALL_NET_CAP_GET] = { "net_cap_get", call_net_cap_get },
+    [CALL_NET_CAP_CLEAR] = { "net_cap_clear", call_net_cap_clear },
 };
 
 static script_node_t *g_null = NULL;
@@ -2241,6 +2247,44 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 }
 
 /* ==== builtins ==== */
+
+static script_node_t *call_net_cap_clear(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    list_clear(net_cap);
+    return g_null;
+}
+
+static script_node_t *call_net_cap_get(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    list_t *explode = heap_alloc(sizeof(list_t));
+    list_init(explode);
+
+    for (size_t i = 0; i < net_cap->size; i++) {
+        net_cap_t *cap = (net_cap_t*)list_get(net_cap, i);
+
+        list_push(explode, node_int(cap->type));
+        switch (cap->type) {
+            case NET_IPPT_UDP:
+            {
+                list_push(explode, node_int(cap->udp.header->srcport));
+                list_push(explode, node_int(cap->udp.header->dstport));
+                list_push(explode, node_int(cap->udp.header->length));
+                // assume string
+                list_push(explode, node_string(cap->udp.payload));
+                break;
+            }
+        }
+    }
+
+    script_node_t *value = node_null();
+    value->lineno = node->lineno;
+    value->value_type = SCRIPT_LIST;
+    value->literal.list = explode;
+
+    return value;
+}
 
 static script_node_t *call_net_send_udp(script_stmt_t *block, script_node_t *node) {
     unused(block);
