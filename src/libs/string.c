@@ -129,6 +129,10 @@ int isbase16(char c) {
     return isdigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
+int isbase2(char c) {
+    return c == '0' || c == '1';
+}
+
 size_t strlen(const char *str) {
     size_t len = 0;
     while (str[len] != '\0')
@@ -222,6 +226,14 @@ void strhex(char *dest, uint32_t value) {
     dest[8] = '\0';
 }
 
+void strbin(char *dest, uint32_t value) {
+    for (int i = 7; i >= 0; i--) {
+        dest[i] = (value & 1) + '0';
+        value >>= 1;
+    }
+    dest[8] = '\0';
+}
+
 void strflip(char *dest, size_t start, size_t end) {
     while (start < end) {
         char c = dest[start];
@@ -298,6 +310,19 @@ uint32_t hexstr(const char *src) {
             value |= c - 'a' + 10;
         else
             break;
+    }
+
+    return value;
+}
+
+uint32_t binstr(const char *src) {
+    uint32_t value = 0;
+
+    while (*src) {
+        value <<= 1;
+        if (*src == '1')
+            value += 1;
+        src++;
     }
 
     return value;
@@ -446,6 +471,29 @@ void strfmt(char *dest, const char *fmt, ...) {
                     }
                 }
                 strhex(arg, (uint32_t) va_arg(args, int));
+
+                int j = 0;
+                for (const char *p = arg; *p != '\0'; p++) {
+                    if (j >= 8 - sub)
+                        dest[i++] = *p;
+
+                    j++;
+                }
+                f += skip;
+            } else if (type == 'b') {
+                char arg[9];
+                int sub = 8;
+                int skip = 1;
+
+                if ((f + 2) < len) {
+                    char s = fmt[f + 2];
+
+                    if (s >= '0' && s <= '8') {
+                        sub = s - '0';
+                        skip = 2;
+                    }
+                }
+                strbin(arg, (uint32_t) va_arg(args, int));
 
                 int j = 0;
                 for (const char *p = arg; *p != '\0'; p++) {

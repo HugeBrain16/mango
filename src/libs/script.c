@@ -799,6 +799,50 @@ static script_token_t *lex_hex(fio_t *file, char *c, size_t *lineno) {
     return token;
 }
 
+static script_token_t *lex_bin(fio_t *file, char *c, size_t *lineno) {
+    fio_getc(file);
+
+    *c = fio_getc(file);
+    if (!isbase2(*c)) {
+        char msg[64];
+        strfmt(msg, "Error: Unexpected binary value '%c' (line: %d)\n", *c, *lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    size_t idx = 0;
+    size_t size = 0;
+    char *value = heap_alloc(SCRIPT_SIZE_TOKEN);
+    while (isbase2(*c)) {
+        if (idx == size * SCRIPT_SIZE_TOKEN - 1) {
+            size++;
+            value = heap_realloc(value, size * SCRIPT_SIZE_TOKEN);
+        }
+
+        value[idx++] = *c;
+        *c = fio_getc(file);
+    }
+
+    if (idx >= size)
+        value = heap_realloc(value, size + 1);
+    value[idx++] = '\0';
+
+    char conv[size + 1];
+    strint(conv, binstr(value));
+
+    memcpy(value, conv, strlen(conv) + 1);
+
+    size = strlen(value) + 1;
+    value = heap_realloc(value, size);
+
+    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno);
+    heap_free(token->value);
+    token->value = value;
+    token->size = size;
+
+    return token;
+}
+
 static script_token_t *tokenize(fio_t *file) {
     char c = fio_getc(file);
     size_t lineno = 1;
@@ -847,6 +891,8 @@ static script_token_t *tokenize(fio_t *file) {
         char next = fio_peek(file);
         if (c == '0' && next == 'x') {
             token = lex_hex(file, &c, &lineno);
+        } else if (c == '0' && next == 'b') {
+            token = lex_bin(file, &c, &lineno);
         } else if (isdigit(c) || (c == '-' && isdigit(next))) {
             token = lex_number(file, &c, &lineno);
         } else if (isalpha(c) || c == '_') {
