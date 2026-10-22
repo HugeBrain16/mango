@@ -4,7 +4,6 @@
 #include "io.h"
 #include "ps2.h"
 #include "pic.h"
-#include "idt.h"
 #include "screen.h"
 #include "color.h"
 #include "config.h"

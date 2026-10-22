@@ -3,8 +3,6 @@
 #include "pic.h"
 #include "io.h"
 #include "string.h"
-#include "terminal.h"
-#include "color.h"
 #include "keyboard.h"
 #include "pit.h"
 #include "rtc.h"
@@ -100,26 +98,23 @@ void idt_init() {
 
 void exception_handler(int_frame_t *frame) {
     const char *exceptions[] = {
-        "Divide Error", "Debug", "NMI", "Breakpoint",
+        "Divide Error","Debug", "NMI", "Breakpoint",
         "Overflow", "BOUND Range Exceeded", "Invalid Opcode", "Device Not Available",
         "Double Fault", "Coprocessor Segment Overrun", "Invalid TSS", "Segment Not Present",
         "Stack-Segment Fault", "General Protection Fault", "Page Fault", "Reserved",
         "x87 FPE", "Alignment Check", "Machine Check", "SIMD FPE",
         "Virtualization Exception", "Control Protection Exception"
     };
-    
+
     char buff[128];
-    if (frame->vector < 22) {
+    if (frame->vector < 22)
         strfmt(buff, "[ INFO ] Exception: %s\n", exceptions[frame->vector]);
-    } else {
+    else
         strfmt(buff, "[ INFO ] Exception: Unknown (%d)\n", frame->vector);
-    }
     log(buff);
     
-    strfmt(buff, "[ INFO ] Vector: %d\n", frame->vector);
-    log(buff);
-    strfmt(buff, "[ INFO ] Error Code: 0x%x\n", frame->error_code);
-    log(buff);
+    strfmt(buff, "[ INFO ] Vector: %d\n", frame->vector); log(buff);
+    strfmt(buff, "[ INFO ] Error Code: 0x%x\n", frame->error_code); log(buff);
 
     if (frame->vector == 14) {
         uint32_t cr2;
@@ -129,18 +124,12 @@ void exception_handler(int_frame_t *frame) {
         log(buff);
     }
 
-    strfmt(buff, "[ INFO ] EIP: 0x%x\n", frame->eip);
-    log(buff);
-    strfmt(buff, "[ INFO ] CS: 0x%x, EFLAGS: 0x%x\n", frame->cs, frame->eflags);
-    log(buff); 
-    strfmt(buff, "[ INFO ] EAX: 0x%x, EBX: 0x%x\n", frame->eax, frame->ebx);
-    log(buff);
-    strfmt(buff, "[ INFO ] ECX: 0x%x, EDX: 0x%x\n", frame->ecx, frame->edx);
-    log(buff);
-    strfmt(buff, "[ INFO ] ESI: 0x%x, EDI: 0x%x\n", frame->esi, frame->edi);
-    log(buff);
-    strfmt(buff, "[ INFO ] EBP: 0x%x, ESP: 0x%x\n", frame->ebp, frame->esp);
-    log(buff);
+    strfmt(buff, "[ INFO ] EIP: 0x%x\n", frame->eip); log(buff);
+    strfmt(buff, "[ INFO ] CS: 0x%x, EFLAGS: 0x%x\n", frame->cs, frame->eflags); log(buff); 
+    strfmt(buff, "[ INFO ] EAX: 0x%x, EBX: 0x%x\n", frame->eax, frame->ebx); log(buff);
+    strfmt(buff, "[ INFO ] ECX: 0x%x, EDX: 0x%x\n", frame->ecx, frame->edx); log(buff);
+    strfmt(buff, "[ INFO ] ESI: 0x%x, EDI: 0x%x\n", frame->esi, frame->edi); log(buff);
+    strfmt(buff, "[ INFO ] EBP: 0x%x, ESP: 0x%x\n", frame->ebp, frame->esp); log(buff);
 
     panic("[ PANIC ] Exception!");
 }

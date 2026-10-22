@@ -2,7 +2,6 @@
 #define RTC_H
 
 #include <stdint.h>
-#include "cmos.h"
 
 typedef struct {
     uint8_t seconds;

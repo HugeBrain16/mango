@@ -26,6 +26,11 @@ if [[ "$1" == "disk" ]]; then
         python mangofs.py disk.img push $file /system/modules
     done
 
+    for file in files/config/*; do
+        echo "Adding $file..."
+        python mangofs.py disk.img push $file /system/config
+    done
+
     echo "Disk image bootstrapped."
     exit 0
 fi

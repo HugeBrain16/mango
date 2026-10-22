@@ -15,6 +15,8 @@
 #include "unit.h"
 #include "keyboard.h"
 #include "serial.h"
+#include "time.h"
+#include "ata.h"
 
 int script_exit = 0;
 
@@ -73,6 +75,7 @@ DEF_CALL(exec);
 DEF_CALL(as_str);
 DEF_CALL(as_int);
 DEF_CALL(as_float);
+DEF_CALL(as_char);
 DEF_CALL(type_name);
 DEF_CALL(file_open);
 DEF_CALL(file_close);
@@ -115,6 +118,8 @@ DEF_CALL(ata_slot);
 DEF_CALL(ata_serial);
 DEF_CALL(ata_rev);
 DEF_CALL(ata_model);
+DEF_CALL(ata_size);
+DEF_CALL(ata_used);
 DEF_CALL(cpu_name);
 DEF_CALL(cpu_vendor);
 DEF_CALL(cpu_family);
@@ -135,6 +140,12 @@ DEF_CALL(internal_getvars);
 DEF_CALL(internal_getname);
 DEF_CALL(internal_getvalue);
 DEF_CALL(internal_getrefcount);
+DEF_CALL(os_buildnumber);
+DEF_CALL(os_uptime_seconds);
+DEF_CALL(os_uptime_minutes);
+DEF_CALL(os_uptime_hours);
+DEF_CALL(mem_total);
+DEF_CALL(mem_free);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -155,6 +166,7 @@ typedef enum call {
     CALL_AS_STR,
     CALL_AS_INT,
     CALL_AS_FLOAT,
+    CALL_AS_CHAR,
     CALL_TYPE_NAME,
     CALL_FILE_OPEN,
     CALL_FILE_CLOSE,
@@ -197,6 +209,8 @@ typedef enum call {
     CALL_ATA_SERIAL,
     CALL_ATA_REV,
     CALL_ATA_MODEL,
+    CALL_ATA_SIZE,
+    CALL_ATA_USED,
     CALL_CPU_NAME,
     CALL_CPU_VENDOR,
     CALL_CPU_FAMILY,
@@ -217,6 +231,12 @@ typedef enum call {
     CALL_INTERNAL_GETNAME,
     CALL_INTERNAL_GETVALUE,
     CALL_INTERNAL_GETREFCOUNT,
+    CALL_OS_BUILDNUMBER,
+    CALL_OS_UPTIME_SECONDS,
+    CALL_OS_UPTIME_MINUTES,
+    CALL_OS_UPTIME_HOURS,
+    CALL_MEM_TOTAL,
+    CALL_MEM_FREE,
 
     CALL_E_COUNT,
 } call_e;
@@ -229,6 +249,7 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_AS_STR]            = { "as_str",       call_as_str },
     [CALL_AS_INT]            = { "as_int",       call_as_int },
     [CALL_AS_FLOAT]          = { "as_float",     call_as_float },
+    [CALL_AS_CHAR]           = { "as_char",      call_as_char },
     [CALL_TYPE_NAME]         = { "type_name",    call_type_name },
     [CALL_FILE_OPEN]         = { "file_open",    call_file_open },
     [CALL_FILE_CLOSE]        = { "file_close",   call_file_close },
@@ -271,6 +292,8 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_ATA_SERIAL]        = { "ata_serial",   call_ata_serial },
     [CALL_ATA_REV]           = { "ata_rev",      call_ata_rev },
     [CALL_ATA_MODEL]         = { "ata_model",    call_ata_model },
+    [CALL_ATA_SIZE]          = { "ata_size",     call_ata_size },
+    [CALL_ATA_USED]          = { "ata_used",     call_ata_used },
     [CALL_CPU_NAME]          = { "cpu_name",     call_cpu_name },
     [CALL_CPU_VENDOR]        = { "cpu_vendor",   call_cpu_vendor },
     [CALL_CPU_FAMILY]        = { "cpu_family",   call_cpu_family },
@@ -291,6 +314,12 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_INTERNAL_GETNAME]  = { "internal_getname",  call_internal_getname },
     [CALL_INTERNAL_GETVALUE] = { "internal_getvalue", call_internal_getvalue },
     [CALL_INTERNAL_GETREFCOUNT] = { "internal_getrefcount", call_internal_getrefcount },
+    [CALL_OS_BUILDNUMBER] = { "os_buildnumber", call_os_buildnumber },
+    [CALL_OS_UPTIME_SECONDS] = { "os_uptime_seconds", call_os_uptime_seconds },
+    [CALL_OS_UPTIME_MINUTES] = { "os_uptime_minutes", call_os_uptime_minutes },
+    [CALL_OS_UPTIME_HOURS] = { "os_uptime_hours", call_os_uptime_hours },
+    [CALL_MEM_TOTAL] = { "mem_total", call_mem_total },
+    [CALL_MEM_FREE] = { "mem_free", call_mem_free },
 };
 
 static script_node_t *g_null = NULL;
@@ -2279,6 +2308,54 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 
 /* ==== builtins ==== */
 
+static script_node_t *call_os_uptime_seconds(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(uptime_seconds);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_os_uptime_minutes(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(uptime_minutes);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_os_uptime_hours(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(uptime_hours);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_mem_free(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(heap_free_bytes());
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_mem_total(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int((unsigned)heap_end);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_os_buildnumber(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(BUILD_NUMBER);
+    value->lineno = node->lineno;
+    return value;
+}
+
 static script_node_t *call_cpu_name(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
@@ -2322,7 +2399,7 @@ static script_node_t *call_ata_slot(script_stmt_t *block, script_node_t *node) {
 static script_node_t *call_ata_serial(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    drive_t drive;
+    drive_t drive = {0};
     file_drive_spec(&drive);
 
     script_node_t *value = node_string(drive.serial);
@@ -2333,7 +2410,7 @@ static script_node_t *call_ata_serial(script_stmt_t *block, script_node_t *node)
 static script_node_t *call_ata_rev(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    drive_t drive;
+    drive_t drive = {0};
     file_drive_spec(&drive);
 
     script_node_t *value = node_string(drive.rev);
@@ -2344,10 +2421,38 @@ static script_node_t *call_ata_rev(script_stmt_t *block, script_node_t *node) {
 static script_node_t *call_ata_model(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    drive_t drive;
+    drive_t drive = {0};
     file_drive_spec(&drive);
 
     script_node_t *value = node_string(drive.model);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_ata_size(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    uint8_t ata_id[512];
+    ata_identify(file_port, ata_id);
+    uint16_t *w = (uint16_t*) ata_id;
+    uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
+
+    script_node_t *value = node_int(sectors * 512);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_ata_used(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t used = 0;
+    if (file_is_formatted()) {
+        file_superblock_t sb;
+        file_read_sb(&sb);
+        used = sb.used * 512;
+    }
+
+    script_node_t *value = node_int(used);
     value->lineno = node->lineno;
     return value;
 }
@@ -2631,6 +2736,53 @@ static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node) {
                 value->literal.float_value = doublestr(arg->literal.str_value);
                 break;
             }
+        default:
+            {
+                char msg[64];
+                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
+                term_write(msg);
+                unref_node(value);
+                return NULL;
+            }
+    }
+
+    return value;
+}
+
+static script_node_t *call_as_char(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 1) {
+        char msg[64];
+        strfmt(msg, "Error: Function as_char() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    script_node_t *arg = node->call.argv[0];
+
+    script_node_t *value = node_null();
+    value->node_type = SCRIPT_AST_LITERAL;
+    value->value_type = SCRIPT_STR;
+    value->lineno = node->lineno;
+
+    char *str = heap_alloc(2);
+    str[1] = '\0';
+    value->literal.str_value = str;
+    value->literal.str_size = 2;
+
+    switch (arg->value_type) {
+        case SCRIPT_INT: *str = arg->literal.int_value; break;
+        case SCRIPT_BOOL: *str = arg->literal.int_value; break;
+        case SCRIPT_FLOAT: *str = (int)arg->literal.float_value; break;
+        case SCRIPT_NULL: *str = '\0'; break;
+        case SCRIPT_STR:
+            heap_free(str);
+            value->value_type = SCRIPT_INT;
+            value->literal.int_value = *arg->literal.str_value;
+            break;
         default:
             {
                 char msg[64];
@@ -3651,39 +3803,18 @@ static script_node_t *call_argc(script_stmt_t *block, script_node_t *node) {
 static script_node_t *call_argv(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    size_t argc = node->call.argc;
-
-    if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function argv() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
-        return NULL;
-    }
-
-    script_node_t *index = node->call.argv[0];
-
-    if (index->value_type != SCRIPT_INT) {
-        char msg[128];
-        script_node_t *type_name = node_type_name(index);
-        strfmt(msg, "Error: Function argv() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
-        unref_node(type_name);
-        return NULL;
-    }
-
-    int idx = index->literal.int_value;
-    if (idx >= script_argc || idx < 0)
-        return g_null;
-
     script_node_t *value = node_null();
     value->node_type = SCRIPT_AST_LITERAL;
-    value->value_type = SCRIPT_STR;
+    value->value_type = SCRIPT_LIST;
     value->lineno = node->lineno;
 
-    int length = strlen(script_argv[idx]) + 1;
-    value->literal.str_size = length;
-    value->literal.str_value = heap_alloc(length);
-    memcpy(value->literal.str_value, script_argv[idx], length);
+    list_t *list = heap_alloc(sizeof(list_t));
+    list_init(list);
+
+    value->literal.list = list;
+
+    for (int i = 0; i < script_argc; i++)
+        list_push(list, node_string(script_argv[i]));
 
     return value;
 }

@@ -160,6 +160,25 @@ func mangotest_string_append() {
 	return val == "00 01 02 03 04 05 06 07 08 09 10";
 }
 
+func mangotest_string_lower() {
+	let val = "HELLO!";
+
+	return string_lower(val) == "hello!";
+}
+
+func mangotest_string_upper() {
+	let val = "hello!";
+
+	return string_upper(val) == "HELLO!";
+}
+
+func mangotest_string_bool() {
+	let val1 = "yes";
+	let val2 = "no";
+
+	return string_bool(val1) == true && string_bool(val2) == false;
+}
+
 test_init();
 test_colors();
 test_report("mangotest_report.txt");

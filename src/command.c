@@ -4,7 +4,6 @@
 #include "heap.h"
 #include "screen.h"
 #include "terminal.h"
-#include "color.h"
 #include "time.h"
 #include "file.h"
 #include "keyboard.h"
@@ -17,7 +16,6 @@
 #include "rtc.h"
 #include "config.h"
 #include "acpi.h"
-#include "cpu.h"
 #include "sound.h"
 #include "pci.h"
 #include "desktop.h"
@@ -98,102 +96,6 @@ static int command_shutdown(int argc, char *argv[]) {
         acpi_shutdown();
 
     abort();
-
-    return 0;
-}
-
-static int command_fetch(int argc, char *argv[]) {
-    int show_diskname = 0;
-    int show_ribbon = 1;
-    int show_colors = 1;
-
-    for (int i = 0; i < argc; i++) {
-        if (!strcmp(argv[i], "diskname"))
-            show_diskname = 1;
-        else if (!strcmp(argv[i], "noribbon"))
-            show_ribbon = 0;
-        else if (!strcmp(argv[i], "nocolors"))
-            show_colors = 0;
-    }
-
-    char buff[128];
-
-    if (show_ribbon) {
-        term_write("\n");
-        for (int i = 0; i < 6; i++) {
-            term_write2("=", term_fg != COLOR_WHITE ? term_fg : COLOR_YELLOW, term_bg);
-            term_write2("=", COLOR_WHITE, term_bg);
-            term_write2("=", term_fg != COLOR_WHITE ? term_fg : COLOR_YELLOW, term_bg);
-        }
-    }
-    strfmt(buff, "\nKernel: Mango b%d\n", BUILD_NUMBER);
-    term_write(buff);
-
-    strfmt(buff, "CPU: %s\n", cpu_name);
-    term_write(buff);
-
-    char mem_total[16];
-    char mem_free[16];
-    unit_get_size(heap_end - heap_start + (2 << 20), mem_total);
-    unit_get_size(heap_free_bytes() + (2 << 20), mem_free);
-    strfmt(buff, "Memory: %s (Free: %s)\n", mem_total, mem_free);
-    term_write(buff);
-
-    if (file_drive_status == FILE_DRIVE_OK) {
-        uint8_t ata_id[512];
-        ata_identify(file_port, ata_id);
-        uint16_t *w = (uint16_t*) ata_id;
-        uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
-        char disk_total[16];
-        unit_get_size(sectors * 512, disk_total);
-
-        term_write("Disk: ");
-
-        if (show_diskname) {
-            char name[64];
-            ata_get_string(w, 27, 46, name, 64);
-            term_write(name);
-            term_write(" - ");
-        }
-
-        strfmt(buff, "%s ", disk_total);
-        term_write(buff);
-        if (file_is_formatted()) {
-            file_superblock_t sb;
-            file_read_sb(&sb);
-
-            char disk_used[16];
-            unit_get_size(sb.used * 512, disk_used);
-            strfmt(buff, "(Used: %s) ", disk_used);
-            term_write(buff);
-        }
-        term_write("\n");
-    }
-
-    strcpy(buff, "Uptime:");
-    term_write(buff);
-    if (uptime_hours > 0) {
-        strfmt(buff, " %d hours", uptime_hours);
-        term_write(buff);
-    }
-    if (uptime_minutes > 0) {
-        strfmt(buff, " %d minutes", uptime_minutes);
-        term_write(buff);
-    }
-    if (uptime_seconds > 0) {
-        strfmt(buff, " %d seconds", uptime_seconds);
-        term_write(buff);
-    }
-    term_write("\n");
-
-    if (show_colors) {
-        term_write("\n");
-        term_write2("=", COLOR_YELLOW, COLOR_YELLOW);
-        term_write2("=", COLOR_WHITE, COLOR_WHITE);
-        term_write2("=", COLOR_PURPLE, COLOR_PURPLE);
-        term_write2("=", COLOR_DARKGRAY, COLOR_DARKGRAY);
-    }
-    term_write("\n\n");
 
     return 0;
 }
@@ -1014,16 +916,11 @@ static int command_listpci(int argc, char *argv[]) {
     int show_subclass = 0;
 
     for (int i = 0; i < argc; i++) {
-        if (!strcmp(argv[i], "nobus"))
-            show_bus = 0;
-        else if (!strcmp(argv[i], "nodevice"))
-            show_device = 0;
-        else if (!strcmp(argv[i], "norev"))
-            show_rev = 0;
-        else if (!strcmp(argv[i], "class"))
-            show_class = 1;
-        else if (!strcmp(argv[i], "subclass"))
-            show_subclass = 1;
+        if (!strcmp(argv[i], "nobus")) show_bus = 0;
+        else if (!strcmp(argv[i], "nodevice")) show_device = 0;
+        else if (!strcmp(argv[i], "norev")) show_rev = 0;
+        else if (!strcmp(argv[i], "class")) show_class = 1;
+        else if (!strcmp(argv[i], "subclass")) show_subclass = 1;
     }
 
     char buffer[64];
@@ -1043,22 +940,18 @@ static int command_listpci(int argc, char *argv[]) {
                     strfmt(buffer, " Bus:%d", x);
                     term_write(buffer);
                 }
-
                 if (show_device) {
                     strfmt(buffer, " Device:%d", y);
                     term_write(buffer);
                 }
-
                 if (dev.revision && show_rev) {
                     strfmt(buffer, " Rev:%d", dev.revision);
                     term_write(buffer);
                 }
-
                 if (show_class) {
                     strfmt(buffer, " Class:%d", dev.class_code);
                     term_write(buffer);
                 }
-
                 if (show_subclass) {
                     strfmt(buffer, " Subclass:%d", dev.subclass);
                     term_write(buffer);
@@ -1083,14 +976,10 @@ static int command_meminfo(int argc, char *argv[]) {
     int blocks;
     heap_stat(&used, &usable, &free, &blocks);
 
-    strfmt(buffer, "USED = %d (%d KB)\n", used, used >> 10);
-    term_write(buffer);
-    strfmt(buffer, "USABLE = %d (%d KB)\n", usable, usable >> 10);
-    term_write(buffer);
-    strfmt(buffer, "FREE = %d (%d KB)\n", free, free >> 10);
-    term_write(buffer);
-    strfmt(buffer, "BLOCKS = %d\n", blocks);
-    term_write(buffer);
+    strfmt(buffer, "USED = %d (%d KB)\n", used, used >> 10); term_write(buffer);
+    strfmt(buffer, "USABLE = %d (%d KB)\n", usable, usable >> 10); term_write(buffer);
+    strfmt(buffer, "FREE = %d (%d KB)\n", free, free >> 10); term_write(buffer);
+    strfmt(buffer, "BLOCKS = %d\n", blocks); term_write(buffer);
     return 0;
 }
 
@@ -1127,7 +1016,6 @@ static commands_t commands[] = {
     { "scaledown", command_scaledown },
     { "clear", command_clear },
     { "shutdown", command_shutdown },
-    { "fetch", command_fetch },
     { "echo", command_echo },
     { "list", command_list },
     { "newfile", command_newfile },

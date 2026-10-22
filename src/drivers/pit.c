@@ -4,6 +4,7 @@
 #include "keyboard.h"
 #include "terminal.h"
 #include "editor.h"
+#include "desktop.h"
 
 volatile uint32_t pit_ticks = 0;
 static uint32_t last_second = 0;
@@ -32,6 +33,7 @@ void pit_handle() {
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) term_draw_cursor();
     else if (keyboard_mode == KEYBOARD_MODE_EDIT) edit_draw_cursor();
+    else if (keyboard_mode == KEYBOARD_MODE_DESKTOP) desktop_update();
 }
 
 void pit_set_frequency(int hz) {

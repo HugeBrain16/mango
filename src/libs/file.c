@@ -3,7 +3,6 @@
 #include "heap.h"
 #include "ata.h"
 #include "terminal.h"
-#include "color.h"
 #include "rtc.h"
 #include "kernel.h"
 

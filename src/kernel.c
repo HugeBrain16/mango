@@ -5,17 +5,12 @@
 #include "heap.h"
 #include "screen.h"
 #include "terminal.h"
-#include "color.h"
 #include "ps2.h"
 #include "gdt.h"
 #include "idt.h"
-#include "io.h"
 #include "pic.h"
 #include "pit.h"
 #include "file.h"
-#include "keyboard.h"
-#include "editor.h"
-#include "ata.h"
 #include "rtc.h"
 #include "config.h"
 #include "acpi.h"
@@ -29,7 +24,6 @@
 #include "command.h"
 #include "fio.h"
 #include "mouse.h"
-#include "desktop.h"
 
 char early_boot[128] = {0};
 int boot_logging = 1;
@@ -61,6 +55,14 @@ void log(const char *msg) {
     }
 }
 
+#define eblog(msg) \
+    strcat(early_boot, msg); \
+    log(msg)
+
+#define blog(msg) \
+    string_puts(boot_log, msg); \
+    log(msg)
+
 __attribute__((noreturn))
 void abort() {
     __asm__ volatile("cli");
@@ -89,8 +91,7 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     serial_init();
     strfmt(buffer, "[ INFO ] Mango b%d\n", BUILD_NUMBER);
-    strcat(early_boot, buffer);
-    log(buffer);
+    eblog(buffer);
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         msg = "[ PANIC ] Invalid magic number!\n";
@@ -106,47 +107,28 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     screen_init(mbi);
     term_init(TERM_DRAW_NOPROMPT);
 
-    pages_init();
-    msg = "[ INFO ] Pages OK\n";
-    strcat(early_boot, msg);
-    log(msg);
+    pages_init(); eblog("[ INFO ] Pages OK\n");
 
     heap_init(mbi);
     strfmt(buffer, "[ INFO ] Heap: 0x%x - 0x%x\n", heap_start, heap_end);
-    strcat(early_boot, buffer);
-    log(buffer);
+    eblog(buffer);
 
     boot_log = string_from(early_boot);
 
     strfmt(buffer, "[ INFO ] Screen: %dx%d\n", screen_width, screen_height);
-    string_puts(boot_log, buffer);
-    log(buffer);
+    blog(buffer);
 
-    gdt_init();
-    msg = "[ INFO ] GDT OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
-    idt_init();
-    msg = "[ INFO ] IDT OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
-
-    rtc_init();
-    msg = "[ INFO ] RTC OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
-    ps2_init();
-    msg = "[ INFO ] PS/2 OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
+    gdt_init(); blog("[ INFO ] GDT OK\n");
+    idt_init(); blog("[ INFO ] IDT OK\n");
+    rtc_init(); blog("[ INFO ] RTC OK\n");
+    ps2_init(); blog("[ INFO ] PS/2 OK\n");
 
     cpu_init();
     if (strlen(cpu_name) > 0)
         strfmt(buffer, "[ INFO ] CPU: %s\n", cpu_name);
     else
         strfmt(buffer, "[ INFO ] CPU: Unknown\n");
-    string_puts(boot_log, buffer);
-    log(buffer);
+    blog(buffer);
 
     for (int x = 0; x < PCI_MAX_BUS; x++) {
         for (int y = 0; y < PCI_MAX_DEV; y++) {
@@ -155,89 +137,57 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
             char idstr[9];
             if (pci_get_device(&dev, x, y)) {
                 strfmt(buffer, "[ INFO ] (PCI) Bus:%d Device:%d ", x, y);
-                string_puts(boot_log, buffer);
-                log(buffer);
+                blog(buffer);
 
                 if (dev.revision) {
                     strfmt(buffer, "Rev:%d ", dev.revision);
-                    string_puts(boot_log, buffer);
-                    log(buffer);
+                    blog(buffer);
                 }
 
                 strhex(idstr, (uint32_t)dev.vendor_id);
                 msg = strsub(idstr, 4);
-                string_puts(boot_log, msg);
-                log(msg);
-
-                string_putc(boot_log, ':');
-                log(":");
-
+                blog(msg);
+                blog(":");
                 strhex(idstr, (uint32_t)dev.device_id);
                 msg = strsub(idstr, 4);
-                string_puts(boot_log, msg);
-                log(msg);
-
-                string_putc(boot_log, '\n');
-                log("\n");
+                blog(msg);
+                blog("\n");
             }
         }
     }
 
     screen_init_back_buffer();
-    msg = "[ INFO ] Initialized screen back buffer\n";
-    string_puts(boot_log, msg);
-    log(msg);
+    blog("[ INFO ] Initialized screen back buffer\n");
 
     char total_mem[16];
-    unit_get_size(heap_end - heap_start + (2 << 20), total_mem);
+    unit_get_size((unsigned)heap_end, total_mem);
     strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
-    string_puts(boot_log, buffer);
-    log(buffer);
+    blog(buffer);
 
     file_init_by_slot(1);
 
     pit_set_frequency(250);
     strfmt(buffer, "[ INFO ] PIT frequency: %d\n", pit_hz);
-    string_puts(boot_log, buffer);
-    log(buffer);
+    blog(buffer);
 
-    pic_unmask(0);
-    msg = "[ INFO ] PIT OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
-    pic_unmask(1);
-    msg = "[ INFO ] PS/2 Keyboard OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
-    mouse_init();
-    msg = "[ INFO ] PS/2 Mouse OK\n";
-    string_puts(boot_log, msg);
-    log(msg);
+    pic_unmask(0); blog("[ INFO ] PIT OK\n");
+    pic_unmask(1); blog("[ INFO ] PS/2 Keyboard OK\n");
+    mouse_init(); blog("[ INFO ] PS/2 Mouse OK\n");
 
     acpi_init();
 
-    msg = "[ INFO ] Seeding random...\n";
-    string_puts(boot_log, msg);
-    log(msg);
+    blog("[ INFO ] Seeding random...\n");
     uint64_t dt = datetime_packed();
     srand((uint32_t)(dt >> 32) ^ (uint32_t)dt ^ pit_ticks ^ rtc_ticks);
 
-    msg = "[ INFO ] Initializing sound...\n";
-    string_puts(boot_log, msg);
-    log(msg);
+    blog("[ INFO ] Initializing sound...\n");
     if(sound_init()) {
-        msg = "[ INFO ] Sound OK\n";
-        string_puts(boot_log, msg);
-        log(msg);
+        blog("[ INFO ] Sound OK\n");
     } else {
-        msg = "[ WARNING ] Sound initialization failed!\n";
-        string_puts(boot_log, msg);
-        log(msg);
+        blog("[ WARNING ] Sound initialization failed!\n");
     }
 
-    msg = "[ INFO ] Initialization complete!\n";
-    string_puts(boot_log, msg);
-    log(msg);
+    blog("[ INFO ] Initialization complete!\n");
 
     setup_log();
     fio_t *syslog = fio_open("/system/system.log", 'w');
@@ -261,8 +211,6 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     term_draw_prompt();
 
     for (;;) {
-        if (keyboard_mode == KEYBOARD_MODE_DESKTOP)
-            desktop_update();
         __asm__ volatile("hlt");
     }
 }

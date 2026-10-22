@@ -12,6 +12,11 @@ static void lines_free(list_t *lines) {
 	list_free(lines);
 }
 
+static int is_comment(string_t *line) {
+	string_trim(line);
+	return *line->value == '#';
+}
+
 static void config_parse(string_t *line, string_t *name, string_t *value) {
 	int found_separator = 0;
 
@@ -36,6 +41,9 @@ int config_has(const char *path, const char *name) {
 	list_t *lines = readlines(buffer);
 	for (size_t i = 0; i < lines->size; i++) {
 		string_t *line = (string_t*) list_get(lines, i);
+
+		if (is_comment(line))
+			continue;
 
 		string_t *line_name = string_init();
 		config_parse(line, line_name, NULL);
@@ -62,6 +70,8 @@ char *config_get(const char *path, const char *name) {
 	list_t *lines = readlines(buffer);
 	for (size_t i = 0; i < lines->size; i++) {
 		string_t *line = (string_t*) list_get(lines, i);
+		if (is_comment(line))
+			continue;
 
 		string_t *line_name = string_init();
 		string_t *line_value = string_init();

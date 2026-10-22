@@ -2,7 +2,6 @@
 #include "config.h"
 #include "string.h"
 #include "heap.h"
-#include "fio.h"
 
 void module_time(char *dest, int offset) {
     rtc_datetime_t now;

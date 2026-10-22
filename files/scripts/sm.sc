@@ -1,5 +1,6 @@
 let version = "1.1";
 let argc = argc();
+let argv = argv();
 let prefix = "/system/scripts/";
 
 func format(name) {
@@ -27,7 +28,7 @@ func ls() {
 
 func edit() {
   if (argc > 1) {
-    let path = format(argv(1));
+    let path = format(argv[1]);
     if (file_isfile(path))
       exec("edit " + path);
     else
@@ -38,7 +39,7 @@ func edit() {
 
 func rm() {
   if (argc > 1) {
-    let path = format(argv(1));
+    let path = format(argv[1]);
     if (file_isfile(path))
       exec("delfile " + path);
     else
@@ -49,7 +50,7 @@ func rm() {
 
 func new() {
   if (argc > 1) {
-    let path = format(argv(1));
+    let path = format(argv[1]);
     if (file_isfile(path) == false) {
       exec("newfile " + path);
       exec("edit " + path);
@@ -60,7 +61,7 @@ func new() {
 }
 
 if (argc > 0) {
-  let cmd = argv(0);
+  let cmd = argv[0];
 
   if (cmd == "help") help();
   else if (cmd == "edit") edit();

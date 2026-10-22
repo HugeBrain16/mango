@@ -5,7 +5,6 @@
 #include "pit.h"
 #include "keyboard.h"
 #include "command.h"
-#include "pic.h"
 #include "list.h"
 #include "heap.h"
 #include "serial.h"

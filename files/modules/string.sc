@@ -117,10 +117,50 @@ func string_sub(str, n) {
 		return "";
 
 	let res = "";
-	for (let i = 0; i < sizeof(str); i += 1) {
+	for (let i = 0; i < slen; i += 1) {
 		if (i + 1 > n)
 			res += str[i];
 	}
 
 	return res;
+}
+
+func string_lower(str) {
+	let slen = sizeof(str);
+
+	let res = "";
+	for (let i = 0; i < slen; i += 1) {
+		let c;
+		let char = as_char(str[i]);
+		if (char >= 65 && char <= 90)
+			c = as_char(as_char(str[i]) + 32);
+		else
+			c = as_char(char);
+		res += c;
+	}
+
+	return res;
+}
+
+func string_upper(str) {
+	let slen = sizeof(str);
+
+	let res = "";
+	for (let i = 0; i < slen; i += 1) {
+		let c;
+		let char = as_char(str[i]);
+		if (char >= 97 && char <= 122)
+			c = as_char(as_char(str[i]) - 32);
+		else
+			c = as_char(char);
+		res += c;
+	}
+
+	return res;
+}
+
+func string_bool(str) {
+	str = string_lower(str);
+
+	return str == "true" || str == "yes" || str == "on" || str == "1";
 }
