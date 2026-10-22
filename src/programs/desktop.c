@@ -19,7 +19,9 @@ int desktop_active = 0;
 
 static image_t *desktop_wall = NULL;
 static uint32_t desktop_clear = COLOR_BLUE;
-static uint32_t desktop_status_update = 1000;
+static uint32_t desktop_rate_update = 30;
+static uint32_t desktop_rate_last = 0;
+static uint32_t desktop_status_update = 1;
 static uint32_t desktop_status_last = 0;
 static uint32_t desktop_status_fg = COLOR_ORANGE;
 static uint32_t desktop_status_bg = COLOR_WHITE;
@@ -72,7 +74,7 @@ static void desktop_free_icon(desktop_icon_t *icon) {
 
 static void desktop_draw_statusbar() {
 	uint32_t ticks = pit_ticks;
-	if (ticks - desktop_status_last < ms_to_ticks(desktop_status_update)) return;
+	if (ticks - desktop_status_last < ms_to_ticks(1000/desktop_status_update)) return;
 	desktop_status_last = ticks;
 
     int draw_x = 0;
@@ -275,6 +277,10 @@ void desktop_handle_type(uint8_t scancode) {
 }
 
 void desktop_update() {
+	uint32_t ticks = pit_ticks;
+	if (ticks - desktop_rate_last < ms_to_ticks(1000/desktop_rate_update)) return;
+	desktop_rate_last = ticks;
+
 	desktop_draw_statusbar();
 	mouse_draw();
 	for (size_t i = 0; i < desktop_icons->size; i++) {
