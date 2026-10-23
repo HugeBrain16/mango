@@ -18,6 +18,7 @@ typedef struct list {
 extern void list_init(list_t *list);
 extern int list_push(list_t *list, void *data);
 extern void *list_pop(list_t *list);
+extern list_node_t *list_get_node(list_t *list, size_t index);
 extern void *list_get(list_t *list, size_t index);
 extern int list_remove(list_t *list, size_t index);
 extern void list_clear(list_t *list);

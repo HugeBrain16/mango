@@ -9,6 +9,10 @@ let __box_rect_pos = 1;
 let __box_rect_w = 2;
 let __box_rect_h = 3;
 
+let __box_fps = 30;
+let __box_timer_last = 0;
+let __box_timer_current = 0;
+
 func box_isnumeric(val) {
 	let type = type_name(val);
 
@@ -63,7 +67,7 @@ func box_draw(obj, col) {
 
 		for (let dh = 0; dh < h; dh += 1) {
 			for (let dw = 0; dw < w; dw += 1)
-				screen_draw(x + dw, y + dh, col);
+				screen_draw(as_int(x) + dw, as_int(y) + dh, col);
 		}
 	}
 }
@@ -84,4 +88,27 @@ func box_rect_colliding(rect1, rect2) {
 		x1 + w1 > x2 &&
 		y1 < y2 + h2 &&
 		y1 + h1 > y2;
+}
+
+func box_fps(fps) {
+	if (type_name(fps) == "int")
+		__box_fps = fps;
+}
+
+func box_run(init, update, draw) {
+	init();
+	__box_timer_last = sys_perf();
+
+	let frame_time = 1 / __box_fps;
+	while (true) {
+		__box_timer_current = sys_perf();
+		let dt = __box_timer_current - __box_timer_last;
+
+		if (dt < frame_time)
+			continue;
+
+		__box_timer_last = __box_timer_current;
+		update(dt);
+		draw();
+	}
 }

@@ -99,6 +99,7 @@ DEF_CALL(list_pop);
 DEF_CALL(list_remove);
 DEF_CALL(list_str);
 DEF_CALL(list_has);
+DEF_CALL(list_set);
 DEF_CALL(sleep);
 DEF_CALL(sys_ticks);
 DEF_CALL(sys_tps);
@@ -190,6 +191,7 @@ typedef enum call {
     CALL_LIST_REMOVE,
     CALL_LIST_STR,
     CALL_LIST_HAS,
+    CALL_LIST_SET,
     CALL_SLEEP,
     CALL_SYS_TICKS,
     CALL_SYS_TPS,
@@ -273,6 +275,7 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_LIST_REMOVE]       = { "list_remove",  call_list_remove },
     [CALL_LIST_STR]          = { "list_str",     call_list_str },
     [CALL_LIST_HAS]          = { "list_has",     call_list_has },
+    [CALL_LIST_SET]          = { "list_set",     call_list_set },
     [CALL_SLEEP]             = { "sleep",        call_sleep },
     [CALL_SYS_TICKS]         = { "sys_ticks",    call_sys_ticks },
     [CALL_SYS_TPS]           = { "sys_tps",      call_sys_tps },
@@ -3573,6 +3576,52 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
     return g_null;
 }
 
+static script_node_t *call_list_set(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 3) {
+        char msg[64];
+        strfmt(msg, "Error: Function list_set() takes 3 arguments, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    script_node_t *list = node->call.argv[0];
+    script_node_t *index = node->call.argv[1];
+    script_node_t *value = node->call.argv[2];
+
+    if (list->value_type != SCRIPT_LIST) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(list);
+        strfmt(msg, "Error: Function list_set() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (index->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(index);
+        strfmt(msg, "Error: Function list_set() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (list->literal.list && index->literal.int_value >= 0) {
+        list_node_t *vlist = list_get_node(list->literal.list, (size_t)index->literal.int_value);
+        if (vlist) {
+            unref_node((script_node_t*)vlist->data);
+            vlist->data = ref_node(value);
+            return ref_node(value);
+        }
+    }
+
+    return g_null;
+}
+
 static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
@@ -4859,7 +4908,27 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             return node;
         }
     } else if (op == SCRIPT_TOKEN_TIMES) {
-        if (left->value_type == SCRIPT_INT) {
+        if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
+                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
+            if (left->value_type == SCRIPT_FLOAT || right->value_type == SCRIPT_FLOAT) {
+                node->value_type = SCRIPT_FLOAT;
+
+                double l = (left->value_type == SCRIPT_FLOAT) ?
+                    left->literal.float_value : left->literal.int_value;
+                double r = (right->value_type == SCRIPT_FLOAT) ?
+                    right->literal.float_value : right->literal.int_value;
+
+                node->literal.float_value = l * r;
+            } else {
+                node->value_type = SCRIPT_INT;
+                node->literal.int_value =
+                    left->literal.int_value * right->literal.int_value;
+            }
+
+            if (free_left) unref_node(left);
+            if (free_right) unref_node(right);
+            return node;
+        } else if (left->value_type == SCRIPT_INT) {
             if (right->value_type == SCRIPT_INT) {
                 node->value_type = SCRIPT_INT;
                 node->literal.int_value = left->literal.int_value * right->literal.int_value;
@@ -4914,26 +4983,6 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 if (free_right) unref_node(right);
                 return node;
             }
-        } else if ((left->value_type == SCRIPT_INT || left->value_type == SCRIPT_FLOAT) &&
-                (right->value_type == SCRIPT_INT || right->value_type == SCRIPT_FLOAT)) {
-            if (left->value_type == SCRIPT_FLOAT || right->value_type == SCRIPT_FLOAT) {
-                node->value_type = SCRIPT_FLOAT;
-
-                double l = (left->value_type == SCRIPT_FLOAT) ?
-                    left->literal.float_value : left->literal.int_value;
-                double r = (right->value_type == SCRIPT_FLOAT) ?
-                    right->literal.float_value : right->literal.int_value;
-
-                node->literal.float_value = l * r;
-            } else {
-                node->value_type = SCRIPT_INT;
-                node->literal.int_value =
-                    left->literal.int_value * right->literal.int_value;
-            }
-
-            if (free_left) unref_node(left);
-            if (free_right) unref_node(right);
-            return node;
         }
     }
 

@@ -43,7 +43,7 @@ void *list_pop(list_t *list) {
     return data;
 }
 
-void *list_get(list_t *list, size_t index) {
+list_node_t *list_get_node(list_t *list, size_t index) {
     if (index >= list->size) return NULL;
 
     list_node_t *current;
@@ -59,7 +59,11 @@ void *list_get(list_t *list, size_t index) {
             current = current->prev;
     }
 
-    return current->data;
+    return current;
+}
+
+void *list_get(list_t *list, size_t index) {
+    return list_get_node(list, index)->data;
 }
 
 int list_remove(list_t *list, size_t index) {
