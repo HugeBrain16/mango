@@ -9,6 +9,11 @@ let __box_rect_pos = 1;
 let __box_rect_w = 2;
 let __box_rect_h = 3;
 
+let __box_text_pos = 1;
+let __box_text_text = 2;
+let __box_text_scale = 3;
+let __box_text_bg = 4;
+
 let __box_fps = 30;
 let __box_timer_last = 0;
 let __box_timer_current = 0;
@@ -48,6 +53,24 @@ func box_rect(pos, w, h) {
 	return rect;
 }
 
+func box_text(pos, text, scale, bg) {
+	if (
+		!box_isvector2d(pos) ||
+		type_name(text) != "str" ||
+		!box_isnumeric(scale) ||
+		!box_isnumeric(bg)
+	)
+		return;
+	
+	let txt = list_init();
+	list_push(txt, "box_text");
+	list_push(txt, pos);
+	list_push(txt, text);
+	list_push(txt, scale);
+	list_push(txt, bg);
+	return txt;
+}
+
 func box_isrect(rect) {
 	if (!box_isstruct(rect, "box_rect")) return false;
 
@@ -56,6 +79,22 @@ func box_isrect(rect) {
 	let h = rect[__box_rect_h];
 
 	return box_isvector2d(pos) && box_isnumeric(w) && box_isnumeric(h);
+}
+
+func box_istext(txt) {
+	if (!box_isstruct(txt, "box_text")) return false;
+
+	let pos = txt[__box_text_pos];
+	let text = txt[__box_text_text];
+	let scale = txt[__box_text_scale];
+	let bg = txt[__box_text_bg];
+
+	return 
+		box_isvector2d(pos) &&
+		type_name(text) == "str" &&
+		box_isnumeric(scale) &&
+		box_isnumeric(bg)
+	;
 }
 
 func box_draw(obj, col) {
@@ -68,6 +107,18 @@ func box_draw(obj, col) {
 		for (let dh = 0; dh < h; dh += 1) {
 			for (let dw = 0; dw < w; dw += 1)
 				screen_draw(as_int(x) + dw, as_int(y) + dh, col);
+		}
+	} else if (box_istext(obj)) {
+		let x = obj[__box_text_pos][__box_vector2d_x];
+		let y = obj[__box_text_pos][__box_vector2d_y];
+		let text = obj[__box_text_text];
+		let scale = obj[__box_text_scale];
+		let bg = obj[__box_text_bg];
+		let fw = font_width();
+
+		for (let i = 0; i < sizeof(text); i += 1) {
+			screen_draw_char(as_int(x), as_int(y), as_char(text[i]), col, bg, as_float(scale));
+			x += as_int(fw * scale);
 		}
 	}
 }

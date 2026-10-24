@@ -17,6 +17,7 @@
 #include "serial.h"
 #include "time.h"
 #include "ata.h"
+#include "font.h"
 
 int script_exit = 0;
 
@@ -132,6 +133,7 @@ DEF_CALL(screen_pitch);
 DEF_CALL(screen_scale);
 DEF_CALL(screen_clear);
 DEF_CALL(screen_draw);
+DEF_CALL(screen_draw_char);
 DEF_CALL(screen_flush);
 DEF_CALL(printcap_init);
 DEF_CALL(printcap_close);
@@ -147,6 +149,8 @@ DEF_CALL(os_uptime_minutes);
 DEF_CALL(os_uptime_hours);
 DEF_CALL(mem_total);
 DEF_CALL(mem_free);
+DEF_CALL(font_width);
+DEF_CALL(font_height);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -224,6 +228,7 @@ typedef enum call {
     CALL_SCREEN_SCALE,
     CALL_SCREEN_CLEAR,
     CALL_SCREEN_DRAW,
+    CALL_SCREEN_DRAW_CHAR,
     CALL_SCREEN_FLUSH,
     CALL_PRINTCAP_INIT,
     CALL_PRINTCAP_GET,
@@ -239,6 +244,8 @@ typedef enum call {
     CALL_OS_UPTIME_HOURS,
     CALL_MEM_TOTAL,
     CALL_MEM_FREE,
+    CALL_FONT_WIDTH,
+    CALL_FONT_HEIGHT,
 
     CALL_E_COUNT,
 } call_e;
@@ -308,6 +315,7 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_SCREEN_SCALE]      = { "screen_scale",  call_screen_scale },
     [CALL_SCREEN_CLEAR]      = { "screen_clear",  call_screen_clear },
     [CALL_SCREEN_DRAW]       = { "screen_draw",   call_screen_draw },
+    [CALL_SCREEN_DRAW_CHAR]  = { "screen_draw_char", call_screen_draw_char },
     [CALL_SCREEN_FLUSH]      = { "screen_flush",  call_screen_flush },
     [CALL_PRINTCAP_INIT]     = { "printcap_init",  call_printcap_init },
     [CALL_PRINTCAP_GET]      = { "printcap_get",   call_printcap_get },
@@ -323,6 +331,8 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_OS_UPTIME_HOURS] = { "os_uptime_hours", call_os_uptime_hours },
     [CALL_MEM_TOTAL] = { "mem_total", call_mem_total },
     [CALL_MEM_FREE] = { "mem_free", call_mem_free },
+    [CALL_FONT_WIDTH] = { "font_width", call_font_width },
+    [CALL_FONT_HEIGHT] = { "font_height", call_font_height },
 };
 
 static script_node_t *g_null = NULL;
@@ -925,7 +935,7 @@ static script_token_t *tokenize(fio_t *file) {
             token = lex_hex(file, &c, &lineno);
         } else if (c == '0' && next == 'b') {
             token = lex_bin(file, &c, &lineno);
-        } else if (isdigit(c) || (c == '-' && isdigit(next))) {
+        } else if (isdigit(c)) {
             token = lex_number(file, &c, &lineno);
         } else if (isalpha(c) || c == '_') {
             token = lex_identifier(file, &c, &lineno);
@@ -1677,6 +1687,18 @@ static script_node_t *parse_factor(script_token_t **token) {
         return node_binop(SCRIPT_TOKEN_NEG, node, NULL);
     }
 
+    if ((*token)->type == SCRIPT_TOKEN_MINUS) {
+        size_t lineno = (*token)->lineno;
+        *token = (*token)->next;
+
+        script_node_t *node = parse_call(token);
+        if (!node) return NULL;
+
+        script_node_t *zero = node_int(0);
+        zero->lineno = lineno;
+        return node_binop(SCRIPT_TOKEN_MINUS, zero, node);
+    }
+
     if ((*token)->type == SCRIPT_TOKEN_NUMBER ||
             (*token)->type == SCRIPT_TOKEN_STRING ||
             (*token)->type == SCRIPT_TOKEN_FLOAT ||
@@ -2310,6 +2332,22 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 }
 
 /* ==== builtins ==== */
+
+static script_node_t *call_font_width(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(FONT_WIDTH);
+    value->lineno = node->lineno;
+    return value;
+}
+
+static script_node_t *call_font_height(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(FONT_HEIGHT);
+    value->lineno = node->lineno;
+    return value;
+}
 
 static script_node_t *call_os_uptime_seconds(script_stmt_t *block, script_node_t *node) {
     unused(block);
@@ -4151,6 +4189,99 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
 
     if (x >= 0 && x < screen_width && y >= 0 && y < screen_height)
         script_screen_buffer[y * (screen_pitch / sizeof(uint32_t)) + x] = c;
+
+    return g_null;
+}
+
+static script_node_t *call_screen_draw_char(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    size_t argc = node->call.argc;
+
+    if (argc != 6) {
+        char msg[64];
+        strfmt(msg, "Error: Function screen_draw_char() takes 6 argument, got %d (line: %d)\n", argc, node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    script_node_t *nx = node->call.argv[0];
+    script_node_t *ny = node->call.argv[1];
+    script_node_t *nc = node->call.argv[2];
+    script_node_t *nfg = node->call.argv[3];
+    script_node_t *nbg = node->call.argv[4];
+    script_node_t *nsc = node->call.argv[5];
+
+    if (nx->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(nx);
+        strfmt(msg, "Error: Function screen_draw_char() x expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (ny->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(ny);
+        strfmt(msg, "Error: Function screen_draw_char() y expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (nc->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(nc);
+        strfmt(msg, "Error: Function screen_draw_char() char expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (nfg->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(nfg);
+        strfmt(msg, "Error: Function screen_draw_char() color_foreground expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (nbg->value_type != SCRIPT_INT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(nbg);
+        strfmt(msg, "Error: Function screen_draw_char() color_background expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (nsc->value_type != SCRIPT_FLOAT) {
+        char msg[128];
+        script_node_t *type_name = node_type_name(nsc);
+        strfmt(msg, "Error: Function screen_draw_char() scale expects float, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
+        term_write(msg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (!script_screen_buffer) {
+        char msg[128];
+        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
+        term_write(msg);
+        return NULL;
+    }
+
+    int x = nx->literal.int_value;
+    int y = ny->literal.int_value;
+    int c = nc->literal.int_value;
+    int fg = nfg->literal.int_value;
+    int bg = nbg->literal.int_value;
+    double scale = nsc->literal.float_value;
+
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height)
+        screen_draw_char2(x, y, c, fg, bg, scale, script_screen_buffer);
 
     return g_null;
 }
