@@ -36,6 +36,7 @@ extern void *heap_calloc(size_t base, size_t size);
 extern void *heap_grow(void *ptr, size_t size);
 extern void heap_free(void *ptr);
 extern size_t heap_free_bytes();
+extern size_t heap_used_bytes();
 extern void heap_stat(size_t *used, size_t *usable, size_t *free, int *blocks);
 extern void heap_get_state(heap_state_t *state);
 extern void heap_set_state(heap_state_t *state);

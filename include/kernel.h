@@ -3,7 +3,7 @@
 
 #include "string.h"
 
-#define BUILD_NUMBER 295
+#define BUILD_NUMBER 296
 
 #define unused(x) (void)(x)
 

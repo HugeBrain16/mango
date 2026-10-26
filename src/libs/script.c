@@ -166,9 +166,13 @@ DEF_CALL(os_uptime_minutes);
 DEF_CALL(os_uptime_hours);
 DEF_CALL(mem_total);
 DEF_CALL(mem_free);
+DEF_CALL(mem_used);
 DEF_CALL(font_width);
 DEF_CALL(font_height);
 DEF_CALL(key_down);
+DEF_CALL(vm_mem_total);
+DEF_CALL(vm_mem_free);
+DEF_CALL(vm_mem_used);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -262,9 +266,13 @@ typedef enum call {
     CALL_OS_UPTIME_HOURS,
     CALL_MEM_TOTAL,
     CALL_MEM_FREE,
+    CALL_MEM_USED,
     CALL_FONT_WIDTH,
     CALL_FONT_HEIGHT,
     CALL_KEY_DOWN,
+    CALL_VM_MEM_TOTAL,
+    CALL_VM_MEM_FREE,
+    CALL_VM_MEM_USED,
 
     CALL_E_COUNT,
 } call_e;
@@ -351,8 +359,12 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_OS_UPTIME_HOURS] = { "os_uptime_hours", call_os_uptime_hours },
     [CALL_MEM_TOTAL] = { "mem_total", call_mem_total },
     [CALL_MEM_FREE] = { "mem_free", call_mem_free },
+    [CALL_MEM_USED] = { "mem_used", call_mem_used },
     [CALL_FONT_WIDTH] = { "font_width", call_font_width },
     [CALL_FONT_HEIGHT] = { "font_height", call_font_height },
+    [CALL_VM_MEM_TOTAL] = { "vm_mem_total", call_vm_mem_total },
+    [CALL_VM_MEM_FREE] = { "vm_mem_free", call_vm_mem_free },
+    [CALL_VM_MEM_USED] = { "vm_mem_used", call_vm_mem_used },
 };
 
 static script_node_t *g_null = NULL;
@@ -2429,6 +2441,47 @@ static script_node_t *call_os_uptime_hours(script_stmt_t *block, script_node_t *
     unused(block);
 
     script_node_t *value = node_int(uptime_hours);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_vm_mem_used(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(heap_used_bytes());
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_vm_mem_free(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(heap_free_bytes());
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_vm_mem_total(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int((unsigned)heap_end);
+    value->lineno = node->lineno;
+    value->file = node->file;
+
+    return value;
+}
+
+static script_node_t *call_mem_used(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_vm2sys();
+    size_t free = heap_used_bytes();
+    script_sys2vm();
+
+    script_node_t *value = node_int(free);
     value->lineno = node->lineno;
     value->file = node->file;
     return value;
