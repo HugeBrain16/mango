@@ -1,9 +1,9 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include "color.h"
-#include "file.h"
 
 #define EDITOR_CURSOR_BLINK 500
 #define EDITOR_BG COLOR_DARKGRAY

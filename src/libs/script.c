@@ -3733,8 +3733,11 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
         return NULL;
     }
 
-    if (list->literal.list && index->literal.int_value >= 0)
+    if (list->literal.list && index->literal.int_value >= 0) {
+        script_node_t *value = list_get(list->literal.list, index->literal.int_value);
         list_remove(list->literal.list, (size_t)index->literal.int_value);
+        unref_node(value);
+    }
 
     return g_null;
 }
