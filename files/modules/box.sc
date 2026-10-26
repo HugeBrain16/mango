@@ -18,6 +18,8 @@ let __box_fps = 30;
 let __box_timer_last = 0;
 let __box_timer_current = 0;
 
+let __box_quit = false;
+
 func box_isnumeric(val) {
 	let type = type_name(val);
 
@@ -151,7 +153,7 @@ func box_run(init, update, draw) {
 	__box_timer_last = sys_perf();
 
 	let frame_time = 1 / __box_fps;
-	while (true) {
+	while (!__box_quit) {
 		__box_timer_current = sys_perf();
 		let dt = __box_timer_current - __box_timer_last;
 
@@ -162,4 +164,11 @@ func box_run(init, update, draw) {
 		update(dt);
 		draw();
 	}
+}
+
+func box_quit(quit) {
+	if (type_name(quit) != "bool")
+		quit = false;
+
+	__box_quit = quit;
 }

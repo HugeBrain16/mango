@@ -1,4 +1,5 @@
 include "box.sc";
+include "key.sc";
 
 let vec = box_vector2d;
 
@@ -52,6 +53,13 @@ func init() {
 }
 
 func update(dt) {
+    let key = key_down();
+
+    if (key == KEY_space)
+        randomize_color();
+    if (key == KEY_esc)
+        box_quit(true);
+
     x += dx * dt;
     y += dy * dt;
 

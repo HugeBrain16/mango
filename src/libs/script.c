@@ -39,6 +39,7 @@ static heap_state_t script_vm;
 static heap_state_t script_sys;
 static uint8_t *script_vm_mem;
 static size_t script_vm_size = 0;
+static uint8_t script_key_down = 0;
 
 static void *script_alloc(size_t size);
 static void *script_realloc(void *ptr, size_t size);
@@ -167,6 +168,7 @@ DEF_CALL(mem_total);
 DEF_CALL(mem_free);
 DEF_CALL(font_width);
 DEF_CALL(font_height);
+DEF_CALL(key_down);
 
 static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop);
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call);
@@ -262,6 +264,7 @@ typedef enum call {
     CALL_MEM_FREE,
     CALL_FONT_WIDTH,
     CALL_FONT_HEIGHT,
+    CALL_KEY_DOWN,
 
     CALL_E_COUNT,
 } call_e;
@@ -333,6 +336,7 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_SCREEN_DRAW]       = { "screen_draw",   call_screen_draw },
     [CALL_SCREEN_DRAW_CHAR]  = { "screen_draw_char", call_screen_draw_char },
     [CALL_SCREEN_FLUSH]      = { "screen_flush",  call_screen_flush },
+    [CALL_KEY_DOWN]          = { "key_down", call_key_down },
     [CALL_PRINTCAP_INIT]     = { "printcap_init",  call_printcap_init },
     [CALL_PRINTCAP_GET]      = { "printcap_get",   call_printcap_get },
     [CALL_PRINTCAP_CLOSE]    = { "printcap_close", call_printcap_close },
@@ -2375,6 +2379,15 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 }
 
 /* ==== builtins ==== */
+
+static script_node_t *call_key_down(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(script_key_down);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
 
 static script_node_t *call_font_width(script_stmt_t *block, script_node_t *node) {
     unused(block);
@@ -5843,6 +5856,8 @@ static int get_tokens(const char *path, script_token_t **tokens) {
 }
 
 void script_handle_type(uint8_t scancode) {
+    script_key_down = scancode;
+
     if (keyboard_ctrl) {
         char c = scancode_to_char(scancode);
 
