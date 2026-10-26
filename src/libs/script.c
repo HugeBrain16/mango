@@ -30,8 +30,20 @@ static uint32_t *script_screen_buffer = NULL;
 static size_t script_screen_buffer_size = 0;
 static list_t *script_modules = NULL;
 static list_t *script_module_paths = NULL;
+static list_t *script_paths = NULL;
+static char *script_tokenize_path = NULL;
+static uint32_t script_tokenize_file = 0;
 static string_t *script_printcap = NULL;
 static int script_printcap_print = 1;
+static heap_state_t script_vm;
+static heap_state_t script_sys;
+static uint8_t *script_vm_mem;
+static size_t script_vm_size = 0;
+
+static void *script_alloc(size_t size);
+static void *script_realloc(void *ptr, size_t size);
+static void script_sys2vm();
+static void script_vm2sys();
 
 static void free_token(script_token_t *token);
 static void free_node(script_node_t *node);
@@ -65,6 +77,10 @@ static script_node_t *parse_addsub(script_token_t **token);
 static script_node_t *parse_term(script_token_t **token);
 static script_node_t *parse_call(script_token_t **token);
 static script_node_t *parse_factor(script_token_t **token);
+
+#define ERRMSG (FILE_MAX_PATH + 256)
+
+static char script_errmsg[ERRMSG];
 
 #define DEF_CALL(n) \
     static script_node_t *call_##n(script_stmt_t *block, script_node_t *node)
@@ -380,27 +396,27 @@ static char *node_repr(script_node_t *node) {
 
     switch(node->value_type) {
         case SCRIPT_INT:
-            buffer = heap_alloc(12);
+            buffer = script_alloc(12);
             strint(buffer, node->literal.int_value);
             break;
         case SCRIPT_FLOAT:
-            buffer = heap_alloc(16);
+            buffer = script_alloc(16);
             strdouble(buffer, node->literal.float_value, 6);
             break;
         case SCRIPT_STR:
             {
                 size_t size = node->literal.str_size;
-                buffer = heap_alloc(size);
+                buffer = script_alloc(size);
 
                 memcpy(buffer, node->literal.str_value, size);
                 break;
             }
         case SCRIPT_NULL:
-            buffer = heap_alloc(5);
+            buffer = script_alloc(5);
             strcpy(buffer, "null");
             break;
         case SCRIPT_BOOL:
-            buffer = heap_alloc(6);
+            buffer = script_alloc(6);
 
             if (node->literal.int_value)
                 strcpy(buffer, "true");
@@ -410,7 +426,7 @@ static char *node_repr(script_node_t *node) {
         case SCRIPT_FILE:
             {
                 fio_t *fio_file = node->literal.file;
-                buffer = heap_alloc(128);
+                buffer = script_alloc(128);
 
                 if (fio_file) {
                     file_node_t file;
@@ -429,7 +445,7 @@ static char *node_repr(script_node_t *node) {
         case SCRIPT_VARLIST:
             {
                 list_t *list = node->literal.list;
-                buffer = heap_alloc(128);
+                buffer = script_alloc(128);
 
                 if (list) {
                     script_node_t *type_name = node_type_name(node);
@@ -441,7 +457,7 @@ static char *node_repr(script_node_t *node) {
             break;
         case SCRIPT_VAR:
             {
-                buffer = heap_alloc(strlen(node->var.name) + 64);
+                buffer = script_alloc(strlen(node->var.name) + 64);
                 script_node_t *type_name = node_type_name(node->var.value);
                 strfmt(buffer, "[(0x%x) TYPE=%s NAME=%s ]",
                     node, type_name->literal.str_value, node->var.name);
@@ -458,7 +474,7 @@ static char *node_repr(script_node_t *node) {
                 for (int i = 0; i < params_count; i++)
                     size += func->func.params[i]->literal.str_size;
 
-                buffer = heap_alloc(size);
+                buffer = script_alloc(size);
 
                 strfmt(buffer, "[(0x%x) FUNC=%s ", node, name->literal.str_value);
                 for (int i = 0; i < params_count; i++) {
@@ -488,6 +504,7 @@ static script_node_t *node_clone(script_node_t *node) {
     cloned->node_type = SCRIPT_AST_LITERAL;
     cloned->value_type = node->value_type;
     cloned->lineno = node->lineno;
+    cloned->file = node->file;
 
     switch (node->value_type) {
         case SCRIPT_INT:
@@ -500,7 +517,7 @@ static script_node_t *node_clone(script_node_t *node) {
         case SCRIPT_STR:
             {
                 size_t size = node->literal.str_size;
-                char *value = heap_alloc(size);
+                char *value = script_alloc(size);
                 memcpy(value, node->literal.str_value, size);
 
                 cloned->literal.str_size = size;
@@ -520,7 +537,7 @@ static script_node_t *node_clone(script_node_t *node) {
         case SCRIPT_VAR:
             {
                 size_t size = strlen(node->var.name) + 1;
-                cloned->var.name = heap_alloc(size);
+                cloned->var.name = script_alloc(size);
                 memcpy(cloned->var.name, node->var.name, size);
                 cloned->var.value = node->var.value;
                 break;
@@ -537,14 +554,22 @@ static void free_eval(script_eval_t *eval) {
     heap_free(eval);
 }
 
-static script_token_t *create_token(uint8_t type, size_t lineno) {
-    script_token_t *token = heap_alloc(sizeof(script_token_t));
+static script_token_t *create_token(uint8_t type, size_t lineno, fio_t *file) {
+    if (!script_tokenize_path || script_tokenize_file != file->file) {
+        script_tokenize_path = script_alloc(FILE_MAX_PATH + FILE_MAX_NAME);
+        file_get_abspath(file->file, script_tokenize_path, FILE_MAX_PATH + FILE_MAX_NAME);
+        script_tokenize_file = file->file;
+        list_push(script_paths, script_tokenize_path);
+    }
+
+    script_token_t *token = script_alloc(sizeof(script_token_t));
     token->next = NULL;
-    token->value = (char*) heap_alloc(SCRIPT_SIZE_TOKEN);
+    token->value = (char*)script_alloc(SCRIPT_SIZE_TOKEN);
     token->value[0] = '\0';
     token->type = type;
     token->size = 1;
     token->lineno = lineno;
+    token->file = script_tokenize_path;
     return token;
 }
 
@@ -555,7 +580,7 @@ static void free_token(script_token_t *token) {
 }
 
 static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno);
+    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno, file);
     size_t i = 0;
     int is_float = 0;
     char prev = '\0';
@@ -571,8 +596,8 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
         }
 
         if (*c == '.' && prev == '_') {
-            char msg[64];
-            strfmt(msg, "Error: Unexpected number literal (line: %d)\n", *lineno);
+            char msg[ERRMSG];
+            strfmt(msg, "Error: Unexpected number literal (line: %d)\nIn: %s\n", *lineno, token->file);
             term_write(msg);
             free_token(token);
             return NULL;
@@ -580,7 +605,7 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
 
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
             token->size *= 2;
-            token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
+            token->value = script_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
         }
 
         token->value[i++] = *c;
@@ -594,8 +619,8 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
     } while (isdigit(*c) || *c == '_' || (*c == '.' && is_float < 2));
 
     if (prev == '_') {
-        char msg[64];
-        strfmt(msg, "Error: Unexpected number literal (line: %d)\n", *lineno);
+        char msg[ERRMSG];
+        strfmt(msg, "Error: Unexpected number literal (line: %d)\nIn: %s\n", *lineno, token->file);
         term_write(msg);
         free_token(token);
         return NULL;
@@ -604,8 +629,8 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
     token->value[i] = '\0';
 
     if (isalpha(*c) || is_float == 2) {
-        char msg[64];
-        strfmt(msg, "Error: Unexpected char \"%c\" (line: %d)\n", *c, *lineno);
+        char msg[ERRMSG];
+        strfmt(msg, "Error: Unexpected char \"%c\" (line: %d)\nIn: %s\n", *c, *lineno, token->file);
         term_write(msg);
         free_token(token);
         return NULL;
@@ -618,13 +643,13 @@ static script_token_t *lex_number(fio_t *file, char *c, size_t *lineno) {
 }
 
 static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_IDENTIFIER, *lineno);
+    script_token_t *token = create_token(SCRIPT_TOKEN_IDENTIFIER, *lineno, file);
     size_t i = 0;
 
     do {
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
             token->size++;
-            token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
+            token->value = script_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
         }
 
         token->value[i++] = *c;
@@ -652,7 +677,7 @@ static script_token_t *lex_identifier(fio_t *file, char *c, size_t *lineno) {
 }
 
 static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_STRING, *lineno);
+    script_token_t *token = create_token(SCRIPT_TOKEN_STRING, *lineno, file);
     size_t i = 0;
 
     *c = fio_getc(file);
@@ -661,7 +686,7 @@ static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
     while ((*c != '"' || is_escaped) && *c != '\0' && *c != FIO_EOF) {
         if (i == token->size * SCRIPT_SIZE_TOKEN - 1) {
             token->size++;
-            token->value = heap_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
+            token->value = script_realloc(token->value, token->size * SCRIPT_SIZE_TOKEN);
         }
 
         token->value[i++] = *c;
@@ -676,8 +701,8 @@ static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
     token->value[i] = '\0';
 
     if (*c != '"') {
-        char msg[32];
-        strfmt(msg, "Error: Unclosed string (line: %d)\n", *lineno);
+        char msg[ERRMSG];
+        strfmt(msg, "Error: Unclosed string (line: %d)\nIn: %s\n", *lineno, token->file);
         term_write(msg);
         free_token(token);
         return NULL;
@@ -686,8 +711,8 @@ static script_token_t *lex_string(fio_t *file, char *c, size_t *lineno) {
     return token;
 }
 
-static script_token_t *lex_operator(char c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_END, *lineno);
+static script_token_t *lex_operator(char c, size_t *lineno, fio_t *file) {
+    script_token_t *token = create_token(SCRIPT_TOKEN_END, *lineno, file);
     token->value[0] = c;
     token->value[1] = '\0';
 
@@ -710,8 +735,8 @@ static script_token_t *lex_operator(char c, size_t *lineno) {
         case '[': token->type = SCRIPT_TOKEN_LSBRAC; break;
         case ']': token->type = SCRIPT_TOKEN_RSBRAC; break;
         default: {
-                     char msg[32];
-                     strfmt(msg, "Error: Illegal token (line: %d): \"%c\"\n", *lineno, c);
+                     char msg[ERRMSG];
+                     strfmt(msg, "Error: Illegal token (line: %d): \"%c\"\nIn: %s\n", *lineno, c, token->file);
                      term_write(msg);
                      free_token(token);
                      return NULL;
@@ -722,7 +747,7 @@ static script_token_t *lex_operator(char c, size_t *lineno) {
 }
 
 static script_token_t *lex_equaloperator(fio_t *file, char *c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_ISEQUAL, *lineno);
+    script_token_t *token = create_token(SCRIPT_TOKEN_ISEQUAL, *lineno, file);
     token->value[0] = *c;
     token->value[1] = '=';
     token->value[2] = '\0';
@@ -733,8 +758,8 @@ static script_token_t *lex_equaloperator(fio_t *file, char *c, size_t *lineno) {
         case '>': token->type = SCRIPT_TOKEN_MOREEQUAL; break;
         case '<': token->type = SCRIPT_TOKEN_LESSEQUAL; break;
         default: {
-            char msg[64];
-            strfmt(msg, "Error: Unexpected '%c' for equal operator (line: %d)\n", *c, *lineno);
+            char msg[ERRMSG];
+            strfmt(msg, "Error: Unexpected '%c' for equal operator (line: %d)\nIn: %s\n", *c, *lineno, token->file);
             term_write(msg);
             free_token(token);
             return NULL;
@@ -748,7 +773,7 @@ static script_token_t *lex_equaloperator(fio_t *file, char *c, size_t *lineno) {
 }
 
 static script_token_t *lex_logicoperator(fio_t *file, char *c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_AND, *lineno);
+    script_token_t *token = create_token(SCRIPT_TOKEN_AND, *lineno, file);
     token->value[0] = *c;
     token->value[1] = *c;
     token->value[2] = '\0';
@@ -757,8 +782,8 @@ static script_token_t *lex_logicoperator(fio_t *file, char *c, size_t *lineno) {
         case '&': token->type = SCRIPT_TOKEN_AND; break;
         case '|': token->type = SCRIPT_TOKEN_OR; break;
         default: {
-            char msg[64];
-            strfmt(msg, "Error: Unexpected '%c' for logic operator (line: %d)\n", *c, *lineno);
+            char msg[ERRMSG];
+            strfmt(msg, "Error: Unexpected '%c' for logic operator (line: %d)\nIn: %s\n", *c, *lineno, token->file);
             term_write(msg);
             free_token(token);
             return NULL;
@@ -772,7 +797,7 @@ static script_token_t *lex_logicoperator(fio_t *file, char *c, size_t *lineno) {
 }
 
 static script_token_t *lex_assignoperator(fio_t *file, char *c, size_t *lineno) {
-    script_token_t *token = create_token(SCRIPT_TOKEN_ADDASSIGN, *lineno);
+    script_token_t *token = create_token(SCRIPT_TOKEN_ADDASSIGN, *lineno, file);
     token->value[0] = *c;
     token->value[1] = '=';
     token->value[2] = '\0';
@@ -783,8 +808,8 @@ static script_token_t *lex_assignoperator(fio_t *file, char *c, size_t *lineno) 
         case '*': token->type = SCRIPT_TOKEN_MULASSIGN; break;
         case '/': token->type = SCRIPT_TOKEN_DIVASSIGN; break;
         default: {
-            char msg[64];
-            strfmt(msg, "Error: Unexpected '%c' for assign operator (line: %d)\n", *c, *lineno);
+            char msg[ERRMSG];
+            strfmt(msg, "Error: Unexpected '%c' for assign operator (line: %d)\nIn: %s\n", *c, *lineno, token->file);
             term_write(msg);
             free_token(token);
             return NULL;
@@ -800,21 +825,23 @@ static script_token_t *lex_assignoperator(fio_t *file, char *c, size_t *lineno) 
 static script_token_t *lex_hex(fio_t *file, char *c, size_t *lineno) {
     fio_getc(file);
 
+    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno, file);
+
     *c = fio_getc(file);
     if (!isbase16(*c)) {
-        char msg[64];
-        strfmt(msg, "Error: Unexpected hex value '%c' (line: %d)\n", *c, *lineno);
+        char msg[ERRMSG];
+        strfmt(msg, "Error: Unexpected hex value '%c' (line: %d)\nIn: %s\n", *c, *lineno, token->file);
         term_write(msg);
         return NULL;
     }
 
     size_t idx = 0;
     size_t size = 0;
-    char *value = heap_alloc(SCRIPT_SIZE_TOKEN);
+    char *value = script_alloc(SCRIPT_SIZE_TOKEN);
     while (isbase16(*c)) {
         if (idx == size * SCRIPT_SIZE_TOKEN - 1) {
             size++;
-            value = heap_realloc(value, size * SCRIPT_SIZE_TOKEN);
+            value = script_realloc(value, size * SCRIPT_SIZE_TOKEN);
         }
 
         value[idx++] = *c;
@@ -822,7 +849,7 @@ static script_token_t *lex_hex(fio_t *file, char *c, size_t *lineno) {
     }
 
     if (idx >= size)
-        value = heap_realloc(value, size + 1);
+        value = script_realloc(value, size + 1);
     value[idx++] = '\0';
 
     char conv[size + 1];
@@ -831,9 +858,8 @@ static script_token_t *lex_hex(fio_t *file, char *c, size_t *lineno) {
     memcpy(value, conv, strlen(conv) + 1);
 
     size = strlen(value) + 1;
-    value = heap_realloc(value, size);
+    value = script_realloc(value, size);
 
-    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno);
     heap_free(token->value);
     token->value = value;
     token->size = size;
@@ -844,21 +870,23 @@ static script_token_t *lex_hex(fio_t *file, char *c, size_t *lineno) {
 static script_token_t *lex_bin(fio_t *file, char *c, size_t *lineno) {
     fio_getc(file);
 
+    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno, file);
+
     *c = fio_getc(file);
     if (!isbase2(*c)) {
-        char msg[64];
-        strfmt(msg, "Error: Unexpected binary value '%c' (line: %d)\n", *c, *lineno);
+        char msg[ERRMSG];
+        strfmt(msg, "Error: Unexpected binary value '%c' (line: %d)\nIn: %s\n", *c, *lineno, token->file);
         term_write(msg);
         return NULL;
     }
 
     size_t idx = 0;
     size_t size = 0;
-    char *value = heap_alloc(SCRIPT_SIZE_TOKEN);
+    char *value = script_alloc(SCRIPT_SIZE_TOKEN);
     while (isbase2(*c)) {
         if (idx == size * SCRIPT_SIZE_TOKEN - 1) {
             size++;
-            value = heap_realloc(value, size * SCRIPT_SIZE_TOKEN);
+            value = script_realloc(value, size * SCRIPT_SIZE_TOKEN);
         }
 
         value[idx++] = *c;
@@ -866,7 +894,7 @@ static script_token_t *lex_bin(fio_t *file, char *c, size_t *lineno) {
     }
 
     if (idx >= size)
-        value = heap_realloc(value, size + 1);
+        value = script_realloc(value, size + 1);
     value[idx++] = '\0';
 
     char conv[size + 1];
@@ -875,9 +903,8 @@ static script_token_t *lex_bin(fio_t *file, char *c, size_t *lineno) {
     memcpy(value, conv, strlen(conv) + 1);
 
     size = strlen(value) + 1;
-    value = heap_realloc(value, size);
+    value = script_realloc(value, size);
 
-    script_token_t *token = create_token(SCRIPT_TOKEN_NUMBER, *lineno);
     heap_free(token->value);
     token->value = value;
     token->size = size;
@@ -963,13 +990,13 @@ static script_token_t *tokenize(fio_t *file) {
         } else if (c == '/' && next == '=') {
             token = lex_assignoperator(file, &c, &lineno);
         } else if (c == '!') {
-            token = create_token(SCRIPT_TOKEN_NEG, lineno);
+            token = create_token(SCRIPT_TOKEN_NEG, lineno, file);
             token->value[0] = '!';
             token->value[1] = '\0';
             token->size = 2;
             if (token) c = fio_getc(file);
         } else {
-            token = lex_operator(c, &lineno);
+            token = lex_operator(c, &lineno, file);
             if (token) c = fio_getc(file);
         }
 
@@ -1115,10 +1142,10 @@ static void env_remove_var(script_stmt_t *block, script_var_t *var) {
 }
 
 static script_var_t *env_new_var(const char *name) {
-    script_var_t *var = heap_alloc(sizeof(script_var_t));
+    script_var_t *var = script_alloc(sizeof(script_var_t));
 
     size_t length = strlen(name) + 1;
-    var->name = heap_alloc(length);
+    var->name = script_alloc(length);
     memcpy(var->name, name, length);
     var->next = NULL;
     var->prev = NULL;
@@ -1150,6 +1177,7 @@ static void env_set_var_from_stmt(script_stmt_t *block, const char *name, script
     script_node_t *node = node_null();
     node->node_type = SCRIPT_AST_LITERAL;
     node->lineno = value->lineno;
+    node->file = value->file;
 
     switch (value->type) {
         case SCRIPT_STMT_FUNC:
@@ -1162,8 +1190,9 @@ static void env_set_var_from_stmt(script_stmt_t *block, const char *name, script
 }
 
 static script_node_t *node_new() {
-    script_node_t *node = heap_alloc(sizeof(script_node_t));
+    script_node_t *node = script_alloc(sizeof(script_node_t));
     node->lineno = 0;
+    node->file = NULL;
     node->ref = 1;
 
     return node;
@@ -1197,10 +1226,11 @@ static script_node_t *node_string(char *src) {
     node->node_type = SCRIPT_AST_LITERAL;
     node->value_type = SCRIPT_STR;
     node->lineno = 0;
+    node->file = NULL;
 
     size_t length = strlen(src) + 1;
     node->literal.str_size = length;
-    node->literal.str_value = heap_alloc(length);
+    node->literal.str_value = script_alloc(length);
     memcpy(node->literal.str_value, src, node->literal.str_size);
     return node;
 }
@@ -1210,6 +1240,7 @@ static script_node_t *node_int(int n) {
     node->node_type = SCRIPT_AST_LITERAL;
     node->value_type = SCRIPT_INT;
     node->lineno = 0;
+    node->file = NULL;
     node->literal.int_value = n;
     return node;
 }
@@ -1219,6 +1250,7 @@ static script_node_t *node_float(double n) {
     node->node_type = SCRIPT_AST_LITERAL;
     node->value_type = SCRIPT_FLOAT;
     node->lineno = 0;
+    node->file = NULL;
     node->literal.float_value = n;
     return node;
 }
@@ -1228,9 +1260,10 @@ static script_node_t *node_var(char *name, script_node_t *value) {
     node->node_type = SCRIPT_AST_LITERAL;
     node->value_type = SCRIPT_VAR;
     node->lineno = 0;
+    node->file = NULL;
 
     size_t size = strlen(name) + 1;
-    node->var.name = heap_alloc(size);
+    node->var.name = script_alloc(size);
     memcpy(node->var.name, name, size);
 
     node->var.value = ref_node(value);
@@ -1269,6 +1302,7 @@ static script_node_t *node_type_name(script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_STR;
     value->lineno = node->lineno;
+    value->file = node->file;
 
     char *str_value = NULL;
     switch (node->value_type) {
@@ -1305,7 +1339,7 @@ static script_node_t *node_type_name(script_node_t *node) {
     }
 
     size_t str_length = strlen(str_value) + 1;
-    value->literal.str_value = heap_alloc(str_length);
+    value->literal.str_value = script_alloc(str_length);
     memcpy(value->literal.str_value, str_value, str_length);
     value->literal.str_size = str_length;
     return value;
@@ -1323,12 +1357,14 @@ static script_node_t *node_literal(script_token_t *token) {
 
     if (node) {
         node->lineno = token->lineno;
+        node->file = token->file;
         return node;
     }
 
     node = node_new();
     node->node_type = SCRIPT_AST_LITERAL;
     node->lineno = token->lineno;
+    node->file = token->file;
 
     if (token->type == SCRIPT_TOKEN_NUMBER) {
         node->value_type = SCRIPT_INT;
@@ -1345,7 +1381,7 @@ static script_node_t *node_literal(script_token_t *token) {
         char **value = &node->literal.str_value;
         size_t size = strlen(token->value) + 1;
 
-        *value = heap_alloc(size);
+        *value = script_alloc(size);
         unescape(*value, token->value, size);
         node->literal.str_size = strlen(*value) + 1;
     }
@@ -1358,6 +1394,7 @@ static script_node_t *node_binop(uint8_t op, script_node_t *left, script_node_t 
     node->node_type = SCRIPT_AST_BINOP;
     node->value_type = SCRIPT_NULL;
     node->lineno = left->lineno;
+    node->file = left->file;
 
     node->binop.op = op;
     node->binop.left = left;
@@ -1371,6 +1408,7 @@ static script_node_t *node_call(script_node_t *func, script_node_t **argv, size_
     node->node_type = SCRIPT_AST_CALL;
     node->value_type = SCRIPT_NULL;
     node->lineno = func->lineno;
+    node->file = func->file;
 
     node->call.func = func;
     node->call.argv = argv;
@@ -1389,6 +1427,7 @@ static script_node_t *node_index(script_node_t *var, script_node_t *index) {
     node->node_type = SCRIPT_AST_INDEX;
     node->value_type = SCRIPT_NULL;
     node->lineno = var->lineno;
+    node->file = var->file;
 
     node->index.var = var;
     node->index.index = index;
@@ -1397,14 +1436,15 @@ static script_node_t *node_index(script_node_t *var, script_node_t *index) {
 }
 
 static script_stmt_t *stmt_var(script_node_t *name, script_node_t *value, uint8_t type) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
 
     stmt->type = type;
     stmt->lineno = name->lineno;
+    stmt->file = name->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
-    stmt->var.name = heap_alloc(name->literal.str_size);
+    stmt->var.name = script_alloc(name->literal.str_size);
     memcpy(stmt->var.name, name->literal.str_value, name->literal.str_size);
     stmt->var.value = value;
 
@@ -1412,9 +1452,10 @@ static script_stmt_t *stmt_var(script_node_t *name, script_node_t *value, uint8_
 }
 
 static script_stmt_t *stmt_expr(script_node_t *expr) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_EXPR;
     stmt->lineno = expr->lineno;
+    stmt->file = expr->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1424,15 +1465,16 @@ static script_stmt_t *stmt_expr(script_node_t *expr) {
 }
 
 static script_stmt_t *stmt_block(script_stmt_t *parent) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
 
     stmt->type = SCRIPT_STMT_BLOCK;
     stmt->lineno = parent ? parent->lineno : 0;
+    stmt->file = parent ? parent->file : NULL;
     stmt->parent = parent;
     stmt->child = NULL;
     stmt->next = NULL;
 
-    stmt->block.env = heap_alloc(sizeof(script_env_t));
+    stmt->block.env = script_alloc(sizeof(script_env_t));
     stmt->block.env->var_head = NULL;
     stmt->block.env->var_tail = NULL;
 
@@ -1440,9 +1482,10 @@ static script_stmt_t *stmt_block(script_stmt_t *parent) {
 }
 
 static script_stmt_t *stmt_func(script_node_t *name, script_stmt_t *block, script_node_t **params, size_t params_count) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_FUNC;
     stmt->lineno = name->lineno;
+    stmt->file = name->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1476,9 +1519,10 @@ static script_stmt_t *stmt_continue(script_node_t *expr) {
 }
 
 static script_stmt_t *stmt_if(script_node_t *expr, script_stmt_t *then_stmt, script_stmt_t *else_stmt) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_IF;
     stmt->lineno = expr->lineno;
+    stmt->file = expr->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1490,9 +1534,10 @@ static script_stmt_t *stmt_if(script_node_t *expr, script_stmt_t *then_stmt, scr
 }
 
 static script_stmt_t *stmt_while(script_node_t *expr, script_stmt_t *body) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_WHILE;
     stmt->lineno = expr->lineno;
+    stmt->file = expr->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1503,9 +1548,10 @@ static script_stmt_t *stmt_while(script_node_t *expr, script_stmt_t *body) {
 }
 
 static script_stmt_t *stmt_for(script_stmt_t *init, script_node_t *expr, script_stmt_t *update, script_stmt_t *body) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_FOR;
     stmt->lineno = expr->lineno;
+    stmt->file = expr->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1518,9 +1564,10 @@ static script_stmt_t *stmt_for(script_stmt_t *init, script_node_t *expr, script_
 }
 
 static script_stmt_t *stmt_include(script_node_t *path) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_INCLUDE;
     stmt->lineno = path->lineno;
+    stmt->file = path->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1530,9 +1577,10 @@ static script_stmt_t *stmt_include(script_node_t *path) {
 }
 
 static script_stmt_t *stmt_delete(script_node_t *name) {
-    script_stmt_t *stmt = heap_alloc(sizeof(script_stmt_t));
+    script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
     stmt->type = SCRIPT_STMT_DELETE;
     stmt->lineno = name->lineno;
+    stmt->file = name->file;
     stmt->parent = NULL;
     stmt->child = NULL;
     stmt->next = NULL;
@@ -1689,6 +1737,7 @@ static script_node_t *parse_factor(script_token_t **token) {
 
     if ((*token)->type == SCRIPT_TOKEN_MINUS) {
         size_t lineno = (*token)->lineno;
+        const char *file = (*token)->file;
         *token = (*token)->next;
 
         script_node_t *node = parse_call(token);
@@ -1696,6 +1745,7 @@ static script_node_t *parse_factor(script_token_t **token) {
 
         script_node_t *zero = node_int(0);
         zero->lineno = lineno;
+        zero->file = file;
         return node_binop(SCRIPT_TOKEN_MINUS, zero, node);
     }
 
@@ -1719,8 +1769,8 @@ static script_node_t *parse_factor(script_token_t **token) {
         if (!node) return NULL;
 
         if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-            char msg[64];
-            strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
+            char msg[ERRMSG];
+            strfmt(msg, "Error: expected ')' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
             term_write(msg);
             unref_node(node);
             return NULL;
@@ -1730,8 +1780,8 @@ static script_node_t *parse_factor(script_token_t **token) {
         return node;
     }
 
-    char msg[64];
-    strfmt(msg, "Error: expected value, got \"%s\" (line: %d)\n", (*token)->value, (*token)->lineno);
+    char msg[ERRMSG];
+    strfmt(msg, "Error: expected value, got \"%s\" (line: %d)\nIn: %s\n", (*token)->value, (*token)->lineno, (*token)->file);
     term_write(msg);
     return NULL;
 }
@@ -1758,7 +1808,7 @@ static script_node_t *parse_call(script_token_t **token) {
                         return NULL;
                     }
 
-                    argv = heap_realloc(argv, (argc + 1) * sizeof(*argv));
+                    argv = script_realloc(argv, (argc + 1) * sizeof(*argv));
                     argv[argc++] = arg;
 
                     if ((*token)->type == SCRIPT_TOKEN_COMMA) {
@@ -1771,8 +1821,8 @@ static script_node_t *parse_call(script_token_t **token) {
             }
 
             if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-                char msg[64];
-                strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
+                char msg[ERRMSG];
+                strfmt(msg, "Error: expected ')' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
                 term_write(msg);
                 for (size_t i = 0; i < argc; i++)
                     unref_node(argv[i]);
@@ -1793,8 +1843,8 @@ static script_node_t *parse_call(script_token_t **token) {
             }
 
             if (!*token || (*token)->type != SCRIPT_TOKEN_RSBRAC) {
-                char msg[64];
-                strfmt(msg, "Error: expected ']' (line: %d)\n", *token ? (*token)->lineno : 0);
+                char msg[ERRMSG];
+                strfmt(msg, "Error: expected ']' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
                 term_write(msg);
                 unref_node(node);
                 return NULL;
@@ -1943,8 +1993,8 @@ static script_stmt_t *parse_declare(script_token_t **token) {
     if (!name) return NULL;
 
     if (name->value_type != SCRIPT_ID) {
-        char msg[64];
-        strfmt(msg, "Error: expected identifier (line: %d)\n", name->lineno);
+        char msg[ERRMSG];
+        strfmt(msg, "Error: expected identifier (line: %d)\nIn: %s\n", name->lineno, name->file);
         term_write(msg);
         unref_node(name);
         return NULL;
@@ -1962,11 +2012,11 @@ static script_stmt_t *parse_declare(script_token_t **token) {
         *token = (*token)->next;
         return stmt_var(name, parse_expr(token), SCRIPT_STMT_DEFINE);
     } else {
-        char msg[64];
-        strfmt(msg, "Error: Unexpected \"%s\" (line: %d)\n",
+        strfmt(script_errmsg, "Error: Unexpected \"%s\" (line: %d)\nIn: %s\n",
             *token ? (*token)->value : "",
-            *token ? (*token)->lineno : name->lineno);
-        term_write(msg);
+            *token ? (*token)->lineno : name->lineno,
+            *token ? (*token)->file : name->file);
+        term_write(script_errmsg);
         return NULL;
     }
 }
@@ -2011,9 +2061,8 @@ static script_stmt_t *parse_block(script_token_t **token) {
     }
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_RBRAC) {
-        char msg[64];
-        strfmt(msg, "Error: expected '}' (line: %d)\n", block->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected '}' (line: %d)\nIn: %s\n", block->lineno, block->file);
+        term_write(script_errmsg);
         free_stmt(block);
         return NULL;
     }
@@ -2029,9 +2078,8 @@ static script_stmt_t *parse_function(script_token_t **token) {
     if (!name) return NULL;
 
     if (name->value_type != SCRIPT_ID) {
-        char msg[64];
-        strfmt(msg, "Error: expected identifier (line: %d)\n", name->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected identifier (line: %d)\nIn: %s\n", name->lineno, name->file);
+        term_write(script_errmsg);
         unref_node(name);
         return NULL;
     }
@@ -2046,9 +2094,8 @@ static script_stmt_t *parse_function(script_token_t **token) {
             while (1) {
                 script_node_t *param = parse_factor(token);
                 if (param->value_type != SCRIPT_ID) {
-                    char msg[64];
-                    strfmt(msg, "Error: expected parameter as identifier (line: %d)\n", (*token)->lineno);
-                    term_write(msg);
+                    strfmt(script_errmsg, "Error: expected parameter as identifier (line: %d)\nIn: %s\n", (*token)->lineno, (*token)->file);
+                    term_write(script_errmsg);
 
                     for (size_t i = 0; i < params_count; i++)
                         unref_node(params[i]);
@@ -2057,7 +2104,7 @@ static script_stmt_t *parse_function(script_token_t **token) {
                     return NULL;
                 }
 
-                params = heap_realloc(params, (params_count + 1) * sizeof(*params));
+                params = script_realloc(params, (params_count + 1) * sizeof(*params));
                 params[params_count++] = param;
 
                 if ((*token)->type == SCRIPT_TOKEN_COMMA) {
@@ -2069,25 +2116,22 @@ static script_stmt_t *parse_function(script_token_t **token) {
             }
         }
     } else {
-        char msg[64];
-        strfmt(msg, "Error: expected '(' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected '(' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
+        term_write(script_errmsg);
         unref_node(name);
         return NULL;
     }
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected ')' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_LBRAC) {
-        char msg[64];
-        strfmt(msg, "Error: expected '{' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected '{' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
@@ -2097,9 +2141,8 @@ static script_stmt_t *parse_function(script_token_t **token) {
 
 static script_stmt_t *parse_if(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected '(' (line: %d)\nIn: %s\n", (*token)->lineno, (*token)->file);
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
@@ -2109,9 +2152,8 @@ static script_stmt_t *parse_if(script_token_t **token) {
         return NULL;
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected ')' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
@@ -2134,9 +2176,8 @@ static script_stmt_t *parse_if(script_token_t **token) {
 
 static script_stmt_t *parse_while(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected '(' (line: %d)\nIn: %s\n", (*token)->lineno, (*token)->file);
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
@@ -2145,9 +2186,8 @@ static script_stmt_t *parse_while(script_token_t **token) {
     if (!expr) return NULL;
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected ')' (line: %d)\n", *token ? (*token)->lineno : 0);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected ')' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : 0, *token ? (*token)->file : "<unknown>");
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
@@ -2163,9 +2203,8 @@ static script_stmt_t *parse_while(script_token_t **token) {
 
 static script_stmt_t *parse_for(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_LPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected '(' (line: %d)\n", (*token)->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected '(' (line: %d)\nIn: %s\n", (*token)->lineno, (*token)->file);
+        term_write(script_errmsg);
         return NULL;
     }
     *token = (*token)->next;
@@ -2181,9 +2220,8 @@ static script_stmt_t *parse_for(script_token_t **token) {
     }
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
-        char msg[64];
-        strfmt(msg, "Error: expected ';' (line: %d)\n", (*token)->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected ';' (line: %d)\nIn: %s\n", (*token)->lineno, (*token)->file);
+        term_write(script_errmsg);
 
         free_stmt(init);
         unref_node(expr);
@@ -2199,9 +2237,8 @@ static script_stmt_t *parse_for(script_token_t **token) {
     }
 
     if (!*token || (*token)->type != SCRIPT_TOKEN_RPAREN) {
-        char msg[64];
-        strfmt(msg, "Error: expected ')' (line: %d)\n", (*token)->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: expected ')' (line: %d)\nIn: %s\n", (*token)->lineno, (*token)->file);
+        term_write(script_errmsg);
 
         free_stmt(init);
         unref_node(expr);
@@ -2223,37 +2260,41 @@ static script_stmt_t *parse_for(script_token_t **token) {
 
 static script_stmt_t *parse_include(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_STRING) {
-        char msg[64];
         int lineno = *token ? (*token)->lineno : 0;
-        strfmt(msg, "Error: expected string of path (line: %d)\n", lineno);
-        term_write(msg);
+        const char *file = *token ? (*token)->file : "<unknown>";
+        strfmt(script_errmsg, "Error: expected string of path (line: %d)\nIn: %s\n", lineno, file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     char *path = (*token)->value;
     size_t lineno = (*token)->lineno;
+    const char *file = (*token)->file;
     *token = (*token)->next;
 
     script_node_t *node = node_string(path);
     node->lineno = lineno;
+    node->file = file;
     return stmt_include(node);
 }
 
 static script_stmt_t *parse_delete(script_token_t **token) {
     if (!*token || (*token)->type != SCRIPT_TOKEN_IDENTIFIER) {
-        char msg[64];
         int lineno = *token ? (*token)->lineno : 0;
-        strfmt(msg, "Error: expected identifier (line: %d)\n", lineno);
-        term_write(msg);
+        const char *file = *token ? (*token)->file : "<unknown>";
+        strfmt(script_errmsg, "Error: expected identifier (line: %d)\nIn: %s\n", lineno, file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     char *name = (*token)->value;
     size_t lineno = (*token)->lineno;
+    const char *file = (*token)->file;
     *token = (*token)->next;
 
     script_node_t *node = node_string(name);
     node->lineno = lineno;
+    node->file = file;
     return stmt_delete(node);
 }
 
@@ -2308,6 +2349,8 @@ static script_stmt_t *parse_statement_inner(script_token_t **token) {
 }
 
 static script_stmt_t *parse_statement(script_token_t **token) {
+    const char *file = (*token)->file;
+
     script_stmt_t *stmt = parse_statement_inner(token);
     if (!stmt) return NULL;
 
@@ -2318,9 +2361,8 @@ static script_stmt_t *parse_statement(script_token_t **token) {
         stmt->type != SCRIPT_STMT_FOR) {
         
         if (!*token || (*token)->type != SCRIPT_TOKEN_END) {
-            char msg[64];
-            strfmt(msg, "Error: expected ';' (line: %d)\n", *token ? (*token)->lineno : stmt->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: expected ';' (line: %d)\nIn: %s\n", *token ? (*token)->lineno : stmt->lineno, *token ? (*token)->file : stmt->file);
+            term_write(script_errmsg);
             free_stmt(stmt);
             return NULL;
         }
@@ -2328,6 +2370,7 @@ static script_stmt_t *parse_statement(script_token_t **token) {
         *token = (*token)->next;
     }
 
+    stmt->file = file;
     return stmt;
 }
 
@@ -2338,6 +2381,7 @@ static script_node_t *call_font_width(script_stmt_t *block, script_node_t *node)
 
     script_node_t *value = node_int(FONT_WIDTH);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2346,6 +2390,7 @@ static script_node_t *call_font_height(script_stmt_t *block, script_node_t *node
 
     script_node_t *value = node_int(FONT_HEIGHT);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2354,6 +2399,7 @@ static script_node_t *call_os_uptime_seconds(script_stmt_t *block, script_node_t
 
     script_node_t *value = node_int(uptime_seconds);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2362,6 +2408,7 @@ static script_node_t *call_os_uptime_minutes(script_stmt_t *block, script_node_t
 
     script_node_t *value = node_int(uptime_minutes);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2370,22 +2417,34 @@ static script_node_t *call_os_uptime_hours(script_stmt_t *block, script_node_t *
 
     script_node_t *value = node_int(uptime_hours);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
 static script_node_t *call_mem_free(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    script_node_t *value = node_int(heap_free_bytes());
+    script_vm2sys();
+    size_t free = heap_free_bytes();
+    script_sys2vm();
+
+    script_node_t *value = node_int(free);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
 static script_node_t *call_mem_total(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    script_node_t *value = node_int((unsigned)heap_end);
+    script_vm2sys();
+    uint8_t *total = heap_end;
+    script_sys2vm();
+
+    script_node_t *value = node_int((unsigned)total);
     value->lineno = node->lineno;
+    value->file = node->file;
+
     return value;
 }
 
@@ -2394,6 +2453,8 @@ static script_node_t *call_os_buildnumber(script_stmt_t *block, script_node_t *n
 
     script_node_t *value = node_int(BUILD_NUMBER);
     value->lineno = node->lineno;
+    value->file = node->file;
+
     return value;
 }
 
@@ -2402,6 +2463,7 @@ static script_node_t *call_cpu_name(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_string(cpu_name);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2410,6 +2472,7 @@ static script_node_t *call_cpu_vendor(script_stmt_t *block, script_node_t *node)
 
     script_node_t *value = node_string(cpu_vendor);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2418,6 +2481,7 @@ static script_node_t *call_cpu_family(script_stmt_t *block, script_node_t *node)
 
     script_node_t *value = node_int(cpu_family);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2426,6 +2490,7 @@ static script_node_t *call_cpu_model(script_stmt_t *block, script_node_t *node) 
 
     script_node_t *value = node_int(cpu_model);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2434,6 +2499,7 @@ static script_node_t *call_ata_slot(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_int(file_drive_slot());
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2445,6 +2511,7 @@ static script_node_t *call_ata_serial(script_stmt_t *block, script_node_t *node)
 
     script_node_t *value = node_string(drive.serial);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2456,6 +2523,7 @@ static script_node_t *call_ata_rev(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_string(drive.rev);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2467,6 +2535,7 @@ static script_node_t *call_ata_model(script_stmt_t *block, script_node_t *node) 
 
     script_node_t *value = node_string(drive.model);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2480,6 +2549,7 @@ static script_node_t *call_ata_size(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_int(sectors * 512);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2495,6 +2565,7 @@ static script_node_t *call_ata_used(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_int(used);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -2505,9 +2576,8 @@ static script_node_t *call_exit(script_stmt_t *block, script_node_t *node) {
     script_node_t **argv = node->call.argv;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function exit() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function exit() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2516,10 +2586,9 @@ static script_node_t *call_exit(script_stmt_t *block, script_node_t *node) {
         script_should_exit = 1;
         return g_null;
     } else {
-        char msg[64];
         script_node_t *name = node_type_name(argv[0]);
-        strfmt(msg, "Error: Function exit() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function exit() expects string argument, got %s (line: %d)\nIn: %s\n", name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(name);
         return NULL;
     }
@@ -2532,27 +2601,28 @@ static script_node_t *call_exec(script_stmt_t *block, script_node_t *node) {
     script_node_t **argv = node->call.argv;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function exec() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function exec() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     if (argv[0]->value_type == SCRIPT_STR) {
+        script_vm2sys();
         int exit = command_handle(argv[0]->literal.str_value, 0);
+        script_sys2vm();
 
         script_node_t *value = node_null();
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_INT;
         value->lineno = node->lineno;
+        value->file = node->file;
         value->literal.int_value = exit;
 
         return value;
     } else {
-        char msg[64];
         script_node_t *name = node_type_name(argv[0]);
-        strfmt(msg, "Error: Function exec() expects string argument, got %s (line: %d)\n", name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function exec() expects string argument, got %s (line: %d)\nIn: %s\n", name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(name);
         return NULL;
     }
@@ -2634,9 +2704,8 @@ static script_node_t *call_as_str(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function as_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function as_str() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2650,15 +2719,15 @@ static script_node_t *call_as_str(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_STR;
     value->lineno = node->lineno;
+    value->file = node->file;
 
     char *repr = node_repr(arg);
     if (repr) {
         value->literal.str_size = strlen(repr) + 1;
         value->literal.str_value = repr;
     } else {
-        char msg[64];
-        strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Unsupported type (line: %d)\nIn: %s\n", value->lineno, value->file);
+        term_write(script_errmsg);
         unref_node(value);
         return NULL;
     }
@@ -2672,9 +2741,8 @@ static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function as_int() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function as_int() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2684,6 +2752,7 @@ static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
     value->lineno = node->lineno;
+    value->file = node->file;
 
     switch (arg->value_type) {
         case SCRIPT_INT:
@@ -2717,9 +2786,8 @@ static script_node_t *call_as_int(script_stmt_t *block, script_node_t *node) {
             }
         default:
             {
-                char msg[64];
-                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Unsupported type (line: %d)\nIn: %s\n", value->lineno, value->file);
+                term_write(script_errmsg);
                 unref_node(value);
                 return NULL;
             }
@@ -2734,9 +2802,8 @@ static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function as_float() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function as_float() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2746,6 +2813,7 @@ static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_FLOAT;
     value->lineno = node->lineno;
+    value->file = node->file;
 
     switch (arg->value_type) {
         case SCRIPT_INT:
@@ -2779,9 +2847,8 @@ static script_node_t *call_as_float(script_stmt_t *block, script_node_t *node) {
             }
         default:
             {
-                char msg[64];
-                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Unsupported type (line: %d)\nIn: %s\n", value->lineno, value->file);
+                term_write(script_errmsg);
                 unref_node(value);
                 return NULL;
             }
@@ -2796,9 +2863,8 @@ static script_node_t *call_as_char(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function as_char() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function as_char() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2808,8 +2874,9 @@ static script_node_t *call_as_char(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_STR;
     value->lineno = node->lineno;
+    value->file = node->file;
 
-    char *str = heap_alloc(2);
+    char *str = script_alloc(2);
     str[1] = '\0';
     value->literal.str_value = str;
     value->literal.str_size = 2;
@@ -2826,9 +2893,8 @@ static script_node_t *call_as_char(script_stmt_t *block, script_node_t *node) {
             break;
         default:
             {
-                char msg[64];
-                strfmt(msg, "Error: Unsupported type (line: %d)\n", value->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Unsupported type (line: %d)\nIn: %s\n", value->lineno, value->file);
+                term_write(script_errmsg);
                 unref_node(value);
                 return NULL;
             }
@@ -2843,9 +2909,8 @@ static script_node_t *call_type_name(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function type_name() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function type_name() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2858,9 +2923,8 @@ static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_open() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_open() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -2868,25 +2932,24 @@ static script_node_t *call_file_open(script_stmt_t *block, script_node_t *node) 
     script_node_t *mode = node->call.argv[1];
 
     if (filename->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(filename);
-        strfmt(msg, "Error: Function file_open() arg 1 expects string argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_open() arg 1 expects string argument, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (mode->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(mode);
-        strfmt(msg, "Error: Function file_open() arg 2 expects string argument, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_open() arg 2 expects string argument, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     script_node_t *value = node_null();
     value->lineno = node->lineno;
+    value->file = node->file;
 
     fio_t *file = fio_open(filename->literal.str_value, mode->literal.str_value[0]);
     if (!file)
@@ -2905,19 +2968,17 @@ static script_node_t *call_file_close(script_stmt_t *block, script_node_t *node)
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_close() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_close() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *file = node->call.argv[0];
 
     if (file->value_type != SCRIPT_FILE) {
-        char msg[128];
         script_node_t *type_name = node_type_name(file);
-        strfmt(msg, "Error: Function file_open() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_open() expects file, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -2934,19 +2995,17 @@ static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_getc() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_getc() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *file = node->call.argv[0];
 
     if (file->value_type != SCRIPT_FILE) {
-        char msg[128];
         script_node_t *type_name = node_type_name(file);
-        strfmt(msg, "Error: Function file_getc() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_getc() expects file, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -2958,7 +3017,8 @@ static script_node_t *call_file_getc(script_stmt_t *block, script_node_t *node) 
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_STR;
         value->lineno = file->lineno;
-        value->literal.str_value = heap_alloc(2);
+        value->file = file->file;
+        value->literal.str_value = script_alloc(2);
         value->literal.str_value[0] = c;
         value->literal.str_value[1] = '\0';
         value->literal.str_size = 2;
@@ -2975,19 +3035,17 @@ static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_peek() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_peek() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *file = node->call.argv[0];
 
     if (file->value_type != SCRIPT_FILE) {
-        char msg[128];
         script_node_t *type_name = node_type_name(file);
-        strfmt(msg, "Error: Function file_peek() expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_peek() expects file, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -2999,7 +3057,8 @@ static script_node_t *call_file_peek(script_stmt_t *block, script_node_t *node) 
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_STR;
         value->lineno = file->lineno;
-        value->literal.str_value = heap_alloc(2);
+        value->file = file->file;
+        value->literal.str_value = script_alloc(2);
         value->literal.str_value[0] = c;
         value->literal.str_value[1] = '\0';
         value->literal.str_size = 2;
@@ -3016,9 +3075,8 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_read() requires at least 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_read() requires at least 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3028,19 +3086,17 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
         length = node->call.argv[1];
 
     if (file->value_type != SCRIPT_FILE) {
-        char msg[128];
         script_node_t *type_name = node_type_name(file);
-        strfmt(msg, "Error: Function file_read() arg 1 expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_read() arg 1 expects file, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (length && length->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(length);
-        strfmt(msg, "Error: Function file_read() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_read() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3058,7 +3114,8 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_STR;
         value->lineno = file->lineno;
-        value->literal.str_value = heap_alloc(len);
+        value->file = file->file;
+        value->literal.str_value = script_alloc(len);
         value->literal.str_size = len;
         fio_read(file->literal.file, value->literal.str_value, len);
 
@@ -3074,9 +3131,8 @@ static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node)
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_write() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_write() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3084,19 +3140,17 @@ static script_node_t *call_file_write(script_stmt_t *block, script_node_t *node)
     script_node_t *string = node->call.argv[1];
 
     if (file->value_type != SCRIPT_FILE) {
-        char msg[128];
         script_node_t *type_name = node_type_name(file);
-        strfmt(msg, "Error: Function file_write() arg 1 expects file, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_write() arg 1 expects file, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (string->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(string);
-        strfmt(msg, "Error: Function file_write() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_write() arg 2 expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3113,19 +3167,17 @@ static script_node_t *call_file_isfile(script_stmt_t *block, script_node_t *node
     size_t argc = node->call.argc;
 
     if (argc < 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_isfile() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_isfile() takes 1 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *path = node->call.argv[0];
 
     if (path->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(path);
-        strfmt(msg, "Error: Function file_isfile() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_isfile() expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3142,19 +3194,17 @@ static script_node_t *call_file_isfolder(script_stmt_t *block, script_node_t *no
     size_t argc = node->call.argc;
 
     if (argc < 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function file_isfolder() takes 1 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_isfolder() takes 1 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *path = node->call.argv[0];
 
     if (path->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(path);
-        strfmt(msg, "Error: Function file_isfolder() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function file_isfolder() expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3175,10 +3225,9 @@ static script_node_t *call_file_list(script_stmt_t *block, script_node_t *node) 
         path = node->call.argv[0];
 
         if (path->value_type != SCRIPT_STR) {
-            char msg[128];
             script_node_t *type_name = node_type_name(path);
-            strfmt(msg, "Error: Function file_list() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Function file_list() expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+            term_write(script_errmsg);
             unref_node(type_name);
             return NULL;
         }
@@ -3214,9 +3263,8 @@ static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function char_at() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function char_at() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3224,19 +3272,17 @@ static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
     script_node_t *index = node->call.argv[1];
 
     if (string->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(string);
-        strfmt(msg, "Error: Function char_at() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function char_at() arg 1 expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (index->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(index);
-        strfmt(msg, "Error: Function char_at() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function char_at() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3246,7 +3292,8 @@ static script_node_t *call_char_at(script_stmt_t *block, script_node_t *node) {
         value->node_type = SCRIPT_AST_LITERAL;
         value->value_type = SCRIPT_STR;
         value->lineno = node->lineno;
-        value->literal.str_value = heap_alloc(2);
+        value->file = node->file;
+        value->literal.str_value = script_alloc(2);
         value->literal.str_size = 2;
         value->literal.str_value[0] = string->literal.str_value[index->literal.int_value];
         value->literal.str_value[1] = '\0';
@@ -3263,9 +3310,8 @@ static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function sizeof() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function sizeof() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3275,6 +3321,7 @@ static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
     value->lineno = node->lineno;
+    value->file = node->file;
 
     switch (arg->value_type) {
         case SCRIPT_INT:
@@ -3332,19 +3379,17 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
         script_node_t *arg = node->call.argv[0];
 
         if (arg->value_type != SCRIPT_STR) {
-            char msg[128];
             script_node_t *type_name = node_type_name(arg);
-            strfmt(msg, "Error: Function input() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Function input() expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+            term_write(script_errmsg);
             unref_node(type_name);
             return NULL;
         }
 
         prompt = arg->literal.str_value;
     } else if (argc > 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function input() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function input() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3364,8 +3409,9 @@ static script_node_t *call_input(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_STR;
     value->lineno = node->lineno;
+    value->file = node->file;
     value->literal.str_size = strlen(input) + 1;
-    value->literal.str_value = heap_alloc(value->literal.str_size);
+    value->literal.str_value = script_alloc(value->literal.str_size);
     memcpy(value->literal.str_value, input, value->literal.str_size);
 
     return value;
@@ -3377,9 +3423,8 @@ static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node)
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3387,19 +3432,17 @@ static script_node_t *call_config_has(script_stmt_t *block, script_node_t *node)
     script_node_t *name = node->call.argv[1];
 
     if (path->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(path);
-        strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (name->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(name);
-        strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3416,9 +3459,8 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function config_has() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3426,19 +3468,17 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
     script_node_t *name = node->call.argv[1];
 
     if (path->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(path);
-        strfmt(msg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function config_has() arg 1 expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (name->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(name);
-        strfmt(msg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function config_has() arg 2 expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3449,10 +3489,11 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
     ret->node_type = SCRIPT_AST_LITERAL;
     ret->value_type = SCRIPT_STR;
     ret->lineno = node->lineno;
+    ret->file = node->file;
 
     int length = strlen(value) + 1;
     ret->literal.str_size = length;
-    ret->literal.str_value = heap_alloc(length);
+    ret->literal.str_value = script_alloc(length);
     memcpy(ret->literal.str_value, value, length);
     heap_free(value);
 
@@ -3462,13 +3503,14 @@ static script_node_t *call_config_get(script_stmt_t *block, script_node_t *node)
 static script_node_t *call_list_init(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    list_t *list = heap_alloc(sizeof(list_t));
+    list_t *list = script_alloc(sizeof(list_t));
     list_init(list);
 
     script_node_t *ret = node_null();
     ret->node_type = SCRIPT_AST_LITERAL;
     ret->value_type = SCRIPT_LIST;
     ret->lineno = node->lineno;
+    ret->file = node->file;
     ret->literal.list = list;
 
     return ret;
@@ -3480,19 +3522,17 @@ static script_node_t *call_list_clear(script_stmt_t *block, script_node_t *node)
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_clear() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *list = node->call.argv[0];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_clear() expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_clear() expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3516,19 +3556,17 @@ static script_node_t *call_list_pop(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_pop() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_pop() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *list = node->call.argv[0];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_pop() expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_pop() expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3548,9 +3586,8 @@ static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_push() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_push() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3558,10 +3595,9 @@ static script_node_t *call_list_push(script_stmt_t *block, script_node_t *node) 
     script_node_t *value = node->call.argv[1];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_push() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_push() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3578,9 +3614,8 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_get() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_get() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3588,19 +3623,17 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
     script_node_t *index = node->call.argv[1];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_get() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_get() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (index->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(index);
-        strfmt(msg, "Error: Function list_get() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_get() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3620,9 +3653,8 @@ static script_node_t *call_list_set(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 3) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_set() takes 3 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_set() takes 3 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3631,19 +3663,17 @@ static script_node_t *call_list_set(script_stmt_t *block, script_node_t *node) {
     script_node_t *value = node->call.argv[2];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_set() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_set() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (index->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(index);
-        strfmt(msg, "Error: Function list_set() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_set() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3666,9 +3696,8 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_remove() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_remove() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3676,19 +3705,17 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
     script_node_t *index = node->call.argv[1];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_remove() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_remove() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (index->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(index);
-        strfmt(msg, "Error: Function list_remove() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_remove() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3705,19 +3732,17 @@ static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_str() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_str() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *list = node->call.argv[0];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_str() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_str() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3759,6 +3784,7 @@ static script_node_t *call_list_str(script_stmt_t *block, script_node_t *node) {
 
         script_node_t *res = node_string(str->value);
         res->lineno = node->lineno;
+        res->file = node->file;
         string_free(str);
         return res;
     }
@@ -3772,9 +3798,8 @@ static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function list_has() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_has() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3782,10 +3807,9 @@ static script_node_t *call_list_has(script_stmt_t *block, script_node_t *node) {
     script_node_t *item = node->call.argv[1];
 
     if (list->value_type != SCRIPT_LIST) {
-        char msg[128];
         script_node_t *type_name = node_type_name(list);
-        strfmt(msg, "Error: Function list_has() arg 1 expects list, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function list_has() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3814,19 +3838,17 @@ static script_node_t *call_sleep(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function sleep() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function sleep() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *interval = node->call.argv[0];
 
     if (interval->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(interval);
-        strfmt(msg, "Error: Function sleep() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function sleep() expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3849,6 +3871,7 @@ static script_node_t *call_sys_ticks(script_stmt_t *block, script_node_t *node) 
 
     script_node_t *value = node_int(ticks);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -3860,6 +3883,7 @@ static script_node_t *call_sys_tps(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_int(tps);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -3872,6 +3896,7 @@ static script_node_t *call_sys_perf(script_stmt_t *block, script_node_t *node) {
 
     script_node_t *value = node_float((double)ticks / tps);
     value->lineno = node->lineno;
+    value->file = node->file;
     return value;
 }
 
@@ -3882,6 +3907,7 @@ static script_node_t *call_argc(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
     value->lineno = node->lineno;
+    value->file = node->file;
     value->literal.int_value = script_argc;
 
     return value;
@@ -3894,8 +3920,9 @@ static script_node_t *call_argv(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_LIST;
     value->lineno = node->lineno;
+    value->file = node->file;
 
-    list_t *list = heap_alloc(sizeof(list_t));
+    list_t *list = script_alloc(sizeof(list_t));
     list_init(list);
 
     value->literal.list = list;
@@ -3913,6 +3940,7 @@ static script_node_t *call_rand(script_stmt_t *block, script_node_t *node) {
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
     value->lineno = node->lineno;
+    value->file = node->file;
     value->literal.int_value = rand();
 
     return value;
@@ -3924,9 +3952,8 @@ static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 2) {
-        char msg[64];
-        strfmt(msg, "Error: Function randrange() takes 2 arguments, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function randrange() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -3934,19 +3961,17 @@ static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) 
     script_node_t *max = node->call.argv[1];
 
     if (min->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(min);
-        strfmt(msg, "Error: Function randrange() arg 1 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function randrange() arg 1 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (max->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(max);
-        strfmt(msg, "Error: Function randrange() arg 2 expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function randrange() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3955,6 +3980,7 @@ static script_node_t *call_randrange(script_stmt_t *block, script_node_t *node) 
     value->node_type = SCRIPT_AST_LITERAL;
     value->value_type = SCRIPT_INT;
     value->lineno = node->lineno;
+    value->file = node->file;
     value->literal.int_value = randrange(min->literal.int_value, max->literal.int_value);
 
     return value;
@@ -3966,19 +3992,17 @@ static script_node_t *call_color_setfg(script_stmt_t *block, script_node_t *node
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function color_setfg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color_setfg() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *name = node->call.argv[0];
 
     if (name->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(name);
-        strfmt(msg, "Error: Function color_setfg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color_setfg() expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -3998,19 +4022,17 @@ static script_node_t *call_color_setbg(script_stmt_t *block, script_node_t *node
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function color_setbg() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color_setbg() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *name = node->call.argv[0];
 
     if (name->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(name);
-        strfmt(msg, "Error: Function color_setbg() expects str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color_setbg() expects str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -4038,19 +4060,17 @@ static script_node_t *call_color(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function color() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *name = node->call.argv[0];
 
     if (name->value_type != SCRIPT_STR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(name);
-        strfmt(msg, "Error: Function color() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color() expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -4064,9 +4084,8 @@ static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node) 
     size_t argc = node->call.argc;
 
     if (argc != 3) {
-        char msg[64];
-        strfmt(msg, "Error: Function color_rgb() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function color_rgb() takes 3 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4074,10 +4093,9 @@ static script_node_t *call_color_rgb(script_stmt_t *block, script_node_t *node) 
         script_node_t *arg = node->call.argv[i];
 
         if (arg->value_type != SCRIPT_INT) {
-            char msg[128];
             script_node_t *type_name = node_type_name(arg);
-            strfmt(msg, "Error: Function color_rgba() arg %d expects int, got %s (line: %d)\n", i + 1, type_name->literal.str_value, node->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Function color_rgba() arg %d expects int, got %s (line: %d)\nIn: %s\n", i + 1, type_name->literal.str_value, node->lineno, node->file);
+            term_write(script_errmsg);
             unref_node(type_name);
             return NULL;
         }
@@ -4098,12 +4116,15 @@ static script_node_t *call_screen_init(script_stmt_t *block, script_node_t *node
 
     if (!script_screen_buffer) {
         script_screen_buffer_size = (screen_pitch / sizeof(uint32_t)) * screen_height;
+
+        script_vm2sys();
         script_screen_buffer = heap_alloc(script_screen_buffer_size * sizeof(uint32_t));
+        script_sys2vm();
+
         memcpy(script_screen_buffer, screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
     } else {
-        char msg[128];
-        strfmt(msg, "Warning: Screen is already initialized. (line: %d)\n", node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Warning: Screen is already initialized. (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
     }
 
     return g_null;
@@ -4139,9 +4160,8 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
     size_t argc = node->call.argc;
 
     if (argc != 3) {
-        char msg[64];
-        strfmt(msg, "Error: Function screen_draw() takes 3 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw() takes 3 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4150,36 +4170,32 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
     script_node_t *nc = node->call.argv[2];
 
     if (nx->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nx);
-        strfmt(msg, "Error: Function screen_draw() x expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw() x expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (ny->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(ny);
-        strfmt(msg, "Error: Function screen_draw() y expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw() y expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (nc->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nc);
-        strfmt(msg, "Error: Function screen_draw() color expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw() color expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (!script_screen_buffer) {
-        char msg[128];
-        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Screen is not initialized. (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4199,9 +4215,8 @@ static script_node_t *call_screen_draw_char(script_stmt_t *block, script_node_t 
     size_t argc = node->call.argc;
 
     if (argc != 6) {
-        char msg[64];
-        strfmt(msg, "Error: Function screen_draw_char() takes 6 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() takes 6 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4213,63 +4228,56 @@ static script_node_t *call_screen_draw_char(script_stmt_t *block, script_node_t 
     script_node_t *nsc = node->call.argv[5];
 
     if (nx->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nx);
-        strfmt(msg, "Error: Function screen_draw_char() x expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() x expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (ny->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(ny);
-        strfmt(msg, "Error: Function screen_draw_char() y expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() y expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (nc->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nc);
-        strfmt(msg, "Error: Function screen_draw_char() char expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() char expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (nfg->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nfg);
-        strfmt(msg, "Error: Function screen_draw_char() color_foreground expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() color_foreground expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (nbg->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nbg);
-        strfmt(msg, "Error: Function screen_draw_char() color_background expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() color_background expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (nsc->value_type != SCRIPT_FLOAT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(nsc);
-        strfmt(msg, "Error: Function screen_draw_char() scale expects float, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_draw_char() scale expects float, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (!script_screen_buffer) {
-        char msg[128];
-        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Screen is not initialized. (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4292,27 +4300,24 @@ static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *nod
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function screen_clear() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_clear() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *col = node->call.argv[0];
 
     if (col->value_type != SCRIPT_INT) {
-        char msg[128];
         script_node_t *type_name = node_type_name(col);
-        strfmt(msg, "Error: Function screen_clear() expects int, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function screen_clear() expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
     if (!script_screen_buffer) {
-        char msg[128];
-        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Screen is not initialized. (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4326,9 +4331,8 @@ static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *nod
     unused(block); unused(node);
 
     if (!script_screen_buffer) {
-        char msg[128];
-        strfmt(msg, "Error: Screen is not initialized. (line: %d)\n", node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Screen is not initialized. (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4371,19 +4375,17 @@ static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *n
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function printcap_print() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function printcap_print() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *print = node->call.argv[0];
 
     if (print->value_type != SCRIPT_BOOL) {
-        char msg[128];
         script_node_t *type_name = node_type_name(print);
-        strfmt(msg, "Error: Function printcap_print() expects bool, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function printcap_print() expects bool, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -4397,19 +4399,17 @@ static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t 
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function internal_getvars() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getvars() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *type = node->call.argv[0];
 
     if (type->value_type != SCRIPT_STR && type->value_type != SCRIPT_NULL) {
-        char msg[128];
         script_node_t *type_name = node_type_name(type);
-        strfmt(msg, "Error: Function internal_getvars() expects null or str, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getvars() expects null or str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -4439,19 +4439,17 @@ static script_node_t *call_internal_getname(script_stmt_t *block, script_node_t 
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function internal_getname() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getname() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *var = node->call.argv[0];
 
     if (var->value_type != SCRIPT_VAR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(var);
-        strfmt(msg, "Error: Function internal_getname() expects var, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getname() expects var, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -4465,19 +4463,17 @@ static script_node_t *call_internal_getvalue(script_stmt_t *block, script_node_t
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function internal_getvalue() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getvalue() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *var = node->call.argv[0];
 
     if (var->value_type != SCRIPT_VAR) {
-        char msg[128];
         script_node_t *type_name = node_type_name(var);
-        strfmt(msg, "Error: Function internal_getvalue() expects var, got %s (line: %d)\n", type_name->literal.str_value, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getvalue() expects var, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
@@ -4491,9 +4487,8 @@ static script_node_t *call_internal_getrefcount(script_stmt_t *block, script_nod
     size_t argc = node->call.argc;
 
     if (argc != 1) {
-        char msg[64];
-        strfmt(msg, "Error: Function internal_getrefcount() takes 1 argument, got %d (line: %d)\n", argc, node->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Function internal_getrefcount() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -4532,9 +4527,8 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 unref_node(val);
 
             if (!var) {
-                char msg[64];
-                strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", name, binop->lineno, binop->file);
+                term_write(script_errmsg);
                 return NULL;
             }
 
@@ -4582,9 +4576,8 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         if (free_right) unref_node(right);
 
         if (!rvar) {
-            char msg[64];
-            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", rname, binop->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", rname, binop->lineno, binop->file);
+            term_write(script_errmsg);
             return NULL;
         }
 
@@ -4597,9 +4590,8 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         script_var_t *var = env_unscoped_find_var(block, name);
 
         if (!var) {
-            char msg[64];
-            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, binop->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", name, binop->lineno, binop->file);
+            term_write(script_errmsg);
             return NULL;
         }
 
@@ -4653,7 +4645,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 size_t size = left_len + right_len + 1;
 
                 char *old = val->literal.str_value;
-                val->literal.str_value = heap_alloc(size);
+                val->literal.str_value = script_alloc(size);
                 memcpy(val->literal.str_value, old, left_len);
                 memcpy(val->literal.str_value + left_len,
                     right->literal.str_value, right_len + 1);
@@ -4674,7 +4666,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 size_t size = (val->literal.str_size - 1) * i;
                 char *old = val->literal.str_value;
                 char **value = &val->literal.str_value;
-                *value = heap_alloc(size + 1);
+                *value = script_alloc(size + 1);
                 memset(*value, 0, size + 1);
 
                 while (i > 0) {
@@ -4958,7 +4950,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
             size_t right_len = strlen(right->literal.str_value);
             size_t size = left_len + right_len + 1;
 
-            node->literal.str_value = heap_alloc(size);
+            node->literal.str_value = script_alloc(size);
             memcpy(node->literal.str_value,
                 left->literal.str_value, left_len);
             memcpy(node->literal.str_value + left_len,
@@ -5001,9 +4993,8 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 right->literal.float_value : right->literal.int_value;
 
             if (r == 0) {
-                char msg[64];
-                strfmt(msg, "Error: Zero division (line: %d)\n", binop->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Zero division (line: %d)\nIn: %s\n", binop->lineno, binop->file);
+                term_write(script_errmsg);
                 unref_node(node);
                 return NULL;
             }
@@ -5024,9 +5015,8 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 right->literal.float_value : right->literal.int_value;
 
             if (r == 0) {
-                char msg[64];
-                strfmt(msg, "Error: Modulo by zero (line: %d)\n", binop->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Modulo by zero (line: %d)\nIn: %s\n", binop->lineno, binop->file);
+                term_write(script_errmsg);
                 unref_node(node);
                 return NULL;
             }
@@ -5077,7 +5067,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 size_t i = (size_t) v;
                 size_t size = (right->literal.str_size - 1) * i;
                 char **value = &node->literal.str_value;
-                *value = heap_alloc(size + 1);
+                *value = script_alloc(size + 1);
                 memset(*value, 0, size + 1);
 
                 while (i > 0) {
@@ -5101,7 +5091,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
                 size_t i = (size_t) v;
                 size_t size = (left->literal.str_size - 1) * i;
                 char **value = &node->literal.str_value;
-                *value = heap_alloc(size + 1);
+                *value = script_alloc(size + 1);
                 memset(*value, 0, size + 1);
 
                 while (i > 0) {
@@ -5117,9 +5107,8 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
         }
     }
 
-    char msg[64];
-    strfmt(msg, "Error: Unsupported operation (line: %d)\n", binop->lineno);
-    term_write(msg);
+    strfmt(script_errmsg, "Error: Unsupported operation (line: %d)\nIn: %s\n", binop->lineno, binop->file);
+    term_write(script_errmsg);
     if (free_left) unref_node(left);
     if (free_right) unref_node(right);
     unref_node(node);
@@ -5127,7 +5116,7 @@ static script_node_t *eval_binop(script_stmt_t *block, script_node_t *binop) {
 }
 
 static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
-    script_node_t **eval_args = heap_alloc(sizeof(script_node_t*) * call->call.argc);
+    script_node_t **eval_args = script_alloc(sizeof(script_node_t*) * call->call.argc);
 
     for (size_t i = 0; i < call->call.argc; i++) {
         eval_args[i] = eval_expr(block, call->call.argv[i]);
@@ -5158,9 +5147,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
             script_node_t *vv = var->value;
 
             if (vv->value_type != SCRIPT_FUNC) {
-                char msg[64];
-                strfmt(msg, "Error: Variable \"%s\" is not callable (line: %d)\n", name, call->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Variable \"%s\" is not callable (line: %d)\nIn: %s\n", name, call->lineno, call->file);
+                term_write(script_errmsg);
                 return NULL;
             }
 
@@ -5168,10 +5156,9 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
             script_stmt_t *call_block = stmt_block(func->func.block->parent);
 
             if (call->call.argc < func->func.params_count) {
-                char msg[64];
-                strfmt(msg, "Error: Function \"%s\" takes %d argument(s), got %d (line: %d)\n",
-                    name, func->func.params_count, call->call.argc, call->lineno);
-                term_write(msg);
+                strfmt(script_errmsg, "Error: Function \"%s\" takes %d argument(s), got %d (line: %d)\nIn: %s\n",
+                    name, func->func.params_count, call->call.argc, call->lineno, call->file);
+                term_write(script_errmsg);
                 return NULL;
             }
 
@@ -5192,9 +5179,8 @@ static script_node_t *eval_call(script_stmt_t *block, script_node_t *call) {
 
             free_stmt(call_block);
         } else {
-            char msg[64];
-            strfmt(msg, "Error: Undefined call \"%s\" (line: %d)\n", name, call->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Undefined call \"%s\" (line: %d)\nIn: %s\n", name, call->lineno, call->file);
+            term_write(script_errmsg);
             return NULL;
         }
     }
@@ -5212,9 +5198,8 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
         char *varname = index->index.var->literal.str_value;
         script_var_t *var = env_unscoped_find_var(block, varname);
         if (!var) {
-            char msg[64];
-            strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", varname, index->lineno);
-            term_write(msg);
+            strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", varname, index->lineno, index->file);
+            term_write(script_errmsg);
             return NULL;
         }
         node = var->value;
@@ -5233,9 +5218,8 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
             {
                 script_node_t *string = node;
                 if (idx->value_type != SCRIPT_INT) {
-                    char msg[64];
-                    strfmt(msg, "Error: Index expects 'int' type (line: %d)\n", index->lineno);
-                    term_write(msg);
+                    strfmt(script_errmsg, "Error: Index expects 'int' type (line: %d)\nIn: %s\n", index->lineno, index->file);
+                    term_write(script_errmsg);
                     unref_node(idx);
                     return NULL;
                 }
@@ -5245,7 +5229,8 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
                     value->node_type = SCRIPT_AST_LITERAL;
                     value->value_type = SCRIPT_STR;
                     value->lineno = index->lineno;
-                    value->literal.str_value = heap_alloc(2);
+                    value->file = index->file;
+                    value->literal.str_value = script_alloc(2);
                     value->literal.str_size = 2;
                     value->literal.str_value[0] = string->literal.str_value[idx->literal.int_value];
                     value->literal.str_value[1] = '\0';
@@ -5264,17 +5249,15 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
             {
                 list_t *list = node->literal.list;
                 if (!list) {
-                    char msg[64];
-                    strfmt(msg, "Error: List is not initialized (line: %d)\n", index->lineno);
-                    term_write(msg);
+                    strfmt(script_errmsg, "Error: List is not initialized (line: %d)\nIn: %s\n", index->lineno, index->file);
+                    term_write(script_errmsg);
                     unref_node(idx);
                     return NULL;
                 }
 
                 if (idx->value_type != SCRIPT_INT) {
-                    char msg[64];
-                    strfmt(msg, "Error: Index expects 'int' type (line: %d)\n", index->lineno);
-                    term_write(msg);
+                    strfmt(script_errmsg, "Error: Index expects 'int' type (line: %d)\nIn: %s\n", index->lineno, index->file);
+                    term_write(script_errmsg);
                     unref_node(idx);
                     return NULL;
                 }
@@ -5294,10 +5277,9 @@ static script_node_t *eval_index(script_stmt_t *block, script_node_t *index) {
             }
     }
 
-    char msg[128];
     script_node_t *type = node_type_name(node);
-    strfmt(msg, "Error: Cannot index a '%s' type (line: %d)\n", type->literal.str_value, index->lineno);
-    term_write(msg);
+    strfmt(script_errmsg, "Error: Cannot index a '%s' type (line: %d)\nIn: %s\n", type->literal.str_value, index->lineno, index->file);
+    term_write(script_errmsg);
     unref_node(type);
     return NULL;
 }
@@ -5312,9 +5294,8 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
 
                 script_var_t *var = env_unscoped_find_var(block, name);
                 if (!var) {
-                    char msg[64];
-                    strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, expr->lineno);
-                    term_write(msg);
+                    strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", name, expr->lineno, expr->file);
+                    term_write(script_errmsg);
                     return NULL;
                 }
 
@@ -5330,9 +5311,8 @@ static script_node_t *eval_expr(script_stmt_t *block, script_node_t *expr) {
             return eval_index(block, expr);
     }
 
-    char msg[64];
-    strfmt(msg, "Error: Unsupported operation (line: %d)\n", expr->lineno);
-    term_write(msg);
+    strfmt(script_errmsg, "Error: Unsupported operation (line: %d)\nIn: %s\n", expr->lineno, expr->file);
+    term_write(script_errmsg);
     return NULL;
 }
 
@@ -5341,12 +5321,11 @@ static script_node_t *eval_declare(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_var_t *var = env_find_var(block, stmt->var.name);
     if (var) {
-        char msg[128];
         if (var->value->value_type == SCRIPT_FUNC)
-            strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
+            strfmt(script_errmsg, "Error: Function with the same name already defined in this scope (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
         else
-            strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
-        term_write(msg);
+            strfmt(script_errmsg, "Error: Variable already defined in this scope (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         free_stmt(stmt);
         return NULL;
     }
@@ -5362,12 +5341,11 @@ static script_node_t *eval_define(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_var_t *var = env_find_var(block, stmt->var.name);
     if (var) {
-        char msg[128];
         if (var->value->value_type == SCRIPT_FUNC)
-            strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
+            strfmt(script_errmsg, "Error: Function with the same name already defined in this scope (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
         else
-            strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
-        term_write(msg);
+            strfmt(script_errmsg, "Error: Variable already defined in this scope (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         free_stmt(stmt);
         return NULL;
     }
@@ -5385,17 +5363,15 @@ static script_node_t *eval_assign(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_var_t *var = env_unscoped_find_var(block, stmt->var.name);
     if (!var) {
-        char msg[64];
-        strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", stmt->var.name, stmt->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", stmt->var.name, stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         free_stmt(stmt);
         return NULL;
     }
 
     if (var->value->value_type == SCRIPT_FUNC) {
-        char msg[64];
-        strfmt(msg, "Error: Cannot assign values to a function (line: %d)\n", stmt->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Cannot assign values to a function (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         free_stmt(stmt);
         return NULL;
     }
@@ -5417,12 +5393,11 @@ static script_node_t *eval_func(script_stmt_t *block, script_stmt_t *stmt) {
 
     script_var_t *var = env_find_var(block, name);
     if (var) {
-        char msg[128];
         if (var->value->value_type == SCRIPT_FUNC)
-            strfmt(msg, "Error: Function with the same name already defined in this scope (line: %d)\n", stmt->lineno);
+            strfmt(script_errmsg, "Error: Function with the same name already defined in this scope (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
         else
-            strfmt(msg, "Error: Variable already defined in this scope (line: %d)\n", stmt->lineno);
-        term_write(msg);
+            strfmt(script_errmsg, "Error: Variable already defined in this scope (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         free_stmt(stmt);
         return NULL;
     }
@@ -5454,7 +5429,7 @@ static script_eval_t *eval_block(script_stmt_t *block, script_stmt_t *stmt) {
         current = current->next;
     }
 
-    eval = heap_alloc(sizeof(script_eval_t));
+    eval = script_alloc(sizeof(script_eval_t));
     eval->type = SCRIPT_EVAL_NONE;
     eval->node = NULL;
 
@@ -5473,7 +5448,7 @@ static script_eval_t *eval_if(script_stmt_t *block, script_stmt_t *stmt) {
     unref_node(expr);
 
     if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
+        eval = script_alloc(sizeof(script_eval_t));
         eval->type = SCRIPT_EVAL_NONE;
         eval->node = NULL;
     }
@@ -5525,7 +5500,7 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
     free_stmt(scope);
 
     if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
+        eval = script_alloc(sizeof(script_eval_t));
         eval->type = SCRIPT_EVAL_NONE;
         eval->node = NULL;
     }
@@ -5586,7 +5561,7 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
     free_stmt(scopescope);
 
     if (!eval) {
-        eval = heap_alloc(sizeof(script_eval_t));
+        eval = script_alloc(sizeof(script_eval_t));
         eval->type = SCRIPT_EVAL_NONE;
         eval->node = NULL;
     }
@@ -5602,7 +5577,7 @@ static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
     script_token_t *tokens = NULL;
     script_node_t *npath = stmt->include_stmt.path;
 
-    char *path = heap_alloc(FILE_MAX_PATH + FILE_MAX_NAME);
+    char *path = script_alloc(FILE_MAX_PATH + FILE_MAX_NAME);
     memcpy(path, npath->literal.str_value, npath->literal.str_size);
 
     if (!file_path_isfile(path))
@@ -5619,9 +5594,8 @@ static script_node_t *eval_include(script_stmt_t *block, script_stmt_t *stmt) {
 
     int token_status = get_tokens(path, &tokens);
     if (token_status == 1) {
-        char msg[128];
-        strfmt(msg, "Error: File not found (line: %d)\n", stmt->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: File not found (line: %d)\nIn: %s\n", stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         return NULL;
     }
 
@@ -5663,9 +5637,8 @@ static script_node_t *eval_delete(script_stmt_t *block, script_stmt_t *stmt) {
     if (var)
         env_remove_var(block, var);
     else {
-        char msg[128];
-        strfmt(msg, "Error: Undeclared \"%s\" (line: %d)\n", name, stmt->lineno);
-        term_write(msg);
+        strfmt(script_errmsg, "Error: Undeclared \"%s\" (line: %d)\nIn: %s\n", name, stmt->lineno, stmt->file);
+        term_write(script_errmsg);
         return NULL;
     }
     return g_null;
@@ -5682,7 +5655,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     break;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5693,18 +5666,18 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     break;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_RETURN;
                 eval->node = node;
                 break;
             }
         case SCRIPT_STMT_BREAK:
-            eval = heap_alloc(sizeof(script_eval_t));
+            eval = script_alloc(sizeof(script_eval_t));
             eval->type = SCRIPT_EVAL_BREAK;
             eval->node = NULL;
             break;
         case SCRIPT_STMT_CONTINUE:
-            eval = heap_alloc(sizeof(script_eval_t));
+            eval = script_alloc(sizeof(script_eval_t));
             eval->type = SCRIPT_EVAL_CONTINUE;
             eval->node = NULL;
             break;
@@ -5714,7 +5687,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     return NULL;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5725,7 +5698,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     return NULL;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5736,7 +5709,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     return NULL;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5747,7 +5720,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     return NULL;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5758,7 +5731,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     return NULL;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5769,7 +5742,7 @@ static script_eval_t *eval_statement(script_stmt_t *block, script_stmt_t *stmt) 
                 if (!node)
                     return NULL;
 
-                eval = heap_alloc(sizeof(script_eval_t));
+                eval = script_alloc(sizeof(script_eval_t));
                 eval->type = SCRIPT_EVAL_NONE;
                 eval->node = node;
                 break;
@@ -5804,7 +5777,7 @@ static void block_add_statement(script_stmt_t *block, script_stmt_t *stmt) {
 }
 
 static script_runtime_t *get_runtime() {
-    script_runtime_t *rt = heap_alloc(sizeof(script_runtime_t));
+    script_runtime_t *rt = script_alloc(sizeof(script_runtime_t));
     rt->main = stmt_block(NULL);
 
     if (!g_null)
@@ -5889,7 +5862,54 @@ void script_handle_type(uint8_t scancode) {
     }
 }
 
+static void script_vm_bumpcheck(size_t size) {
+    size_t usable = heap_end - heap_current;
+    size_t bump = 0;
+
+    while (size + sizeof(block_t) >= usable + bump)
+        bump += KB(64);
+
+    if (!bump) return;
+
+    script_vm2sys();
+    script_vm_size += bump;
+    script_vm.heap_end = script_vm.heap_start + script_vm_size;
+    script_vm_mem = heap_grow(script_vm_mem, script_vm_size);
+    script_sys2vm();
+}
+
+void *script_alloc(size_t size) {
+    script_vm_bumpcheck(size);
+    return heap_alloc(size);
+}
+
+void *script_realloc(void *ptr, size_t size) {
+    script_vm_bumpcheck(size);
+    return heap_realloc(ptr, size);
+}
+
+static void script_vm2sys() {
+    heap_get_state(&script_vm);
+    heap_set_state(&script_sys);
+}
+
+static void script_sys2vm() {
+    heap_get_state(&script_sys);
+    heap_set_state(&script_vm);
+}
+
 void script_run(const char *path, int argc, char *argv[]) {
+    script_vm = (heap_state_t){0};
+    script_vm_size = KB(64);
+    script_vm_mem = heap_alloc(script_vm_size);
+
+    script_vm.heap_start = script_vm_mem;
+    script_vm.heap_current = script_vm.heap_start;
+    script_vm.heap_end = script_vm.heap_start + script_vm_size;
+
+    script_sys = (heap_state_t){0};
+    script_sys2vm();
+
     int kmode = keyboard_mode;
     keyboard_mode = KEYBOARD_MODE_SCRIPT;
 
@@ -5905,10 +5925,16 @@ void script_run(const char *path, int argc, char *argv[]) {
     script_screen_buffer = NULL;
     script_screen_buffer_size = 0;
 
+    script_tokenize_path = NULL;
+    script_tokenize_file = 0;
+
+    script_paths = NULL;
     script_modules = NULL;
     script_module_paths = NULL;
-    script_modules = heap_alloc(sizeof(list_t));
-    script_module_paths = heap_alloc(sizeof(list_t));
+    script_paths = script_alloc(sizeof(list_t));
+    script_modules = script_alloc(sizeof(list_t));
+    script_module_paths = script_alloc(sizeof(list_t));
+    list_init(script_paths);
     list_init(script_modules);
     list_init(script_module_paths);
 
@@ -5936,10 +5962,16 @@ cleanup:
     }
 
     if (script_screen_buffer) {
+        script_vm2sys();
         heap_free(script_screen_buffer);
+        script_sys2vm();
         script_screen_buffer = NULL;
         script_screen_buffer_size = 0;
     }
+
+    while (script_paths->size)
+        heap_free((char*)list_pop(script_paths));
+    list_free(script_paths);
 
     while (script_modules->size)
         free_stmt((script_stmt_t*)list_pop(script_modules));
@@ -5954,4 +5986,7 @@ cleanup:
 
     if (keyboard_mode == KEYBOARD_MODE_SCRIPT)
         keyboard_mode = kmode;
+
+    script_vm2sys();
+    heap_free(script_vm_mem);
 }

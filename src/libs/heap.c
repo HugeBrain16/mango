@@ -2,9 +2,6 @@
 #include "paging.h"
 #include "string.h"
 
-#define KB(x) ((x) << 10)
-#define MB(x) ((x) << 20)
-
 uint8_t *heap_start = NULL;
 uint8_t *heap_end = NULL;
 uint8_t *heap_current = NULL;
@@ -17,6 +14,24 @@ block_t *block_tail = NULL;
 
 static uint32_t *alloc_init_table() {
     return init_page_tables[table_index++];
+}
+
+void heap_get_state(heap_state_t *state) {
+    state->heap_start = heap_start;
+    state->heap_current = heap_current;
+    state->heap_end = heap_end;
+    state->block_head = block_head;
+    state->block_current = block_current;
+    state->block_tail = block_tail;
+}
+
+void heap_set_state(heap_state_t *state) {
+    heap_start = state->heap_start;
+    heap_current = state->heap_current;
+    heap_end = state->heap_end;
+    block_head = state->block_head;
+    block_current = state->block_current;
+    block_tail = state->block_tail;
 }
 
 void heap_init(multiboot_info_t *mbi) {
@@ -170,48 +185,60 @@ void heap_free(void *ptr) {
     }
 }
 
-void *heap_realloc(void *ptr, size_t size) {
-    if (!ptr)
-        return heap_alloc(size);
+void *heap_grow(void *ptr, size_t size) {
+    if (!ptr) return heap_alloc(size);
+    if (size == 0) return NULL;
 
+    block_t *block = heap_header(ptr);
+    size = (size + 15) & ~15;
+
+    if (size <= block->size)
+        return ptr;
+
+    if (block->next && block->next->is_free) {
+        block_t *next = block->next;
+
+        if (next == block_tail) block_tail = block;
+        if (next == block_current) block_current = block;
+
+        block->size += sizeof(block_t) + next->size;
+        block->next = next->next;
+
+        if (block->next)
+            block->next->prev = block;
+    }
+
+    if (block->size >= size) {
+        heap_split(block, size);
+        return ptr;
+    }
+
+    if (block != block_tail)
+        return NULL;
+
+    heap_current += size - block->size;
+    block->size = size;
+    return ptr;
+}
+
+void *heap_realloc(void *ptr, size_t size) {
+    if (!ptr) return heap_alloc(size);
     if (size == 0) {
         heap_free(ptr);
         return NULL;
     }
 
     block_t *block = heap_header(ptr);
-    size = (size + 15) & ~15;
+    size_t old_size = block->size;
 
-    if (size <= block->size) {
-        heap_split(block, size);
+    if (heap_grow(ptr, size))
         return ptr;
-    }
-
-    if (block->next && block->next->is_free) {
-        block_t *next = block->next;
-        size_t next_size = block->size + sizeof(block_t) + next->size;
-
-        if (next_size >= size) {
-            if (block_tail == next)
-                block_tail = block;
-            if (block_current == next)
-                block_current = block;
-
-            block->size += next->size + sizeof(block_t);
-            block->next = next->next;
-            if (block->next)
-                block->next->prev = block;
-
-            heap_split(block, size);
-            return ptr;
-        }
-    }
 
     void *new = heap_alloc(size);
     if (!new)
         return NULL;
 
-    memcpy(new, ptr, block->size < size ? block->size : size);
+    memcpy(new, ptr, old_size < size ? old_size : size);
     heap_free(ptr);
     return new;
 }
@@ -230,7 +257,7 @@ void *heap_calloc(size_t base, size_t size) {
 void heap_stat(size_t *used, size_t *usable, size_t *free, int *blocks) {
     *used = 0;
     *usable = 0;
-    *free = heap_end - (heap_current + (sizeof(block_t) + block_tail->size));
+    *free = heap_end - heap_current;
 
     *blocks = 1;
     block_t *current = block_head;

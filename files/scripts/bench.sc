@@ -1,6 +1,18 @@
 include "test.sc";
 include "string.sc";
 
+func bench_whileloop() {
+	let good = 0;
+	while (good < 10000) { good += 1; }
+	return good == 10000;
+}
+
+func bench_forloop() {
+	let good;
+	for (good = 0; good < 10000; good += 1) {}
+	return good == 10000;
+}
+
 func bench_concat() {
 	let x = "";
 

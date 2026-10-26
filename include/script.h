@@ -101,6 +101,8 @@ typedef struct script_node script_node_t;
 typedef struct script_stmt script_stmt_t;
 
 typedef struct script_token {
+    const char *file;
+
     char *value;
     uint8_t type;
     size_t lineno;
@@ -122,6 +124,8 @@ typedef struct script_var {
 } script_var_t;
 
 typedef struct script_node {
+    const char *file;
+
     uint8_t node_type;
     uint8_t value_type;
     size_t lineno;
@@ -168,6 +172,8 @@ typedef struct script_node {
 } script_node_t;
 
 typedef struct script_stmt {
+    const char *file;
+
     uint8_t type;
     size_t lineno;
 
