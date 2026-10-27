@@ -208,7 +208,7 @@ void *heap_grow(void *ptr, size_t size) {
     if (size <= block->size)
         return ptr;
 
-    if (block->next && block->next->is_free) {
+    while (block->next && block->next->is_free) {
         block_t *next = block->next;
 
         if (next == block_tail) block_tail = block;
@@ -227,6 +227,8 @@ void *heap_grow(void *ptr, size_t size) {
     }
 
     if (block != block_tail)
+        return NULL;
+    if (heap_current + (size - block->size) > heap_end)
         return NULL;
 
     heap_current += size - block->size;

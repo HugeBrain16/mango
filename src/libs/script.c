@@ -19,13 +19,13 @@
 #include "ata.h"
 #include "font.h"
 
-int script_exit = 0;
+uint32_t script_exit = 0;
 
-static int script_should_exit = 0;
-static int script_argc = 0;
+static uint8_t script_should_exit = 0;
+static size_t script_argc = 0;
 static char **script_argv = NULL;
-static int script_printfg = COLOR_WHITE;
-static int script_printbg = COLOR_BLACK;
+static uint32_t script_printfg = COLOR_WHITE;
+static uint32_t script_printbg = COLOR_BLACK;
 static uint32_t *script_screen_buffer = NULL;
 static size_t script_screen_buffer_size = 0;
 static list_t *script_modules = NULL;
@@ -34,12 +34,13 @@ static list_t *script_paths = NULL;
 static char *script_tokenize_path = NULL;
 static uint32_t script_tokenize_file = 0;
 static string_t *script_printcap = NULL;
-static int script_printcap_print = 1;
+static uint8_t script_printcap_print = 1;
 static heap_state_t script_vm;
 static heap_state_t script_sys;
 static uint8_t *script_vm_mem;
 static size_t script_vm_size = 0;
 static uint8_t script_key_down = 0;
+static uint8_t script_dynamic_memory = 1;
 
 static void *script_alloc(size_t size);
 static void *script_realloc(void *ptr, size_t size);
@@ -2514,7 +2515,7 @@ static script_node_t *call_vm_mem_free(script_stmt_t *block, script_node_t *node
 static script_node_t *call_vm_mem_total(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
-    script_node_t *value = node_int((unsigned)heap_end);
+    script_node_t *value = node_int((unsigned)(heap_end - heap_start));
     value->lineno = node->lineno;
     value->file = node->file;
 
@@ -2551,7 +2552,7 @@ static script_node_t *call_mem_total(script_stmt_t *block, script_node_t *node) 
     unused(block);
 
     script_vm2sys();
-    uint8_t *total = heap_end;
+    size_t total = heap_end - heap_start;
     script_sys2vm();
 
     script_node_t *value = node_int((unsigned)total);
@@ -6043,35 +6044,49 @@ static void script_vm_bumpcheck(size_t size) {
 
     script_vm2sys();
     script_vm_size += bump;
-    script_vm.heap_end = script_vm.heap_start + script_vm_size;
     script_vm_mem = heap_grow(script_vm_mem, script_vm_size);
+    script_vm.heap_end = script_vm.heap_start + script_vm_size;
     script_sys2vm();
 }
 
 void *script_alloc(size_t size) {
-    script_vm_bumpcheck(size);
+    if (script_dynamic_memory)
+        script_vm_bumpcheck(size);
     return heap_alloc(size);
 }
 
 void *script_realloc(void *ptr, size_t size) {
-    script_vm_bumpcheck(size);
+    if (script_dynamic_memory)
+        script_vm_bumpcheck(size);
     return heap_realloc(ptr, size);
 }
 
 static void script_vm2sys() {
+    if (!script_dynamic_memory) return;
+
     heap_get_state(&script_vm);
     heap_set_state(&script_sys);
 }
 
 static void script_sys2vm() {
+    if (!script_dynamic_memory) return;
+
     heap_get_state(&script_sys);
     heap_set_state(&script_vm);
 }
 
 void script_run(const char *path, int argc, char *argv[]) {
-    script_vm = (heap_state_t){0};
-    script_vm_size = KB(64);
-    script_vm_mem = heap_alloc(script_vm_size);
+    char *cfg_dynmem = config_get("/system/config/script.cfg", "dynamic_memory");
+    if (cfg_dynmem) {
+        script_dynamic_memory = intstr(cfg_dynmem);
+        heap_free(cfg_dynmem);
+    }
+
+    if (script_dynamic_memory) {
+        script_vm = (heap_state_t){0};
+        script_vm_size = KB(64);
+        script_vm_mem = heap_alloc(script_vm_size);
+    }
 
     script_vm.heap_start = script_vm_mem;
     script_vm.heap_current = script_vm.heap_start;
