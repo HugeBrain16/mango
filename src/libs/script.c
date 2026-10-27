@@ -1451,6 +1451,35 @@ static script_node_t *node_index(script_node_t *var, script_node_t *index) {
     return node;
 }
 
+static script_node_t *node_index_assign(script_node_t *index, script_node_t *value) {
+    script_node_t **argv = script_alloc(3 * sizeof(*argv));
+    argv[0] = index->index.var;
+    argv[1] = index->index.index;
+    argv[2] = value;
+
+    script_node_t *func = node_string("list_set");
+    func->lineno = index->lineno;
+    func->file = index->file;
+
+    script_node_t *call = node_call(func, argv, 3);
+    heap_free(index);
+    return call;
+}
+
+static script_node_t *node_index_remove(script_node_t *index) {
+    script_node_t **argv = script_alloc(2 * sizeof(*argv));
+    argv[0] = index->index.var;
+    argv[1] = index->index.index;
+
+    script_node_t *func = node_string("list_remove");
+    func->lineno = index->lineno;
+    func->file = index->file;
+
+    script_node_t *call = node_call(func, argv, 2);
+    heap_free(index);
+    return call;
+}
+
 static script_stmt_t *stmt_var(script_node_t *name, script_node_t *value, uint8_t type) {
     script_stmt_t *stmt = script_alloc(sizeof(script_stmt_t));
 
@@ -2347,7 +2376,16 @@ static script_stmt_t *parse_statement_inner(script_token_t **token) {
         stmt = parse_include(token);
     } else if ((*token)->type == SCRIPT_TOKEN_DELETE) {
         *token = (*token)->next;
-        stmt = parse_delete(token);
+
+        script_node_t *node = parse_expr(token);
+        if (!node) return NULL;
+
+        if (node->node_type == SCRIPT_AST_INDEX) {
+            node = node_index_remove(node);
+            stmt = stmt_expr(node);
+        } else {
+            stmt = parse_delete(token);
+        }
     } else if ((*token)->type == SCRIPT_TOKEN_WHILE) {
         *token = (*token)->next;
         stmt = parse_while(token);
@@ -2357,6 +2395,15 @@ static script_stmt_t *parse_statement_inner(script_token_t **token) {
     } else {
         script_node_t *node = parse_expr(token);
         if (!node) return NULL;
+
+        if (node->node_type == SCRIPT_AST_INDEX && *token && (*token)->type == SCRIPT_TOKEN_EQUAL) {
+            *token = (*token)->next;
+
+            script_node_t *value = parse_expr(token);
+            if (!value) return NULL;
+
+            node = node_index_assign(node, value);
+        }
 
         stmt = stmt_expr(node);
     }
@@ -3685,29 +3732,42 @@ static script_node_t *call_list_get(script_stmt_t *block, script_node_t *node) {
         return NULL;
     }
 
-    script_node_t *list = node->call.argv[0];
-    script_node_t *index = node->call.argv[1];
+    script_node_t *nlist = node->call.argv[0];
+    script_node_t *nindex = node->call.argv[1];
 
-    if (list->value_type != SCRIPT_LIST) {
-        script_node_t *type_name = node_type_name(list);
+    if (nlist->value_type != SCRIPT_LIST) {
+        script_node_t *type_name = node_type_name(nlist);
         strfmt(script_errmsg, "Error: Function list_get() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
-    if (index->value_type != SCRIPT_INT) {
-        script_node_t *type_name = node_type_name(index);
+    if (nindex->value_type != SCRIPT_INT) {
+        script_node_t *type_name = node_type_name(nindex);
         strfmt(script_errmsg, "Error: Function list_get() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
-    if (list->literal.list && index->literal.int_value >= 0) {
-        script_node_t *value = (script_node_t*)list_get(list->literal.list, (size_t)index->literal.int_value);
+    list_t *list = nlist->literal.list;
+    int index = nindex->literal.int_value;
+
+    if (!list) {
+        strfmt(script_errmsg, "Error: List is not initialized (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
+        return NULL;
+    }
+
+    if (index >= 0 && (size_t)index < list->size) {
+        script_node_t *value = (script_node_t*)list_get(list, index);
         if (value)
             return ref_node(value);
+    } else {
+        strfmt(script_errmsg, "Error: Index out of range (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
+        return NULL;
     }
 
     return g_null;
@@ -3724,33 +3784,46 @@ static script_node_t *call_list_set(script_stmt_t *block, script_node_t *node) {
         return NULL;
     }
 
-    script_node_t *list = node->call.argv[0];
-    script_node_t *index = node->call.argv[1];
+    script_node_t *nlist = node->call.argv[0];
+    script_node_t *nindex = node->call.argv[1];
     script_node_t *value = node->call.argv[2];
 
-    if (list->value_type != SCRIPT_LIST) {
-        script_node_t *type_name = node_type_name(list);
+    if (nlist->value_type != SCRIPT_LIST) {
+        script_node_t *type_name = node_type_name(nlist);
         strfmt(script_errmsg, "Error: Function list_set() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
-    if (index->value_type != SCRIPT_INT) {
-        script_node_t *type_name = node_type_name(index);
+    if (nindex->value_type != SCRIPT_INT) {
+        script_node_t *type_name = node_type_name(nindex);
         strfmt(script_errmsg, "Error: Function list_set() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
-    if (list->literal.list && index->literal.int_value >= 0) {
-        list_node_t *vlist = list_get_node(list->literal.list, (size_t)index->literal.int_value);
+    list_t *list = nlist->literal.list;
+    int index = nindex->literal.int_value;
+
+    if (!list) {
+        strfmt(script_errmsg, "Error: List is not initialized (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
+        return NULL;
+    }
+
+    if (index >= 0 && (size_t)index < list->size) {
+        list_node_t *vlist = list_get_node(list, index);
         if (vlist) {
             unref_node((script_node_t*)vlist->data);
             vlist->data = ref_node(value);
             return ref_node(value);
         }
+    } else {
+        strfmt(script_errmsg, "Error: Index out of range (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
+        return NULL;
     }
 
     return g_null;
@@ -3767,29 +3840,42 @@ static script_node_t *call_list_remove(script_stmt_t *block, script_node_t *node
         return NULL;
     }
 
-    script_node_t *list = node->call.argv[0];
-    script_node_t *index = node->call.argv[1];
+    script_node_t *nlist = node->call.argv[0];
+    script_node_t *nindex = node->call.argv[1];
 
-    if (list->value_type != SCRIPT_LIST) {
-        script_node_t *type_name = node_type_name(list);
+    if (nlist->value_type != SCRIPT_LIST) {
+        script_node_t *type_name = node_type_name(nlist);
         strfmt(script_errmsg, "Error: Function list_remove() arg 1 expects list, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
-    if (index->value_type != SCRIPT_INT) {
-        script_node_t *type_name = node_type_name(index);
+    if (nindex->value_type != SCRIPT_INT) {
+        script_node_t *type_name = node_type_name(nindex);
         strfmt(script_errmsg, "Error: Function list_remove() arg 2 expects int, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
     }
 
-    if (list->literal.list && index->literal.int_value >= 0) {
-        script_node_t *value = list_get(list->literal.list, index->literal.int_value);
-        list_remove(list->literal.list, (size_t)index->literal.int_value);
+    list_t *list = nlist->literal.list;
+    int index = nindex->literal.int_value;
+
+    if (!list) {
+        strfmt(script_errmsg, "Error: List is not initialized (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
+        return NULL;
+    }
+
+    if (index >= 0 && (size_t)index < list->size) {
+        script_node_t *value = list_get(list, index);
+        list_remove(list, index);
         unref_node(value);
+    } else {
+        strfmt(script_errmsg, "Error: Index out of range (line: %d)\nIn: %s\n", node->lineno, node->file);
+        term_write(script_errmsg);
+        return NULL;
     }
 
     return g_null;
@@ -4467,17 +4553,26 @@ static script_node_t *call_printcap_print(script_stmt_t *block, script_node_t *n
 static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t *node) {
     size_t argc = node->call.argc;
 
-    if (argc != 1) {
-        strfmt(script_errmsg, "Error: Function internal_getvars() takes 1 argument, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
+    if (argc != 2) {
+        strfmt(script_errmsg, "Error: Function internal_getvars() takes 2 arguments, got %d (line: %d)\nIn: %s\n", argc, node->lineno, node->file);
         term_write(script_errmsg);
         return NULL;
     }
 
     script_node_t *type = node->call.argv[0];
+    script_node_t *scoped = node->call.argv[1];
 
     if (type->value_type != SCRIPT_STR && type->value_type != SCRIPT_NULL) {
         script_node_t *type_name = node_type_name(type);
-        strfmt(script_errmsg, "Error: Function internal_getvars() expects null or str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        strfmt(script_errmsg, "Error: Function internal_getvars() arg 1 expects null or str, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
+        term_write(script_errmsg);
+        unref_node(type_name);
+        return NULL;
+    }
+
+    if (scoped->value_type != SCRIPT_BOOL) {
+        script_node_t *type_name = node_type_name(scoped);
+        strfmt(script_errmsg, "Error: Function internal_getvars() arg 2 expects bool, got %s (line: %d)\nIn: %s\n", type_name->literal.str_value, node->lineno, node->file);
         term_write(script_errmsg);
         unref_node(type_name);
         return NULL;
@@ -4496,7 +4591,11 @@ static script_node_t *call_internal_getvars(script_stmt_t *block, script_node_t 
             var = var->next;
             unref_node(type_name);
         }
-        parent = parent->parent;
+
+        if (!node_istrue(scoped))
+            parent = parent->parent;
+        else
+            break;
     }
 
     return list;

@@ -85,8 +85,8 @@ func update(dt) {
     if (old_dx != dx || old_dy != dy)
         randomize_color();
 
-    list_set(text[__box_text_pos], __box_vector2d_x, x);
-    list_set(text[__box_text_pos], __box_vector2d_y, y);
+    text[__box_text_pos][__box_vector2d_x] = x;
+    text[__box_text_pos][__box_vector2d_y] = y;
 }
 
 func draw() {
@@ -98,7 +98,7 @@ func draw() {
     fps += 1;
     let fps_now = sys_perf();
     if (fps_now - fps_last >= 1) {
-        list_set(text_fps, __box_text_text, "FPS: " + as_str(fps));
+        text_fps[__box_text_text] = "FPS: " + as_str(fps);
         fps = 0;
         fps_last = fps_now;
     }

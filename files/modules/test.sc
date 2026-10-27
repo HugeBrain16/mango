@@ -46,7 +46,7 @@ func test_add(fn) {
 }
 
 func test_add_by_prefix(prefix) {
-	let vars = internal_getvars("function");
+	let vars = internal_getvars("function", false);
 	for (let i = 0; i < sizeof(vars); i += 1) {
 		let name = internal_getname(vars[i]);
 

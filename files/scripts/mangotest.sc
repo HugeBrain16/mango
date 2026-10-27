@@ -89,8 +89,16 @@ func mangotest_assigndiv() {
 }
 
 func mangotest_internals() {
-	let vars = internal_getvars(null);
+	let vars = internal_getvars(null, false);
 	return sizeof(vars) > 0;
+}
+
+func mangotest_internals_scoped() {
+	let x = 10;
+	let y = 10;
+
+	let vars = internal_getvars(null, true);
+	return sizeof(vars) == 2;
 }
 
 func mangotest_string_startswith() {
@@ -177,6 +185,38 @@ func mangotest_string_bool() {
 	let val2 = "no";
 
 	return string_bool(val1) == true && string_bool(val2) == false;
+}
+
+func mangotest_list_index_assign() {
+	let x = list_init();
+	list_push(x, 10);
+	list_push(x, 20);
+
+	x[1] = 50;
+
+	return x[0] == 10 && x[1] == 50;
+}
+
+func mangotest_list_index_assign_nested() {
+	let x = list_init();
+	list_push(x, 10);
+	list_push(x, 20);
+	list_push(x, x);
+
+	x[1] = 50;
+
+	return x[0] == 10 && x[1] == 50 && x[2][0] == 10 && x[2][1] == 50;
+}
+
+func mangotest_list_index_remove() {
+	let x = list_init();
+	list_push(x, 10);
+	list_push(x, 20);
+	list_push(x, 30);
+
+	delete x[1];
+
+	return sizeof(x) == 2 && x[0] == 10 && x[1] == 30;
 }
 
 test_init();
