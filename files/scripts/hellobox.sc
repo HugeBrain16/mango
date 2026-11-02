@@ -5,6 +5,7 @@ let vec = box_vector2d;
 
 let COLOR_BG = 0;
 let COLOR_FG = 0;
+let COLOR_CURSOR = color_rgb(255, 255, 255);
 
 let WIDTH = screen_width();
 let HEIGHT = screen_height();
@@ -22,6 +23,8 @@ let y = 0;
 let speed = 100;
 let dx = speed;
 let dy = speed;
+
+let cursor = null;
 
 let fps = 0;
 let fps_last = sys_perf();
@@ -46,6 +49,8 @@ func init() {
     text = box_text(vec(x, y), "Hello Box!", text_scale, COLOR_BG);
     text_width = get_width(text);
     text_height = font_height() * text_scale;
+
+    cursor = box_rect(vec(0, 0), 5, 5);
 
     text_fps = box_text(vec(0, 0), "FPS: " + as_str(fps), 1, COLOR_BG);
 
@@ -87,12 +92,23 @@ func update(dt) {
 
     text[__box_text_pos][__box_vector2d_x] = x;
     text[__box_text_pos][__box_vector2d_y] = y;
+
+    let mx = mouse_x();
+    let my = mouse_y();
+    if (mx >= 0 && mx + cursor[__box_rect_w] < WIDTH)
+        cursor[__box_rect_pos][__box_vector2d_x] = mx;
+    if (my >= 0 && my + cursor[__box_rect_h] < HEIGHT)
+        cursor[__box_rect_pos][__box_vector2d_y] = my;
+
+    if (mx > x && mx < x + text_width && my > y && my < y + text_height)
+        randomize_color();
 }
 
 func draw() {
     screen_clear(COLOR_BG);
     box_draw(text, COLOR_FG);
     box_draw(text_fps, text_fps_color);
+    box_draw(cursor, COLOR_CURSOR);
     screen_flush();
 
     fps += 1;

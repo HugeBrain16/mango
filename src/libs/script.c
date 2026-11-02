@@ -18,6 +18,7 @@
 #include "time.h"
 #include "ata.h"
 #include "font.h"
+#include "mouse.h"
 
 uint32_t script_exit = 0;
 
@@ -171,6 +172,11 @@ DEF_CALL(mem_used);
 DEF_CALL(font_width);
 DEF_CALL(font_height);
 DEF_CALL(key_down);
+DEF_CALL(mouse_x);
+DEF_CALL(mouse_y);
+DEF_CALL(mouse_middle);
+DEF_CALL(mouse_left);
+DEF_CALL(mouse_right);
 DEF_CALL(vm_mem_total);
 DEF_CALL(vm_mem_free);
 DEF_CALL(vm_mem_used);
@@ -271,6 +277,11 @@ typedef enum call {
     CALL_FONT_WIDTH,
     CALL_FONT_HEIGHT,
     CALL_KEY_DOWN,
+    CALL_MOUSE_X,
+    CALL_MOUSE_Y,
+    CALL_MOUSE_MIDDLE,
+    CALL_MOUSE_LEFT,
+    CALL_MOUSE_RIGHT,
     CALL_VM_MEM_TOTAL,
     CALL_VM_MEM_FREE,
     CALL_VM_MEM_USED,
@@ -346,6 +357,11 @@ static const script_builtin_entry_t builtins[CALL_E_COUNT] = {
     [CALL_SCREEN_DRAW_CHAR]  = { "screen_draw_char", call_screen_draw_char },
     [CALL_SCREEN_FLUSH]      = { "screen_flush",  call_screen_flush },
     [CALL_KEY_DOWN]          = { "key_down", call_key_down },
+    [CALL_MOUSE_X]           = { "mouse_x", call_mouse_x },
+    [CALL_MOUSE_Y]           = { "mouse_y", call_mouse_y },
+    [CALL_MOUSE_MIDDLE]      = { "mouse_middle", call_mouse_middle },
+    [CALL_MOUSE_LEFT]        = { "mouse_left", call_mouse_left },
+    [CALL_MOUSE_RIGHT]       = { "mouse_right", call_mouse_right },
     [CALL_PRINTCAP_INIT]     = { "printcap_init",  call_printcap_init },
     [CALL_PRINTCAP_GET]      = { "printcap_get",   call_printcap_get },
     [CALL_PRINTCAP_CLOSE]    = { "printcap_close", call_printcap_close },
@@ -1302,11 +1318,11 @@ static int node_istrue(script_node_t *node) {
                 return 0;
             break;
         case SCRIPT_INT:
-            if (node->literal.int_value <= 0)
+            if (node->literal.int_value == 0)
                 return 0;
             break;
         case SCRIPT_FLOAT:
-            if (node->literal.float_value <= 0)
+            if (node->literal.float_value == 0)
                 return 0;
             break;
     }
@@ -2439,6 +2455,51 @@ static script_stmt_t *parse_statement(script_token_t **token) {
 }
 
 /* ==== builtins ==== */
+
+static script_node_t *call_mouse_right(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(mouse_right);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_mouse_left(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(mouse_left);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_mouse_middle(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(mouse_middle);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_mouse_y(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(mouse_y);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
+
+static script_node_t *call_mouse_x(script_stmt_t *block, script_node_t *node) {
+    unused(block);
+
+    script_node_t *value = node_int(mouse_x);
+    value->lineno = node->lineno;
+    value->file = node->file;
+    return value;
+}
 
 static script_node_t *call_key_down(script_stmt_t *block, script_node_t *node) {
     unused(block);
@@ -4083,7 +4144,7 @@ static script_node_t *call_argv(script_stmt_t *block, script_node_t *node) {
 
     value->literal.list = list;
 
-    for (int i = 0; i < script_argc; i++)
+    for (size_t i = 0; i < script_argc; i++)
         list_push(list, node_string(script_argv[i]));
 
     return value;
@@ -5643,7 +5704,6 @@ static script_eval_t *eval_while(script_stmt_t *block, script_stmt_t *stmt) {
             return NULL;
         }
         env_reset(scope->block.env);
-        __asm__ volatile("sti");
 
         if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
             free_stmt(scope);
@@ -5700,7 +5760,6 @@ static script_eval_t *eval_for(script_stmt_t *block, script_stmt_t *stmt) {
             return NULL;
         }
         env_reset(scopescope->block.env);
-        __asm__ volatile("sti");
 
         if (eval->type == SCRIPT_EVAL_RETURN || script_should_exit) {
             free_stmt(scope);

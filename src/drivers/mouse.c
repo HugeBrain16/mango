@@ -110,7 +110,7 @@ void mouse_init() {
 
 void mouse_handle() {
     uint8_t byte = inb(PS2_DATA_PORT);
-    if (keyboard_mode != KEYBOARD_MODE_DESKTOP) return;
+    // if (keyboard_mode != KEYBOARD_MODE_DESKTOP && keyboard_mode != KEYBOARD_MODE_SCRIPT) return;
     if (mouse_update == 0 && !(byte & 0x08)) return;
 
     mouse_packet[mouse_update++] = byte;
