@@ -449,6 +449,8 @@ void strfmt(char *dest, const char *fmt, ...) {
                 f += skip;
             } else if (type == 's') {
                 const char *arg = va_arg(args, const char *);
+                if (!arg)
+                    arg = "(null)";
 
                 for (const char *p = arg; *p != '\0'; p++)
                     dest[i++] = *p;

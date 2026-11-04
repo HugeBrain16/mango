@@ -82,6 +82,7 @@
 #define SCRIPT_EVAL_BREAK    2
 #define SCRIPT_EVAL_CONTINUE 3
 #define SCRIPT_EVAL_INCLUDE  4
+#define SCRIPT_EVAL_ERROR    5
 
 #define SCRIPT_FUNC     0
 #define SCRIPT_NULL     1
@@ -131,10 +132,6 @@ typedef struct script_node {
     size_t lineno;
     int ref;
 
-    struct script_node *parent;
-    struct script_node *head;
-    struct script_node *next;
-
     union {
         struct {
             uint8_t op;
@@ -143,13 +140,15 @@ typedef struct script_node {
         } binop;
 
         struct {
-            char *str_value;
             size_t str_size;
-            int int_value;
-            double float_value;
-            fio_t *file;
-            list_t *list;
-            script_stmt_t *func;
+            union {
+                char *str_value;
+                int int_value;
+                double float_value;
+                fio_t *file;
+                list_t *list;
+                script_stmt_t *func;
+            };
         } literal;
 
         struct {
@@ -237,7 +236,7 @@ typedef struct {
 } script_runtime_t;
 
 typedef struct {
-    size_t type;
+    uint8_t type;
     script_node_t *node;
 } script_eval_t;
 
