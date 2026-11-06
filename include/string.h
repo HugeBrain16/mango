@@ -34,6 +34,7 @@ extern void strtrim(char *str);
 extern void strfmt(char *dest, const char *fmt, ...);
 extern void strdouble(char *dest, double value, int precision);
 extern int strcmp(const char *a, const char *b);
+extern int strncmp(const char *a, const char *b, size_t count);
 extern int isalpha(char c);
 extern int isupalpha(char c);
 extern int islowalpha(char c);

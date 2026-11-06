@@ -21,6 +21,8 @@
 #include "desktop.h"
 #include "media.h"
 #include "modules.h"
+#include "exec.h"
+#include "paging.h"
 #include <external/spng/spng.h>
 
 #define MINIMP3_NO_SIMD
@@ -1004,6 +1006,53 @@ static int command_exit(int argc, char *argv[]) {
     return 0;
 }
 
+static int command_exec(int argc, char *argv[]) {
+    if (nodisk()) return 1;
+
+    if (argc < 1) {
+        term_write("Usage: exec <path>");
+        return 1;
+    }
+
+    uint32_t file_sector = file_get_node(argv[0]);
+    if (!file_sector) {
+        term_write("Not found!");
+        return 1;
+    }
+
+    file_node_t file;
+    file_node(file_sector, &file);
+
+    if (!(file.flags & FILE_DATA)) {
+        term_write("Not a file!");
+        return 1;
+    }
+
+    uint32_t table[1024] __attribute__((aligned(4096)));
+
+    exec_t exec;
+    uint8_t *buf = file_read(file_sector);
+    memcpy(&exec, buf, sizeof(exec_t));
+
+    if (exec.magic != EXEC_MAGIC) {
+        term_write("Not an executable.");
+        heap_free(buf);
+        return 1;
+    }
+
+    uint8_t *content = heap_alloc_aligned(file.size, 4096);
+    memset(content, 0, file.size);
+    memcpy(content, buf, file.size);
+    heap_free(buf);
+
+    page_map_virtual(EXEC_BASE, (uint32_t)content, table);
+    int ret = exec_call(exec.entry);
+
+    page_unmap(EXEC_BASE);
+    heap_free_aligned(content);
+    return ret;
+}
+
 typedef int (*command_t)(int, char**);
 typedef struct {
     const char *name;
@@ -1045,6 +1094,7 @@ static commands_t commands[] = {
     { "meminfo", command_meminfo },
     { "desktop", command_desktop },
     { "exit", command_exit },
+    { "exec", command_exec },
 };
 
 int command_handle(char *command, int printprompt) {

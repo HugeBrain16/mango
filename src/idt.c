@@ -8,12 +8,15 @@
 #include "rtc.h"
 #include "sound.h"
 #include "mouse.h"
+#include "syscall.h"
 
 static idt_entry_t idt[256];
 static idt_ptr_t idt_ptr;
 
-extern void *isr_stub_table[];
+extern void *exception_stub_table[];
 extern void *irq_stub_table[];
+extern void *isr_table[];
+extern void *isr_table_end[];
 
 void sti() {
     __asm__ volatile("sti");
@@ -75,15 +78,15 @@ void idt_init() {
     idt_ptr.size = 0xfff;
     idt_ptr.offset = (uint32_t) &idt[0];
 
-    for (uint8_t vector = 0; vector < 32; vector++) {
-        set_idt_entry(vector, isr_stub_table[vector], 0x8E);
-    }
+    for (uint8_t vector = 0; vector < 32; vector++)
+        set_idt_entry(vector, exception_stub_table[vector], 0x8E);
 
     pic_remap(32, 40);
 
-    for (uint8_t vector = 0; vector < 16; vector++) {
+    for (uint8_t vector = 0; vector < 16; vector++)
         set_idt_entry(32 + vector, irq_stub_table[vector], 0x8E);
-    }
+    for (uint8_t vector = 0; vector < isr_table_end - isr_table; vector++)
+        set_idt_entry(48 + vector, isr_table[vector], 0x8E);
 
     outb(PIC1_DATA, 0xFF);
     outb(PIC2_DATA, 0xFF);
@@ -143,4 +146,10 @@ void irq_handler(int_frame_t *frame) {
     else if (irq == 12) mouse_handle();
     else if (irq == 8) rtc_handle();
     else if (irq == sound_irq) sound_handle();
+}
+
+void isr_handler(int_frame_t *frame) {
+    uint8_t isr = frame->vector - 48;
+
+    if (isr == 0) syscall_handle(frame);
 }

@@ -194,7 +194,7 @@ void strncpy(char *dest, const char *src, size_t size) {
     if (size == 0)
         return;
 
-    while (i < size - 1 && src[i]) {
+    while (i < size && src[i]) {
         dest[i] = src[i];
         i++;
     }
@@ -525,6 +525,20 @@ int strcmp(const char *a, const char *b) {
     }
 
     return (unsigned char)*a - (unsigned char)*b;
+}
+
+int strncmp(const char *a, const char *b, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        unsigned char ca = (unsigned char)a[i];
+        unsigned char cb = (unsigned char)b[i];
+
+        if (ca != cb)
+            return ca < cb ? -1 : 1;
+        if (ca == '\0')
+            return 0;
+    }
+
+    return 0;
 }
 
 size_t digitslen(int n) {

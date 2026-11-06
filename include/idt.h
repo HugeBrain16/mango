@@ -18,9 +18,10 @@ typedef struct idt_ptr {
 
 typedef struct int_frame {
     uint32_t gs, fs, es, ds;
-    uint32_t ebp, edi, esi, edx, ecx, ebx, eax;
+    uint32_t edi, esi, ebp, esp;
+    uint32_t ebx, edx, ecx, eax;
     uint32_t vector, error_code;
-    uint32_t eip, cs, eflags, esp, ss;
+    uint32_t eip, cs, eflags;
 } __attribute__((packed)) int_frame_t;
 
 extern void cli();

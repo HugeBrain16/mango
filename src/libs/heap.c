@@ -34,6 +34,19 @@ void heap_set_state(heap_state_t *state) {
     block_tail = state->block_tail;
 }
 
+void *heap_alloc_aligned(size_t size, size_t align) {
+    uint8_t *raw = heap_alloc(size + align + sizeof(void*));
+    if (!raw) return NULL;
+
+    uint8_t *ptr = (uint8_t*)(((uint32_t)raw + sizeof(void*) + align - 1) & ~(align - 1));
+    ((void**)ptr)[-1] = raw; // remember the real pointer
+    return ptr;
+}
+
+void heap_free_aligned(void *ptr) {
+    if (ptr) heap_free(((void**)ptr)[-1]);
+}
+
 void heap_init(multiboot_info_t *mbi) {
     extern uint8_t _kernel_end;
 
@@ -55,10 +68,9 @@ void heap_init(multiboot_info_t *mbi) {
                     continue;
 
                 uint32_t *table;
-                if (table_index >= 4) {
-                    void *ptr = heap_alloc(sizeof(uint32_t) * 1024 + 4096);
-                    table = (uint32_t*)(((uint32_t)ptr + 4095) & ~4095);
-                } else
+                if (table_index >= 4)
+                    table = heap_alloc_aligned(sizeof(uint32_t) * 1024, 4096);
+                else
                     table = alloc_init_table();
                 page_map_physical(addr, table);
             }

@@ -31,10 +31,12 @@ extern block_t *block_tail;
 
 extern void heap_init(multiboot_info_t *mbi);
 extern void *heap_alloc(size_t size);
+extern void *heap_alloc_aligned(size_t size, size_t align);
 extern void *heap_realloc(void *ptr, size_t size);
 extern void *heap_calloc(size_t base, size_t size);
 extern void *heap_grow(void *ptr, size_t size);
 extern void heap_free(void *ptr);
+extern void heap_free_aligned(void *ptr);
 extern size_t heap_free_bytes();
 extern size_t heap_used_bytes();
 extern void heap_stat(size_t *used, size_t *usable, size_t *free, int *blocks);
