@@ -419,6 +419,7 @@ static int command_copyfile(int argc, char *argv[]) {
     }
 
     int exit = 0;
+    char *data = NULL;
 
     char *dest_parent = heap_alloc(FILE_MAX_PATH - FILE_MAX_NAME);
     char *dest_basename = heap_alloc(FILE_MAX_NAME);
@@ -444,6 +445,15 @@ static int command_copyfile(int argc, char *argv[]) {
     file_node_t dest_node;
     file_node(dest, &dest_node);
 
+    size_t data_size = (size_t) src_node.size + 1;
+    data = heap_alloc(data_size);
+    if (!data) {
+        term_write("Out of memory!\n");
+        exit = 1;
+        goto cleanup;
+    }
+    file_read(src, data, data_size);
+
     if (dest) {
         if ((dest_node.flags & FILE_FOLDER)) {
             file_create(dest, src_node.name);
@@ -451,9 +461,7 @@ static int command_copyfile(int argc, char *argv[]) {
             file_node(dest, &dest_node);
         }
 
-        char *data = file_read(src);
         file_write(dest, data, src_node.size);
-        heap_free(data);
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) {
             term_write("File name is too long!\n");
@@ -465,12 +473,11 @@ static int command_copyfile(int argc, char *argv[]) {
         dest = file_get(dest_parent_node, dest_basename);
         file_node(dest, &dest_node);
 
-        char *data = file_read(src);
         file_write(dest, data, src_node.size);
-        heap_free(data);
     }
 
 cleanup:
+    heap_free(data);
     heap_free(dest_parent);
     heap_free(dest_basename);
 
@@ -569,7 +576,14 @@ static int command_copyfolder(int argc, char *argv[]) {
         file_create(dest, child_node.name);
 
         uint32_t dest_child = file_get(dest, child_node.name);
-        char *data = file_read(child);
+        size_t data_size = (size_t) child_node.size + 1;
+        char *data = heap_alloc(data_size);
+        if (!data) {
+            term_write("Out of memory!\n");
+            exit = 1;
+            break;
+        }
+        file_read(child, data, data_size);
         file_write(dest_child, data, child_node.size);
         heap_free(data);
 
@@ -714,10 +728,14 @@ static int command_printfile(int argc, char *argv[]) {
         return 1;
     }
 
-    char *file_content = file_read(file_sector);
-    term_write(file_content);
+    size_t content_size = (size_t) file.size + 1;
+    char *content = heap_alloc(content_size);
+    if (!content) return 1;
 
-    heap_free(file_content);
+    file_read(file_sector, content, content_size);
+    term_write(content);
+    heap_free(content);
+
     return 0;
 }
 
@@ -847,13 +865,20 @@ static int command_viewimage(int argc, char *argv[]) {
         return 1;
     }
 
-    char *content = file_read(file_sector);
+    size_t content_size = (size_t) file.size + 1;
+    char *content = heap_alloc(content_size);
+    if (!content) return 1;
+
+    file_read(file_sector, content, content_size);
     image_t *image = image_png(content, file.size);
+    heap_free(content);
+
+    if (!image)
+        return 1;
 
     screen_draw_rgba(image->data, image->size, 0, term_y + (FONT_HEIGHT * screen_scale), image->width, image->height, 0);
     term_y += image->height + (FONT_HEIGHT * screen_scale);
 
-    heap_free(content);
     image_free(image);
     return 0;
 }
@@ -880,13 +905,19 @@ static int command_playaudio(int argc, char *argv[]) {
         return 1;
     }
 
-    uint8_t *mp3_data = (uint8_t*)file_read(file_sector);
+    size_t mp3_buffer_size = (size_t) file.size + 1;
+    uint8_t *mp3_buff = heap_alloc(mp3_buffer_size);
+    if (!mp3_buff) return 1;
+
+    uint8_t *mp3_data = mp3_buff;
+    file_read(file_sector, (char*) mp3_buff, mp3_buffer_size);
     uint32_t mp3_size = file.size;
 
     mp3dec_t *decoder = heap_alloc(sizeof(mp3dec_t));
     mp3dec_init(decoder);
 
-    int16_t *pcm_buff = heap_alloc(mp3_size * 12);
+    size_t pcm_size = mp3_size * 12;
+    int16_t *pcm_buff = heap_alloc(pcm_size);
     uint32_t pcm_total = 0;
 
     mp3dec_frame_info_t info;
@@ -897,6 +928,13 @@ static int command_playaudio(int argc, char *argv[]) {
         if (samples == 0 || info.frame_bytes == 0) break;
 
         uint32_t count = samples * info.channels;
+
+        if (pcm_total + count > pcm_size) {
+            int16_t *new_pcm = heap_realloc(pcm_buff, (pcm_size *= 2) * sizeof(*pcm_buff));
+            if (!new_pcm)
+                break;
+            pcm_buff = new_pcm;
+        }
         memcpy(pcm_buff + pcm_total, frame_buf, count * 2);
         pcm_total += count;
 
@@ -904,6 +942,7 @@ static int command_playaudio(int argc, char *argv[]) {
         mp3_size -= info.frame_bytes;
     }
 
+    heap_free(mp3_buff);
     heap_free(frame_buf);
     heap_free(decoder);
     sound_play_pcm(pcm_buff, pcm_total);
@@ -1030,8 +1069,18 @@ static int command_exec(int argc, char *argv[]) {
 
     uint32_t table[1024] __attribute__((aligned(4096)));
 
+    if (file.size < sizeof(exec_t)) {
+        term_write("Not an executable.");
+        return 1;
+    }
+
+    size_t buf_size = (size_t) file.size + 1;
+    char *buf = heap_alloc(buf_size);
+    if (!buf) return 1;
+
+    file_read(file_sector, buf, buf_size);
+
     exec_t exec;
-    uint8_t *buf = file_read(file_sector);
     memcpy(&exec, buf, sizeof(exec_t));
 
     if (exec.magic != EXEC_MAGIC) {
@@ -1041,6 +1090,10 @@ static int command_exec(int argc, char *argv[]) {
     }
 
     uint8_t *content = heap_alloc_aligned(file.size, 4096);
+    if (!content) {
+        heap_free(buf);
+        return 1;
+    }
     memset(content, 0, file.size);
     memcpy(content, buf, file.size);
     heap_free(buf);

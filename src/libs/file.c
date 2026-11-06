@@ -229,29 +229,35 @@ int file_write(uint32_t sector, const char *data, size_t size) {
     return 1;
 }
 
-char *file_read(uint32_t sector) {
+int file_read(uint32_t sector, char *buffer, size_t capacity) {
+    if (!buffer || capacity == 0)
+        return 0;
+
     file_node_t file;
     file_node(sector, &file);
 
-    size_t offset = 0;
-    char *buffer = heap_alloc(file.size + 1);
-    buffer[file.size] = '\0';
+    size_t limit = file.size;
+    if (limit > capacity - 1)
+        limit = capacity - 1;
 
+    size_t offset = 0;
     uint32_t current = file.first_block;
-    while (current && offset < file.size) {
+    while (current && offset < limit) {
         file_data_t block;
         file_data(current, &block);
 
-        size_t remaining = file.size - offset;
-        size_t size = remaining < sizeof(block.data) ? remaining : sizeof(block.data);
+        size_t chunk = limit - offset;
+        if (chunk > sizeof(block.data))
+            chunk = sizeof(block.data);
 
-        memcpy(buffer + offset, block.data, size);
-        offset += size;
+        memcpy(buffer + offset, block.data, chunk);
+        offset += chunk;
 
         current = block.next;
     }
 
-    return buffer;
+    buffer[offset] = '\0';
+    return (int) offset;
 }
 
 int file_split_path(const char *path, char *out_parent, char *out_name) {

@@ -97,7 +97,7 @@ extern void file_sector_free(uint32_t sector);
 extern uint32_t file_sector_alloc();
 
 extern int file_write(uint32_t sector, const char *data, size_t size);
-extern char *file_read(uint32_t sector);
+extern int file_read(uint32_t sector, char *buffer, size_t capacity);
 
 extern int file_path_isfile(const char *path);
 extern int file_path_isfolder(const char *path);

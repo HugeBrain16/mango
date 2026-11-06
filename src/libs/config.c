@@ -37,8 +37,17 @@ static void config_parse(string_t *line, string_t *name, string_t *value) {
 int config_has(const char *path, const char *name) {
 	if (!file_is_ready() || !file_path_isfile(path)) return 0;
 
-	char *buffer = file_read(file_get_node(path));
+	uint32_t file_sector = file_get_node(path);
+	file_node_t file;
+	file_node(file_sector, &file);
+
+	size_t buffer_size = (size_t) file.size + 1;
+	char *buffer = heap_alloc(buffer_size);
+	if (!buffer) return 0;
+
+	file_read(file_sector, buffer, buffer_size);
 	list_t *lines = readlines(buffer);
+	heap_free(buffer);
 	for (size_t i = 0; i < lines->size; i++) {
 		string_t *line = (string_t*) list_get(lines, i);
 
@@ -51,7 +60,6 @@ int config_has(const char *path, const char *name) {
 		if (!strcmp(line_name->value, name)) {
 			string_free(line_name);
 			lines_free(lines);
-			heap_free(buffer);
 			return 1;
 		}
 
@@ -59,15 +67,23 @@ int config_has(const char *path, const char *name) {
 	}
 
 	lines_free(lines);
-	heap_free(buffer);
 	return 0;
 }
 
 char *config_get(const char *path, const char *name) {
 	if (!file_is_ready() || !file_path_isfile(path)) return NULL;
 
-	char *buffer = file_read(file_get_node(path));
+	uint32_t file_sector = file_get_node(path);
+	file_node_t file;
+	file_node(file_sector, &file);
+
+	size_t buffer_size = (size_t) file.size + 1;
+	char *buffer = heap_alloc(buffer_size);
+	if (!buffer) return NULL;
+
+	file_read(file_sector, buffer, buffer_size);
 	list_t *lines = readlines(buffer);
+	heap_free(buffer);
 	for (size_t i = 0; i < lines->size; i++) {
 		string_t *line = (string_t*) list_get(lines, i);
 		if (is_comment(line))
@@ -84,7 +100,6 @@ char *config_get(const char *path, const char *name) {
 			string_free(line_name);
 			string_free(line_value);
 			lines_free(lines);
-			heap_free(buffer);
 			return value;
 		}
 
@@ -93,6 +108,5 @@ char *config_get(const char *path, const char *name) {
 	}
 
 	lines_free(lines);
-	heap_free(buffer);
 	return NULL;
 }

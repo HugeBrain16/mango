@@ -220,11 +220,21 @@ void edit_init(uint32_t file_sector) {
     edit_saveas = 0;
 
     edit_node = file_sector;
-    if (file_sector != 0)
-        edit_buffer = file_read(file_sector);
-    else {
+    if (file_sector != 0) {
+        file_node_t file;
+        file_node(file_sector, &file);
+
+        size_t buffer_size = (size_t) file.size + 1;
+        edit_buffer = heap_alloc(buffer_size);
+        if (edit_buffer) {
+            file_read(file_sector, edit_buffer, buffer_size);
+        } else {
+            edit_buffer = heap_alloc(1);
+            if (edit_buffer) edit_buffer[0] = '\0';
+        }
+    } else {
         edit_buffer = heap_alloc(1);
-        memset(edit_buffer, 0, 1);
+        if (edit_buffer) edit_buffer[0] = '\0';
     }
     edit_pos = 0;
 
