@@ -158,6 +158,8 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
 
     screen_init_back_buffer();
     blog("[ INFO ] Initialized screen back buffer\n");
+    screen_init_rowdata();
+    blog("[ INFO ] Initialized screen rowdata array\n");
 
     char total_mem[16];
     unit_get_size((unsigned)heap_end, total_mem);

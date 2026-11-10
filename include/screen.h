@@ -5,8 +5,11 @@
 #include <stdint.h>
 #include "multiboot.h"
 
+#define SCREEN_ROW_DIRTY (1 << 0)
+
 extern uint32_t *screen_buffer;
 extern uint32_t *back_buffer;
+extern uint8_t *screen_rowdata;
 extern size_t back_buffer_size;
 
 extern int screen_width;
@@ -16,6 +19,7 @@ extern float screen_scale;
 
 extern void screen_init(multiboot_info_t *mbi);
 extern void screen_init_back_buffer();
+extern void screen_init_rowdata();
 extern int screen_get_pixel(int x, int y, uint32_t *color, int direct);
 extern void screen_draw_pixel(int x, int y, uint32_t color, int direct);
 extern void screen_draw_char(int x, int y, char c, uint32_t fg_color, uint32_t bg_color, float scale);

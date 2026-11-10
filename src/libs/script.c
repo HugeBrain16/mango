@@ -29,6 +29,7 @@ static uint32_t script_printfg = COLOR_WHITE;
 static uint32_t script_printbg = COLOR_BLACK;
 static uint32_t *script_screen_buffer = NULL;
 static size_t script_screen_buffer_size = 0;
+static uint8_t *script_screen_rowdata = NULL;
 static list_t *script_modules = NULL;
 static list_t *script_module_paths = NULL;
 static list_t *script_paths = NULL;
@@ -3897,9 +3898,11 @@ static script_node_t *call_screen_init(script_stmt_t *block, script_node_t *node
 
         script_vm2sys();
         script_screen_buffer = heap_alloc(script_screen_buffer_size * sizeof(uint32_t));
+        script_screen_rowdata = heap_alloc(screen_height);
+        memset(script_screen_rowdata, 0, screen_height);
         script_sys2vm();
 
-        memcpy(script_screen_buffer, screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
+        memcpy(script_screen_buffer, back_buffer ? back_buffer : screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
     } else {
         strfmt(script_errmsg, "Warning: Screen is already initialized. (line: %d)\nIn: %s\n", node->lineno, node->file);
         term_write(script_errmsg);
@@ -3955,8 +3958,10 @@ static script_node_t *call_screen_draw(script_stmt_t *block, script_node_t *node
     int y = ny->literal.int_value;
     int c = nc->literal.int_value;
 
-    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height)
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height) {
         script_screen_buffer[y * (screen_pitch / sizeof(uint32_t)) + x] = c;
+        script_screen_rowdata[y] |= SCREEN_ROW_DIRTY;
+    }
 
     return g_null;
 }
@@ -3993,8 +3998,13 @@ static script_node_t *call_screen_draw_char(script_stmt_t *block, script_node_t 
     int bg = nbg->literal.int_value;
     double scale = nsc->literal.float_value;
 
-    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height)
+    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height) {
+        uint8_t *global = screen_rowdata;
+
+        screen_rowdata = script_screen_rowdata;
         screen_draw_char2(x, y, c, fg, bg, scale, script_screen_buffer);
+        screen_rowdata = global;
+    }
 
     return g_null;
 }
@@ -4013,9 +4023,12 @@ static script_node_t *call_screen_clear(script_stmt_t *block, script_node_t *nod
         return NULL;
     }
 
-    size_t pixels = (screen_pitch / sizeof(uint32_t)) * screen_height;
-    for (size_t i = 0; i < pixels; i++)
+    size_t stride = screen_pitch / sizeof(uint32_t);
+    size_t pixels = stride * screen_height;
+    for (size_t i = 0; i < pixels; i++) {
         script_screen_buffer[i] = col->literal.int_value;
+        script_screen_rowdata[i / stride] |= SCREEN_ROW_DIRTY;
+    }
     return g_null;
 }
 
@@ -4028,7 +4041,18 @@ static script_node_t *call_screen_flush(script_stmt_t *block, script_node_t *nod
         return NULL;
     }
 
-    memcpy(back_buffer, script_screen_buffer, script_screen_buffer_size * sizeof(uint32_t));
+    size_t stride = screen_pitch / sizeof(uint32_t);
+    size_t rowsize = screen_width * sizeof(uint32_t);
+
+    for (int i = 0; i < screen_height; i++) {
+        if (script_screen_rowdata[i] & SCREEN_ROW_DIRTY) {
+            size_t offset = i * stride;
+            memcpy(back_buffer + offset, script_screen_buffer + offset, rowsize);
+            screen_rowdata[i] |= SCREEN_ROW_DIRTY;
+            script_screen_rowdata[i] &= ~SCREEN_ROW_DIRTY;
+        }
+    }
+
     screen_flush();
     return g_null;
 }
@@ -5559,6 +5583,7 @@ void script_run(const char *path, int argc, char *argv[]) {
     script_printbg = term_bg;
 
     script_screen_buffer = NULL;
+    script_screen_rowdata = NULL;
     script_screen_buffer_size = 0;
 
     script_tokenize_path = NULL;
@@ -5603,8 +5628,10 @@ cleanup:
     if (script_screen_buffer) {
         script_vm2sys();
         heap_free(script_screen_buffer);
+        heap_free(script_screen_rowdata);
         script_sys2vm();
         script_screen_buffer = NULL;
+        script_screen_rowdata = NULL;
         script_screen_buffer_size = 0;
     }
 
