@@ -152,11 +152,13 @@ void term_write(const char *text) {
                 screen_draw_char(term_x, term_y, ' ', term_fg, term_bg, screen_scale);
                 term_x += FONT_WIDTH * screen_scale;
             }
-        } else if (c != '\n')
+        } else if (c != '\n' && c != '\r')
             screen_draw_char(term_x, term_y, c, term_fg, term_bg, screen_scale); 
 
         if (c != '\b' && c != '\t')
             term_x += FONT_WIDTH * screen_scale;
+        if (c == '\r')
+            term_x = 0;
         if (c == '\n') {
             term_x = 0;
             term_y += FONT_HEIGHT * screen_scale;
