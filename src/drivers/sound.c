@@ -13,17 +13,19 @@
 #define RESET_POLL 0x2
 #define RESET_INT 0x3
 
-#define NAM_RESET 0x0
-#define NAM_MAS_VOL 0x2
+#define NAM_RESET 	0x00
+#define NAM_MAS_VOL 0x02
 #define NAM_PCM_VOL 0x18
-#define NAM_PCM_SR 0x2C
+#define NAM_EA 		0x28
+#define NAM_EA_CTRL 0x2A
+#define NAM_PCM_SR  0x2C
 
-#define NABM_GCR 0x2C
-#define NABM_CTRL 0x1B
-#define NABM_PCM_CTRL 0x16
-#define NABM_GSR 0x30
-#define NABM_BDBAR 0x10
-#define NABM_LVE 0x15
+#define NABM_GCR 		0x2C
+#define NABM_CTRL 		0x1B
+#define NABM_PCM_CTRL 	0x16
+#define NABM_GSR 		0x30
+#define NABM_BDBAR 		0x10
+#define NABM_LVE 		0x15
 
 pci_device_t *sound_device = NULL;
 int sound_irq = 0;
@@ -66,22 +68,17 @@ int sound_init() {
 
 	log("[ INFO ] PCM output channels: ");
 	uint8_t channels = (inl(nabm + NABM_GCR) >> 20) & 0x03;
-	if (channels == 0)
-		log("2 channels\n");
-	else if (channels == 1)
-		log("4 channels\n");
-	else if (channels == 2)
-		log("6 channels\n");
+	if (channels == 0)      log("2 channels\n");
+	else if (channels == 1) log("4 channels\n");
+	else if (channels == 2) log("6 channels\n");
 
 	log("[ INFO ] PCM output samples: ");
 	uint8_t samples = (inl(nabm + NABM_GCR) >> 22) & 0x03;
-	if (samples == 0)
-		log("16 samples\n");
-	else if (samples == 1)
-		log("20 samples\n");
+	if (samples == 0) 	   log("16 samples\n");
+	else if (samples == 1) log("20 samples\n");
 
 	outw(nam + NAM_PCM_VOL, 0);
-	outw(nam + NAM_PCM_SR, 48000);
+	sound_set_rate(48000);
 	sound_set_volume(0, 0);
 
 	sound_irq = pci_device_read(sound_device, 0, PCI_REG_INT) & 0xFF;
@@ -95,6 +92,20 @@ int sound_reset() {
 
 	outw(nam + NAM_RESET, 1);
 	return 1;
+}
+
+int sound_set_rate(uint32_t rate) {
+	if (!sound_device) return 0;
+
+	outw(nam + NAM_EA_CTRL, 1);
+	outw(nam + NAM_PCM_SR, rate);
+	return 1;
+}
+
+uint32_t sound_get_rate() {
+	if (!sound_device) return 0;
+
+	return inw(nam + NAM_PCM_SR);
 }
 
 int sound_get_volume(float *left, float *right) {
@@ -153,10 +164,7 @@ void sound_handle() {
 	outw(nabm + NABM_PCM_CTRL, 0x1C);
 
 	if (!pcm_buff || pcm_pos >= pcm_len) {
-		if (pcm_buff) {
-			heap_free(pcm_buff);
-			pcm_buff = NULL;
-		}
+		pcm_buff = NULL;
 		return;
 	}
 	bdl_current = !bdl_current;

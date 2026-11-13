@@ -16,6 +16,8 @@ extern int sound_init();
 extern int sound_reset();
 extern int sound_get_volume(float *left, float *right);
 extern int sound_set_volume(float left, float right);
+extern int sound_set_rate(uint32_t rate);
+extern uint32_t sound_get_rate();
 extern int sound_play(uint16_t *buffer, uint32_t samples);
 extern int sound_play_pcm(int16_t *buffer, uint32_t samples);
 extern void sound_handle();
