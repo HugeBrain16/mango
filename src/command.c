@@ -881,26 +881,21 @@ static int command_playaudio(int argc, char *argv[]) {
     uint8_t *mp3_data = (uint8_t*)file_read(file_sector);
     uint32_t mp3_size = file.size;
 
-    mp3dec_t *decoder = heap_alloc(sizeof(mp3dec_t));
-    mp3dec_init(decoder);
+    mp3dec_t decoder;
+    mp3dec_init(&decoder);
 
     mp3dec_frame_info_t info;
     int16_t *frame_buf = heap_alloc(MINIMP3_MAX_SAMPLES_PER_FRAME * sizeof(int16_t));
 
     int set_rate = 0;
     while (mp3_size > 0) {
-        int samples = mp3dec_decode_frame(decoder, mp3_data, mp3_size, frame_buf, &info);
+        int samples = mp3dec_decode_frame(&decoder, mp3_data, mp3_size, frame_buf, &info);
         if (samples == 0 || info.frame_bytes == 0) break;
 
         if (!set_rate) {
             sound_set_rate(info.hz);
             set_rate = 1;
         }
-
-        char msg[64];
-        strfmt(msg, "hz=%d ch=%d kbps=%d codec=%d\n", info.hz, info.channels, info.bitrate_kbps, sound_get_rate());
-        term_write(msg);
-        screen_flush();
 
         sound_play_pcm(frame_buf, samples * info.channels);
 
@@ -909,7 +904,6 @@ static int command_playaudio(int argc, char *argv[]) {
     }
 
     heap_free(frame_buf);
-    heap_free(decoder);
     return 0;
 }
 
