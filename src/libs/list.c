@@ -63,7 +63,13 @@ list_node_t *list_get_node(list_t *list, size_t index) {
 }
 
 void *list_get(list_t *list, size_t index) {
-    return list_get_node(list, index)->data;
+    void *data = NULL;
+
+    list_node_t *node = list_get_node(list, index);
+    if (node)
+        data = node->data;
+
+    return data;
 }
 
 int list_remove(list_t *list, size_t index) {
