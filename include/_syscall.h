@@ -7,6 +7,7 @@ enum Syscall {
     CALL_FILE_READ,
     CALL_SCREEN_FLUSH,
     CALL_SCREEN_DRAW,
+    CALL_SCREEN_INFO,
 };
 
 #endif
