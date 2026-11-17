@@ -44,6 +44,13 @@ static inline void screen_flush() {
     : "memory");
 }
 
+static inline void screen_clear(uint32_t color) {
+    asm volatile("int $0x30" ::
+        "a"(CALL_SCREEN_CLEAR),
+        "b"(color)
+    : "memory");
+}
+
 static inline void screen_draw(int x, int y, uint32_t color, int direct) {
     asm volatile("int $0x30" ::
         "a"(CALL_SCREEN_DRAW),

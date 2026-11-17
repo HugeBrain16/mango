@@ -4,7 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifndef MANGO_COMPAT
 #include "list.h"
+#endif
 
 extern void *memchr(const void *ptr, int value, size_t size);
 extern void *memset(void *bufptr, int value, size_t size);
@@ -45,6 +47,7 @@ extern int isbase2(char c);
 extern size_t digitslen(int n);
 extern void intpad(char *dest, int num, size_t n, char c);
 
+#ifndef MANGO_COMPAT
 typedef struct {
 	size_t size;
 	char *value;
@@ -62,6 +65,8 @@ extern void string_trim(string_t *string);
 extern void string_free(string_t *string);
 
 extern list_t *readlines(const char *buffer);
+#endif
+
 extern void unescape(char *buffer, const char *src, size_t size);
 
 #endif

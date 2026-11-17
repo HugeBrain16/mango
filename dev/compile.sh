@@ -16,7 +16,8 @@ if command -v ccache >/dev/null 2>&1; then
 fi
 CC="$CC i686-elf-gcc"
 
-CFLAGS="-std=gnu99 -ffreestanding -O3 -g -Wall -Wextra -fstack-protector -fno-align-functions"
+CFLAGS="$CFLAGS -DMANGO_COMPAT -std=gnu99 -ffreestanding -O3 -g -Wall -Wextra
+    -fno-align-functions -ffunction-sections -fdata-sections"
 DIR="$(mktemp -t mangoprog.XXXX -d)"
 
 compile() {
@@ -46,16 +47,18 @@ done
 echo "Objects ($OBJECTS )"
 echo "Linking program..."
 
-OUT="$(basename "${1%.*}").mx"
+OUT="$(basename "${1%.*}")"
 if [[ -v PROGRAM ]]; then
-    OUT="$PROGRAM.mx"
+    OUT="$PROGRAM"
 fi
 
-$CC -T dev/linker.ld -o $OUT -nostdlib $CFLAGS $OBJECTS
+$CC -T dev/linker.ld -o $DIR/$OUT.bin -nostdlib $CFLAGS -Wl,--gc-sections -Wl,--no-warn-rwx-segments $OBJECTS
 
 if [[ $? -ne 0 ]]; then
     exit 1
 fi
+
+i686-elf-objcopy -O binary $DIR/$OUT.bin $OUT.mx
 
 echo "Done! cleanup..."
 rm -r $DIR

@@ -1,6 +1,9 @@
 #include <stdarg.h>
 #include "string.h"
+
+#ifndef MANGO_COMPAT
 #include "heap.h"
+#endif
 
 void *memchr(const void *ptr, int value, size_t size) {
     const unsigned char *p = ptr;
@@ -595,6 +598,7 @@ int strhasc(char *src, char c) {
     return 0;
 }
 
+#ifndef MANGO_COMPAT
 string_t *string_init() {
     string_t *string = heap_alloc(sizeof(string_t));
     if (!string) return NULL;
@@ -699,6 +703,7 @@ list_t *readlines(const char *buffer) {
 
     return lines;
 }
+#endif
 
 void unescape(char *buffer, const char *src, size_t size) {
     int is_escaped = 0;
