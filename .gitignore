@@ -4,6 +4,7 @@
 *.img
 *.tar*
 *.log
+*.mx
 toolchain/*
 !toolchain/init.sh
 files/scripts/test.*.sc

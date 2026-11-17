@@ -2,12 +2,7 @@
 #include "string.h"
 #include "serial.h"
 #include "file.h"
-
-enum Call {
-    CALL_SERIAL_WRITE,
-    CALL_FILE_WRITE,
-    CALL_FILE_READ,
-};
+#include "screen.h"
 
 void syscall_handle(int_frame_t *frame) {
     switch (frame->eax) {
@@ -19,6 +14,12 @@ void syscall_handle(int_frame_t *frame) {
             break;
         case CALL_FILE_READ:
             file_read((uint32_t)frame->ebx, (char*)frame->ecx, (size_t)frame->edx);
+            break;
+        case CALL_SCREEN_FLUSH:
+            screen_flush();
+            break;
+        case CALL_SCREEN_DRAW:
+            screen_draw_pixel((int)frame->ebx, (int)frame->ecx, (uint32_t)frame->edx, (int)frame->esi);
             break;
     }
 }

@@ -1,0 +1,12 @@
+#ifndef _SYSCALL_H
+#define _SYSCALL_H
+
+enum Syscall {
+    CALL_SERIAL_WRITE,
+    CALL_FILE_WRITE,
+    CALL_FILE_READ,
+    CALL_SCREEN_FLUSH,
+    CALL_SCREEN_DRAW,
+};
+
+#endif
