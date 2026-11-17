@@ -6,6 +6,7 @@
 #include "desktop.h"
 #include "kernel.h"
 #include "script.h"
+#include "exec.h"
 
 int keyboard_shift = 0;
 int keyboard_ctrl = 0;
@@ -85,6 +86,11 @@ void keyboard_handle() {
         case KEYBOARD_MODE_SCRIPT:
         {
             script_handle_type(scancode);
+            break;
+        }
+        case KEYBOARD_MODE_PROG:
+        {
+            exec_handle_type(scancode);
             break;
         }
     }

@@ -1098,9 +1098,16 @@ static int command_exec(int argc, char *argv[]) {
     memcpy(content, buf, file.size);
     heap_free(buf);
 
-    page_map_virtual(EXEC_BASE, (uint32_t)content, table);
-    int ret = exec_call(exec.entry);
+    int prev = keyboard_mode;
+    keyboard_mode = KEYBOARD_MODE_PROG;
 
+    page_map_virtual(EXEC_BASE, (uint32_t)content, table);
+
+    __asm__ volatile("sti");
+    int ret = exec_call(exec.entry);
+    __asm__ volatile("cli");
+
+    keyboard_mode = prev;
     page_unmap(EXEC_BASE);
     heap_free_aligned(content);
     return ret;

@@ -1,5 +1,7 @@
 #include "exec.h"
 
+uint8_t exec_key = 0;
+
 uint32_t exec_call(uint32_t entry) {
     uint32_t ret;
 
@@ -19,4 +21,8 @@ uint32_t exec_call(uint32_t entry) {
     );
 
     return ret;
+}
+
+void exec_handle_type(uint8_t scancode) {
+    exec_key = scancode;
 }
