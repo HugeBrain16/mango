@@ -226,7 +226,13 @@ void edit_init(uint32_t file_sector) {
         edit_buffer = heap_alloc(1);
         memset(edit_buffer, 0, 1);
     }
+
     edit_pos = 0;
+    edit_cursor = 0;
+    edit_x = 0;
+    edit_y = 0;
+    edit_showfrom = 1;
+    edit_column = 0;
 
     int draw_x = 0;
     int draw_y = 0;
@@ -548,7 +554,7 @@ static void edit_handle_quit() {
 
 static void edit_handle_save() {
     if (edit_node != 0)
-        file_write(edit_node, edit_buffer, edit_cursor + 1);
+        file_write(edit_node, edit_buffer, edit_cursor);
     else {
         size_t size = FILE_MAX_NAME + FILE_MAX_PATH;
         edit_saveas_name = heap_alloc(size);

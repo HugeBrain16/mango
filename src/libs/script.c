@@ -2733,7 +2733,7 @@ static script_node_t *call_ata_size(script_stmt_t *block, script_node_t *node) {
     unused(block);
 
     uint8_t ata_id[512];
-    ata_identify(file_port, ata_id);
+    ata_identify(file_port, file_drive, ata_id);
     uint32_t sectors = ata_count_sectors((uint16_t*)ata_id);
 
     script_node_t *value = node_int(sectors * 512);

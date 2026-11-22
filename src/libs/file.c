@@ -13,9 +13,7 @@ int file_drive_status = FILE_DRIVE_UNSET;
 
 void file_read_sb(file_superblock_t *sb) {
     uint8_t buffer[512] = {0};
-    memset(sb, 0, sizeof(*sb));
-
-    if (!ata_read_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer))
+    if (!ata_read_sector(file_port, file_drive, FILE_SECTOR_SUPERBLOCK, buffer))
         return;
     memcpy(sb, buffer, sizeof(*sb));
 }
@@ -23,7 +21,7 @@ void file_read_sb(file_superblock_t *sb) {
 void file_write_sb(file_superblock_t *sb) {
     uint8_t buffer[512] = {0};
     memcpy(buffer, sb, sizeof(*sb));
-    ata_write_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer);
+    ata_write_sector(file_port, file_drive, FILE_SECTOR_SUPERBLOCK, buffer);
 }
 
 void file_format() {
@@ -34,14 +32,16 @@ void file_format() {
     sb.version = FILE_VERSION;
 
     uint8_t ata_id[512];
-    ata_identify(file_port, ata_id);
+    if (!ata_identify(file_port, file_drive, ata_id))
+        return; // to be checked later
+
     sb.sectors = ata_count_sectors((uint16_t*)ata_id);
     sb.free = FILE_SECTOR_ROOT + 1;
     sb.free_list = 0;
     sb.used = 2; // superblock + root
 
     memcpy(buffer, &sb, sizeof(sb));
-    ata_write_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer);
+    ata_write_sector(file_port, file_drive, FILE_SECTOR_SUPERBLOCK, buffer);
 
     file_node_t root = {0};
     root.time_created = datetime_packed();
@@ -54,7 +54,9 @@ void file_format() {
     root.first_block = 0;
     strcpy(root.name, "root");
     memcpy(buffer, &root, sizeof(root));
-    ata_write_sector(file_port, FILE_SECTOR_ROOT, buffer);
+    ata_write_sector(file_port, file_drive, FILE_SECTOR_ROOT, buffer);
+
+    ata_flush(file_port);
 }
 
 int file_is_formatted() {
@@ -100,7 +102,7 @@ int file_init(uint16_t base, uint8_t drive) {
     if (file_drive_status != FILE_DRIVE_ABSENT) {
         uint8_t ata_id[512];
 
-        if (!ata_identify(file_port, ata_id)) {
+        if (!ata_identify(file_port, file_drive, ata_id)) {
             file_drive_status = FILE_DRIVE_INCOMPATIBLE;
             log("[ WARNING ] ATA: Failed to identify drive.\n");
         } else {
@@ -160,9 +162,7 @@ uint32_t file_get(uint32_t parent, const char *name) {
 
 void file_node(uint32_t sector, file_node_t *node) {
     uint8_t buffer[512] = {0};
-    memset(node, 0, sizeof(*node));
-
-    if (!ata_read_sector(file_port, sector, buffer))
+    if (!ata_read_sector(file_port, file_drive, sector, buffer))
         return;
     memcpy(node, buffer, sizeof(file_node_t));
 }
@@ -170,14 +170,12 @@ void file_node(uint32_t sector, file_node_t *node) {
 void file_node_write(uint32_t sector, file_node_t *node) {
     uint8_t buffer[512];
     memcpy(buffer, node, sizeof(file_node_t));
-    ata_write_sector(file_port, sector, buffer);
+    ata_write_sector(file_port, file_drive, sector, buffer);
 }
 
 void file_data(uint32_t sector, file_data_t *data) {
     uint8_t buffer[512] = {0};
-    memset(data, 0, sizeof(*data));
-
-    if (!ata_read_sector(file_port, sector, buffer))
+    if (!ata_read_sector(file_port, file_drive, sector, buffer))
         return;
     memcpy(data, buffer, sizeof(file_data_t));
 }
@@ -185,7 +183,7 @@ void file_data(uint32_t sector, file_data_t *data) {
 void file_data_write(uint32_t sector, file_data_t *data) {
     uint8_t buffer[512];
     memcpy(buffer, data, sizeof(file_data_t));
-    ata_write_sector(file_port, sector, buffer);
+    ata_write_sector(file_port, file_drive, sector, buffer);
 }
 
 int file_write(uint32_t sector, const char *data, size_t size) {
@@ -215,7 +213,10 @@ int file_write(uint32_t sector, const char *data, size_t size) {
         if (written < size) {
             if (block.next == 0) {
                 uint32_t new_block = file_sector_alloc();
-                if (new_block == 0) return 0;
+                if (new_block == 0) {
+                    ata_flush(file_port);
+                    return 0;
+                }
 
                 block.next = new_block;
                 file_data_write(current, &block);
@@ -234,6 +235,7 @@ int file_write(uint32_t sector, const char *data, size_t size) {
     file.time_changed = datetime_packed();
     file_node_write(sector, &file);
 
+    ata_flush(file_port);
     return 1;
 }
 
@@ -440,10 +442,10 @@ int file_create(uint32_t parent, const char *name) {
     if (node_sector == 0 || data_sector == 0) {
         if (node_sector) file_sector_free(node_sector);
         if (data_sector) file_sector_free(data_sector);
+        ata_flush(file_port);
         return 0;
     }
 
-    file_superblock_t sb; file_read_sb(&sb);
     file_node_t file = {0};
     file.time_created = datetime_packed();
     file.time_changed = datetime_packed();
@@ -477,6 +479,7 @@ int file_create(uint32_t parent, const char *name) {
     data.next = 0;
     file_data_write(data_sector, &data);
 
+    ata_flush(file_port);
     return 1;
 }
 
@@ -517,6 +520,7 @@ int file_delete(uint32_t parent, const char *name) {
                 file_node_write(parent, &parent_node);
             }
 
+            ata_flush(file_port);
             return 1;
         }
 
@@ -569,9 +573,11 @@ int folder_create(uint32_t parent, const char *name) {
         return 0;
 
     uint32_t node_sector = file_sector_alloc();
-    if (node_sector == 0) return 0;
+    if (node_sector == 0) {
+        ata_flush(file_port);
+        return 0;
+    }
 
-    file_superblock_t sb; file_read_sb(&sb);
     file_node_t folder = {0};
     folder.time_created = datetime_packed();
     folder.time_changed = datetime_packed();
@@ -601,6 +607,7 @@ int folder_create(uint32_t parent, const char *name) {
     }
     file_node_write(node_sector, &folder);
 
+    ata_flush(file_port);
     return 1;
 }
 
@@ -625,12 +632,14 @@ int folder_delete(uint32_t parent, const char *name) {
 
                 while (current_file) {
                     file_node(current_file, &current_file_node);
+                    uint32_t next = current_file_node.child_next;
 
                     if (current_file_node.flags & FILE_DATA)
                         file_delete(current, current_file_node.name);
                     else
                         folder_delete(current, current_file_node.name);
-                    current_file = current_file_node.child_next;
+
+                    current_file = next;
                 }
             }
 
@@ -645,6 +654,7 @@ int folder_delete(uint32_t parent, const char *name) {
             }
 
             file_sector_free(current);
+            ata_flush(file_port);
             return 1;
         }
 
@@ -661,7 +671,7 @@ void file_sector_free(uint32_t sector) {
 
     uint8_t buffer[512] = {0};
     memcpy(buffer, &sb.free_list, sizeof(uint32_t));
-    ata_write_sector(file_port, sector, buffer);
+    ata_write_sector(file_port, file_drive, sector, buffer);
 
     sb.free_list = sector;
     sb.used--;
@@ -682,7 +692,7 @@ uint32_t file_sector_alloc() {
 
     if (sb.free_list != 0) {
         sector = sb.free_list;
-        if (!ata_read_sector(file_port, sector, buffer))
+        if (!ata_read_sector(file_port, file_drive, sector, buffer))
             return 0;
 
         uint32_t free;
@@ -698,13 +708,13 @@ uint32_t file_sector_alloc() {
     file_write_sb(&sb);
 
     memset(buffer, 0, sizeof(buffer));
-    ata_write_sector(file_port, sector, buffer);
+    ata_write_sector(file_port, file_drive, sector, buffer);
     return sector;
 }
 
 int file_drive_spec(drive_t *drive) {
     uint8_t ata_id[512];
-    if (!ata_identify(file_port, ata_id))
+    if (!ata_identify(file_port, file_drive, ata_id))
         return 0;
 
     uint16_t *w = (uint16_t*) ata_id;

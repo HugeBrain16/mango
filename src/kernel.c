@@ -193,6 +193,10 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         blog("[ WARNING ] Sound initialization failed!\n");
     }
 
+    // disable ATA interrupts, polling only
+    pic_mask(14);
+    pic_mask(15);
+
     file_init_by_slot(1);
 
     blog("[ INFO ] Initialization complete!\n");

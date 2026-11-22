@@ -22,9 +22,7 @@
 #define ATA_PORT_STATUS 	7
 #define ATA_PORT_COMMAND 	7
 
-#define ATA_CTRL_STATUS 0x3F6
-#define ATA_CTRL_DEVICE 0x3F6
-#define ATA_CTRL_DRIVE 	0x3F7
+#define ATA_CTRL(base) ((base) == ATA_PRIMARY ? 0x3F6 : 0x376)
 
 #define ATA_ERROR_AMNF 	(1 << 0) // address not found
 #define ATA_ERROR_TKZNF (1 << 1) // track zero not found
@@ -62,14 +60,16 @@ extern void ata_write(uint16_t base, uint16_t data);
 extern void ata_clear_lba(uint16_t base);
 extern void ata_set_lba(uint16_t base, uint32_t lba);
 extern void ata_wait_io(uint16_t base);
+extern int ata_wait_idle(uint16_t base);
 extern int ata_wait_ready(uint16_t base);
 extern int ata_wait_data(uint16_t base);
 extern void ata_select(uint16_t base, uint8_t drive);
-extern int ata_prepare(uint16_t base, uint32_t lba, uint8_t command);
-extern int ata_identify(uint16_t base, void *buffer);
-extern int ata_read_sector(uint16_t base, uint32_t lba, void *buffer);
-extern int ata_write_sector(uint16_t base, uint32_t lba, void *buffer);
+extern int ata_prepare(uint16_t base, uint8_t drive, uint32_t lba, uint8_t command);
+extern int ata_identify(uint16_t base, uint8_t drive, void *buffer);
+extern int ata_read_sector(uint16_t base, uint8_t drive, uint32_t lba, void *buffer);
+extern int ata_write_sector(uint16_t base, uint8_t drive, uint32_t lba, void *buffer);
 extern int ata_get_string(uint16_t *w, int start, int end, char *dest, size_t size);
 extern uint32_t ata_count_sectors(uint16_t *w);
+extern int ata_flush(uint16_t base);
 
 #endif

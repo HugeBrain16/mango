@@ -784,7 +784,7 @@ static int command_diskinfo(int argc, char *argv[]) {
     char buffer[64];
 
     uint8_t ata_id[512];
-    if (ata_identify(file_port, ata_id)) {
+    if (ata_identify(file_port, file_drive, ata_id)) {
         drive_t drive;
         file_drive_spec(&drive);
 
