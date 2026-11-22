@@ -70,5 +70,6 @@ extern int ata_identify(uint16_t base, void *buffer);
 extern int ata_read_sector(uint16_t base, uint32_t lba, void *buffer);
 extern int ata_write_sector(uint16_t base, uint32_t lba, void *buffer);
 extern int ata_get_string(uint16_t *w, int start, int end, char *dest, size_t size);
+extern uint32_t ata_count_sectors(uint16_t *w);
 
 #endif

@@ -3,6 +3,11 @@
 #include "pit.h"
 #include "string.h"
 
+#define CHECK_READY(base) if (!ata_wait_ready(base)) return 0
+
+static uint16_t last_id = 0;
+static uint32_t last_sectors_count = 0;
+
 uint16_t ata_port(uint16_t base, uint8_t port) {
     return (uint16_t) base + port;
 }
@@ -44,12 +49,23 @@ void ata_wait_io(uint16_t base) {
 
 int ata_wait_ready(uint16_t base) {
     uint32_t start = pit_ticks;
-    while (ata_status(base) & ATA_STATUS_BSY) {
+    while (1) {
+        uint8_t status = ata_status(base);
+
+        if (status == 0x00 || status == 0xFF)
+            return 0;
+        if (!(status & ATA_STATUS_BSY)) {
+            if (status & ATA_STATUS_ERR || status & ATA_STATUS_DF)
+                return 0;
+            if (status & ATA_STATUS_RDY)
+                return 1;
+        }
+
         if (pit_ticks - start > 1000)
             return 0;
     }
 
-    return 1;
+    return 0;
 }
 
 int ata_wait_data(uint16_t base) {
@@ -98,7 +114,35 @@ int ata_identify(uint16_t base, void *buffer) {
     return 1;
 }
 
+uint32_t ata_count_sectors(uint16_t *w) {
+    return w[49] & (1 << 9) ? (uint32_t)w[60] | ((uint32_t)w[61] << 16) : (uint32_t)w[1] * w[3] * w[6];
+}
+
+static int ata_lba_check(uint16_t base, uint32_t lba) {
+    uint8_t ata_id[512];
+    uint32_t sectors = 0;
+
+    if (last_id != base) {
+        if (!ata_identify(base, ata_id))
+            return 0;
+
+        sectors = ata_count_sectors((uint16_t*)ata_id);
+        if (sectors == 0)
+            return 0;
+
+        last_id = base;
+        last_sectors_count = sectors;
+    } else {
+        sectors = last_sectors_count;
+    }
+
+    return lba < sectors;
+}
+
 int ata_read_sector(uint16_t base, uint32_t lba, void *buffer) {
+    if (!ata_lba_check(base, lba))
+        return 0;
+
     if (!ata_prepare(base, lba, ATA_READ))
         return 0;
 
@@ -110,10 +154,15 @@ int ata_read_sector(uint16_t base, uint32_t lba, void *buffer) {
     for (int i = 0; i < 256; i++)
         word[i] = ata_read(base);
 
+    CHECK_READY(base);
+
     return 1;
 }
 
 int ata_write_sector(uint16_t base, uint32_t lba, void *buffer) {
+    if (!ata_lba_check(base, lba))
+        return 0;
+
     if (!ata_prepare(base, lba, ATA_WRITE))
         return 0;
 
@@ -125,7 +174,10 @@ int ata_write_sector(uint16_t base, uint32_t lba, void *buffer) {
     for (int i = 0; i < 256; i++)
         ata_write(base, word[i]);
 
+    CHECK_READY(base);
     ata_command(base, ATA_FLUSH);
+    CHECK_READY(base);
+
     ata_wait_io(base);
     ata_wait_ready(base);
 

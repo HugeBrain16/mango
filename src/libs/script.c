@@ -2734,8 +2734,7 @@ static script_node_t *call_ata_size(script_stmt_t *block, script_node_t *node) {
 
     uint8_t ata_id[512];
     ata_identify(file_port, ata_id);
-    uint16_t *w = (uint16_t*) ata_id;
-    uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
+    uint32_t sectors = ata_count_sectors((uint16_t*)ata_id);
 
     script_node_t *value = node_int(sectors * 512);
     value->lineno = node->lineno;

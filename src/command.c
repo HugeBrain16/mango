@@ -785,7 +785,6 @@ static int command_diskinfo(int argc, char *argv[]) {
 
     uint8_t ata_id[512];
     if (ata_identify(file_port, ata_id)) {
-        uint16_t *w = (uint16_t*) ata_id;
         drive_t drive;
         file_drive_spec(&drive);
 
@@ -804,7 +803,7 @@ static int command_diskinfo(int argc, char *argv[]) {
         term_write(drive.model);
         term_write("\n");
 
-        uint32_t sectors = (uint32_t)w[60] | ((uint32_t)w[61] << 16);
+        uint32_t sectors = ata_count_sectors((uint16_t*)ata_id);
         char disk_total[16];
         unit_get_size(sectors * 512, disk_total);
         strfmt(buffer, "SECTORS = %d (%s)\n", sectors, disk_total);

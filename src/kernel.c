@@ -32,6 +32,9 @@ string_t *boot_log = NULL;
 uintptr_t __stack_chk_guard;
 
 static void setup_log() {
+    if (!file_is_ready())
+        return;
+
     if (!file_path_isfile("/system/system.log")) {
         if (!file_path_isfolder("/system")) command_handle("newfolder /system", 0);
         command_handle("newfile /system/system.log", 0);
@@ -50,6 +53,9 @@ void log(const char *msg) {
         setup_log();
 
         fio_t *syslog = fio_open("/system/system.log", 'a');
+        if (!syslog)
+            return;
+
         fio_write(syslog, msg, strlen(msg));
         fio_close(syslog);
     }
@@ -166,8 +172,6 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
     strfmt(buffer, "[ INFO ] Memory: %s\n", total_mem);
     blog(buffer);
 
-    file_init_by_slot(1);
-
     pit_set_frequency(250);
     strfmt(buffer, "[ INFO ] PIT frequency: %d\n", pit_hz);
     blog(buffer);
@@ -189,12 +193,16 @@ void main(uint32_t magic, multiboot_info_t *mbi) {
         blog("[ WARNING ] Sound initialization failed!\n");
     }
 
+    file_init_by_slot(1);
+
     blog("[ INFO ] Initialization complete!\n");
 
     setup_log();
     fio_t *syslog = fio_open("/system/system.log", 'w');
-    fio_write(syslog, boot_log->value, boot_log->size);
-    fio_close(syslog);
+    if (syslog) {
+        fio_write(syslog, boot_log->value, boot_log->size);
+        fio_close(syslog);
+    }
     string_free(boot_log);
     boot_logging = 0;
     boot_status = 1;

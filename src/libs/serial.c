@@ -25,6 +25,8 @@ void serial_init() {
 
 void serial_putc(char c) {
     while ((inb(SERIAL_PORT + 5) & 0x20) == 0);
+    if (c == '\n')
+        outb(SERIAL_PORT, '\r');
     outb(SERIAL_PORT, c);
 }
 

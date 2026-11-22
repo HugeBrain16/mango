@@ -12,8 +12,11 @@ uint32_t file_current = 0;
 int file_drive_status = FILE_DRIVE_UNSET;
 
 void file_read_sb(file_superblock_t *sb) {
-    uint8_t buffer[512];
-    ata_read_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer);
+    uint8_t buffer[512] = {0};
+    memset(sb, 0, sizeof(*sb));
+
+    if (!ata_read_sector(file_port, FILE_SECTOR_SUPERBLOCK, buffer))
+        return;
     memcpy(sb, buffer, sizeof(*sb));
 }
 
@@ -32,8 +35,7 @@ void file_format() {
 
     uint8_t ata_id[512];
     ata_identify(file_port, ata_id);
-    uint16_t *w = (uint16_t*) ata_id;
-    sb.sectors = (uint32_t) w[60] | ((uint32_t) w[61] << 16);
+    sb.sectors = ata_count_sectors((uint16_t*)ata_id);
     sb.free = FILE_SECTOR_ROOT + 1;
     sb.free_list = 0;
     sb.used = 2; // superblock + root
@@ -56,7 +58,7 @@ void file_format() {
 }
 
 int file_is_formatted() {
-    file_superblock_t sb;
+    file_superblock_t sb = {0};
     file_read_sb(&sb);
 
     return sb.magic == FILE_MAGIC;
@@ -157,8 +159,11 @@ uint32_t file_get(uint32_t parent, const char *name) {
 }
 
 void file_node(uint32_t sector, file_node_t *node) {
-    uint8_t buffer[512];
-    ata_read_sector(file_port, sector, buffer);
+    uint8_t buffer[512] = {0};
+    memset(node, 0, sizeof(*node));
+
+    if (!ata_read_sector(file_port, sector, buffer))
+        return;
     memcpy(node, buffer, sizeof(file_node_t));
 }
 
@@ -169,8 +174,11 @@ void file_node_write(uint32_t sector, file_node_t *node) {
 }
 
 void file_data(uint32_t sector, file_data_t *data) {
-    uint8_t buffer[512];
-    ata_read_sector(file_port, sector, buffer);
+    uint8_t buffer[512] = {0};
+    memset(data, 0, sizeof(*data));
+
+    if (!ata_read_sector(file_port, sector, buffer))
+        return;
     memcpy(data, buffer, sizeof(file_data_t));
 }
 
@@ -674,7 +682,8 @@ uint32_t file_sector_alloc() {
 
     if (sb.free_list != 0) {
         sector = sb.free_list;
-        ata_read_sector(file_port, sector, buffer);
+        if (!ata_read_sector(file_port, sector, buffer))
+            return 0;
 
         uint32_t free;
         memcpy(&free, buffer, sizeof(uint32_t));
