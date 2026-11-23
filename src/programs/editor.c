@@ -13,7 +13,7 @@
 #include "command.h"
 #include "desktop.h"
 
-uint32_t edit_node = 0;
+file_pointer_t edit_node = {0};
 char *edit_buffer = NULL;
 size_t edit_pos = 0;
 size_t edit_cursor = 0;
@@ -67,9 +67,9 @@ static context_t get_context(void) {
 }
 
 static size_t get_block_size() {
-    if (edit_node != 0) {
+    if (!FILE_NULL(edit_node)) {
         file_node_t file;
-        file_node(edit_node, &file);
+        file_node(&edit_node, &file);
 
         file_data_t block;
         file_data(file.first_block, &block);
@@ -213,15 +213,15 @@ static int get_pos_at_column(int line_start, int column) {
 
 static void edit_statusbar_draw();
 
-void edit_init(uint32_t file_sector) {
+void edit_init(file_pointer_t file) {
     keyboard_mode = KEYBOARD_MODE_EDIT;
     screen_clear(EDITOR_BG);
 
     edit_saveas = 0;
 
-    edit_node = file_sector;
-    if (file_sector != 0)
-        edit_buffer = file_read(file_sector);
+    edit_node = file;
+    if (!FILE_NULL(file))
+        edit_buffer = file_read(&file);
     else {
         edit_buffer = heap_alloc(1);
         memset(edit_buffer, 0, 1);
@@ -304,8 +304,8 @@ static void edit_redraw_cursor(int hide) {
 
 static void edit_statusbar_draw() {
     file_node_t file;
-    if (edit_node != 0)
-        file_node(edit_node, &file);
+    if (!FILE_NULL(edit_node))
+        file_node(&edit_node, &file);
 
     int draw_x = 0;
     int draw_y = screen_height - (FONT_HEIGHT * screen_scale);
@@ -317,7 +317,7 @@ static void edit_statusbar_draw() {
         strfmt(status, "Save as: %s", edit_saveas_name ? edit_saveas_name : "");
     } else {
         strfmt(status, "%s | Line %d-%d | Chars %d | Pos %d | Save: Ctrl+s, Quit: Esc",
-            edit_node != 0 ? file.name : "Buffer",
+            !FILE_NULL(edit_node) ? file.name : "Buffer",
             get_line_count(edit_pos),
             get_line_count(edit_cursor),
             edit_cursor,
@@ -553,8 +553,8 @@ static void edit_handle_quit() {
 }
 
 static void edit_handle_save() {
-    if (edit_node != 0)
-        file_write(edit_node, edit_buffer, edit_cursor);
+    if (!FILE_NULL(edit_node))
+        file_write(&edit_node, edit_buffer, edit_cursor);
     else {
         size_t size = FILE_MAX_NAME + FILE_MAX_PATH;
         edit_saveas_name = heap_alloc(size);
@@ -610,8 +610,8 @@ void edit_handle_type(uint8_t scancode) {
         command_handle(cmd, 0);
         heap_free(cmd);
 
-        uint32_t node = file_get_node(edit_saveas_name);
-        if (node) {
+        file_pointer_t node = file_get_node(edit_saveas_name);
+        if (!FILE_NULL(node)) {
             edit_node = node;
             edit_saveas = 0;
             if (edit_saveas_name) {

@@ -291,7 +291,7 @@ void desktop_update() {
 			&& mouse_y > icon->y && mouse_y < icon->y + (int)icon->image->height + FONT_HEIGHT) {
 			if (!mouse_right && mouse_left && !mouse_middle) {
 				if (!strcmp(icon->name, "Editor")) {
-					edit_init(0);
+					edit_init((file_pointer_t){0});
 				} else if (!strcmp(icon->name, "Terminal")) {
 					term_init(TERM_DRAW_DEFAULT);
 				}

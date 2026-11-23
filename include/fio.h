@@ -11,7 +11,7 @@
 #define FIO_APPEND 97 // 'a' - append
 
 typedef struct {
-    uint32_t file;
+    file_pointer_t file;
     uint32_t seek;
     uint8_t mode;
     uint32_t last_sector;

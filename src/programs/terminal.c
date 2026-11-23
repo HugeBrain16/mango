@@ -423,7 +423,7 @@ void term_handle_type(uint8_t scancode) {
 
 void term_update_path() {
     if (config_has("/system/config/shell.cfg", "show_path"))
-        file_get_abspath(file_current, term_path, FILE_MAX_PATH);
+        file_get_abspath(&file_current, term_path, FILE_MAX_PATH);
 }
 
 void term_draw_prompt() {

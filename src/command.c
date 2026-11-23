@@ -114,20 +114,20 @@ static int command_list(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     static char buff[FILE_MAX_NAME + 16];
-    uint32_t parent;
+    file_pointer_t parent;
     file_node_t parent_node;
     if (argc > 0)
         parent = file_get_node(argv[0]);
     else
         parent = file_current;
-    file_node(parent, &parent_node);
+    file_node(&parent, &parent_node);
 
-    if (parent_node.child_head && (parent_node.flags & FILE_FOLDER)) {
-        uint32_t current = parent_node.child_head;
+    if (!FILE_NULL(parent_node.child_head) && (parent_node.flags & FILE_FOLDER)) {
+        file_pointer_t current = parent_node.child_head;
         file_node_t current_node;
 
-        while (current) {
-            file_node(current, &current_node);
+        while (!FILE_NULL(current)) {
+            file_node(&current, &current_node);
 
             if (current_node.flags & FILE_FOLDER) {
                 strfmt(buff, "%s/\n", current_node.name);
@@ -137,8 +137,8 @@ static int command_list(int argc, char *argv[]) {
         }
 
         current = parent_node.child_head;
-        while (current) {
-            file_node(current, &current_node);
+        while (!FILE_NULL(current)) {
+            file_node(&current, &current_node);
 
             if (current_node.flags & FILE_DATA) {
                 strfmt(buff, "%s\n", current_node.name);
@@ -146,7 +146,7 @@ static int command_list(int argc, char *argv[]) {
             }
             current = current_node.child_next;
         }
-    } else if (!parent || !(parent_node.flags & FILE_FOLDER)) {
+    } else if (FILE_NULL(parent) || !(parent_node.flags & FILE_FOLDER)) {
         term_write("Not a folder.\n");
         return 1;
     }
@@ -160,7 +160,7 @@ static int command_newfile(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc > 0) {
-        uint32_t parent;
+        file_pointer_t parent;
 
         int exit = 0;
 
@@ -173,14 +173,14 @@ static int command_newfile(int argc, char *argv[]) {
             else
                 parent = file_get_node(path_parent);
 
-            if (parent) {
+            if (!FILE_NULL(parent)) {
                 if (strlen(path_basename) > FILE_MAX_NAME) {
                     term_write("File name is too long!\n");
                     exit = 1;
-                } else if (file_exists(parent, path_basename)) {
+                } else if (file_exists(&parent, path_basename)) {
                     term_write("File with the same name already exist!\n");
                     exit = 1;
-                } else if (!file_create(parent, path_basename)) {
+                } else if (!file_create(&parent, path_basename)) {
                     term_write("Failed creating a new file!\n");
                     exit = 1;
                 }
@@ -206,17 +206,17 @@ static int command_delfile(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc > 0) {
-        uint32_t target = file_get_node(argv[0]);
+        file_pointer_t target = file_get_node(argv[0]);
 
-        if (!target) {
+        if (FILE_NULL(target)) {
             term_write("File not found!\n");
             return 1;
         }
 
         file_node_t target_node;
-        file_node(target, &target_node);
+        file_node(&target, &target_node);
 
-        if (!file_delete(target_node.parent, target_node.name)) {
+        if (!file_delete(&target_node.parent, target_node.name)) {
             term_write("Failed deleting file!\n");
             return 1;
         }
@@ -232,7 +232,7 @@ static int command_edit(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc > 0) {
-        uint32_t parent;
+        file_pointer_t parent;
 
         int exit = 0;
 
@@ -245,9 +245,9 @@ static int command_edit(int argc, char *argv[]) {
             else
                 parent = file_get_node(path_parent);
 
-            if (parent) {
-                if (file_exists(parent, path_basename)) {
-                    edit_init(file_get(parent, path_basename));
+            if (!FILE_NULL(parent)) {
+                if (file_exists(&parent, path_basename)) {
+                    edit_init(file_get(&parent, path_basename));
                 } else {
                     term_write("File does not exist!\n");
                     exit = 1;
@@ -265,7 +265,7 @@ static int command_edit(int argc, char *argv[]) {
         heap_free(path_basename);
         return exit;
     } else {
-        edit_init(0);
+        edit_init((file_pointer_t){0});
         return 0;
     }
 }
@@ -274,7 +274,7 @@ static int command_newfolder(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc > 0) {
-        uint32_t parent;
+        file_pointer_t parent;
 
         int exit = 0;
 
@@ -287,14 +287,14 @@ static int command_newfolder(int argc, char *argv[]) {
             else
                 parent = file_get_node(path_parent);
 
-            if (parent) {
+            if (!FILE_NULL(parent)) {
                 if (strlen(path_basename) > FILE_MAX_NAME) {
                     term_write("Folder name is too long!\n");
                     exit = 1;
-                } else if (folder_exists(parent, path_basename)) {
+                } else if (folder_exists(&parent, path_basename)) {
                     term_write("Folder with the same name already exist!\n");
                     exit = 1;
-                } else if (!folder_create(parent, path_basename)) {
+                } else if (!folder_create(&parent, path_basename)) {
                     term_write("Failed creating a new folder!\n");
                     exit = 1;
                 }
@@ -320,12 +320,12 @@ static int command_delfolder(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc > 0) {
-        uint32_t target = file_get_node(argv[0]);
+        file_pointer_t target = file_get_node(argv[0]);
         file_node_t target_node;
-        file_node(target, &target_node);
+        file_node(&target, &target_node);
 
-        if (target != FILE_SECTOR_ROOT) {
-            if (!folder_delete(target_node.parent, target_node.name)) {
+        if (!FILE_EQ(target, FILE_ROOT)) {
+            if (!folder_delete(&target_node.parent, target_node.name)) {
                 term_write("Failed deleting folder!\n");
                 return 1;
             }
@@ -345,11 +345,11 @@ static int command_goto(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     if (argc > 0) {
-        uint32_t target = file_get_node(argv[0]);
+        file_pointer_t target = file_get_node(argv[0]);
         file_node_t target_node;
-        file_node(target, &target_node);
+        file_node(&target, &target_node);
 
-        if (target && (target_node.flags & FILE_FOLDER)) {
+        if (!FILE_NULL(target) && (target_node.flags & FILE_FOLDER)) {
             file_current = target;
             return 0;
         } else {
@@ -368,9 +368,9 @@ static int command_goup(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     file_node_t parent_node;
-    file_node(file_current, &parent_node);
+    file_node(&file_current, &parent_node);
 
-    if (parent_node.parent) {
+    if (!FILE_NULL(parent_node.parent)) {
         file_current = parent_node.parent;
         return 0;
     } else {
@@ -385,7 +385,7 @@ static int command_whereami(int argc, char *argv[]) {
     if (nodisk()) return 1;
 
     char *path = heap_alloc(FILE_MAX_PATH);
-    file_get_abspath(file_current, path, FILE_MAX_PATH);
+    file_get_abspath(&file_current, path, FILE_MAX_PATH);
 
     term_write(path);
     term_write("\n");
@@ -402,11 +402,11 @@ static int command_copyfile(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t src = file_get_node(argv[0]);
+    file_pointer_t src = file_get_node(argv[0]);
     file_node_t src_node;
-    file_node(src, &src_node);
+    file_node(&src, &src_node);
 
-    if (!src) {
+    if (FILE_NULL(src)) {
         term_write("Source file doesn't exist!\n");
         return 1;
     }
@@ -426,31 +426,31 @@ static int command_copyfile(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    uint32_t dest_parent_node;
+    file_pointer_t dest_parent_node;
     if (dest_parent[0] == '\0')
         dest_parent_node = file_current;
     else
         dest_parent_node = file_get_node(dest_parent);
 
-    if (!dest_parent_node) {
+    if (FILE_NULL(dest_parent_node)) {
         term_write("Parent folder doesn't exist!\n");
         exit = 1;
         goto cleanup;
     }
 
-    uint32_t dest = file_get_node2(dest_parent, dest_basename);
+    file_pointer_t dest = file_get_node2(dest_parent, dest_basename);
     file_node_t dest_node;
-    file_node(dest, &dest_node);
+    file_node(&dest, &dest_node);
 
-    if (dest) {
+    if (!FILE_NULL(dest)) {
         if ((dest_node.flags & FILE_FOLDER)) {
-            file_create(dest, src_node.name);
-            dest = file_get(dest, src_node.name);
-            file_node(dest, &dest_node);
+            file_create(&dest, src_node.name);
+            dest = file_get(&dest, src_node.name);
+            file_node(&dest, &dest_node);
         }
 
-        char *data = file_read(src);
-        file_write(dest, data, src_node.size);
+        char *data = file_read(&src);
+        file_write(&dest, data, src_node.size);
         heap_free(data);
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) {
@@ -459,12 +459,12 @@ static int command_copyfile(int argc, char *argv[]) {
             goto cleanup;
         }
 
-        file_create(dest_parent_node, dest_basename);
-        dest = file_get(dest_parent_node, dest_basename);
-        file_node(dest, &dest_node);
+        file_create(&dest_parent_node, dest_basename);
+        dest = file_get(&dest_parent_node, dest_basename);
+        file_node(&dest, &dest_node);
 
-        char *data = file_read(src);
-        file_write(dest, data, src_node.size);
+        char *data = file_read(&src);
+        file_write(&dest, data, src_node.size);
         heap_free(data);
     }
 
@@ -485,11 +485,11 @@ static int command_movefile(int argc, char *argv[]) {
 
     command_copyfile(argc, argv);
 
-    uint32_t src = file_get_node(argv[0]);
+    file_pointer_t src = file_get_node(argv[0]);
     file_node_t src_node;
-    file_node(src, &src_node);
+    file_node(&src, &src_node);
 
-    file_delete(src_node.parent, src_node.name);
+    file_delete(&src_node.parent, src_node.name);
     return 0;
 }
 
@@ -501,11 +501,11 @@ static int command_copyfolder(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t src = file_get_node(argv[0]);
+    file_pointer_t src = file_get_node(argv[0]);
     file_node_t src_node;
-    file_node(src, &src_node);
+    file_node(&src, &src_node);
 
-    if (!src) {
+    if (FILE_NULL(src)) {
         term_write("Source folder doesn't exist!\n");
         return 1;
     }
@@ -525,27 +525,27 @@ static int command_copyfolder(int argc, char *argv[]) {
         goto cleanup;
     }
 
-    uint32_t dest_parent_node;
+    file_pointer_t dest_parent_node;
     if (dest_parent[0] == '\0')
         dest_parent_node = file_current;
     else
         dest_parent_node = file_get_node(dest_parent);
 
-    if (!dest_parent_node) {
+    if (FILE_NULL(dest_parent_node)) {
         term_write("Parent folder doesn't exist!\n");
         exit = 1;
         goto cleanup;
     }
 
-    uint32_t dest = file_get_node2(dest_parent, dest_basename);
+    file_pointer_t dest = file_get_node2(dest_parent, dest_basename);
     file_node_t dest_node;
-    file_node(dest, &dest_node);
+    file_node(&dest, &dest_node);
 
-    if (dest) {
+    if (!FILE_NULL(dest)) {
         if (!(dest_node.flags & FILE_FOLDER)) {
-            folder_create(dest, src_node.name);
-            dest = folder_get(dest, src_node.name);
-            file_node(dest, &dest_node);
+            folder_create(&dest, src_node.name);
+            dest = folder_get(&dest, src_node.name);
+            file_node(&dest, &dest_node);
         }
     } else {
         if (strlen(dest_basename) > FILE_MAX_NAME) {
@@ -554,21 +554,21 @@ static int command_copyfolder(int argc, char *argv[]) {
             goto cleanup;
         }
 
-        folder_create(dest_parent_node, dest_basename);
-        dest = folder_get(dest_parent_node, dest_basename);
-        file_node(dest, &dest_node);
+        folder_create(&dest_parent_node, dest_basename);
+        dest = folder_get(&dest_parent_node, dest_basename);
+        file_node(&dest, &dest_node);
     }
 
-    uint32_t child = src_node.child_head;
+    file_pointer_t child = src_node.child_head;
     file_node_t child_node;
 
-    while (child) {
-        file_node(child, &child_node);
-        file_create(dest, child_node.name);
+    while (!FILE_NULL(child)) {
+        file_node(&child, &child_node);
+        file_create(&dest, child_node.name);
 
-        uint32_t dest_child = file_get(dest, child_node.name);
-        char *data = file_read(child);
-        file_write(dest_child, data, child_node.size);
+        file_pointer_t dest_child = file_get(&dest, child_node.name);
+        char *data = file_read(&child);
+        file_write(&dest_child, data, child_node.size);
         heap_free(data);
 
         child = child_node.child_next;
@@ -591,11 +591,11 @@ static int command_movefolder(int argc, char *argv[]) {
 
     command_copyfolder(argc, argv);
 
-    uint32_t src = file_get_node(argv[0]);
+    file_pointer_t src = file_get_node(argv[0]);
     file_node_t src_node;
-    file_node(src, &src_node);
+    file_node(&src, &src_node);
 
-    folder_delete(src_node.parent, src_node.name);
+    folder_delete(&src_node.parent, src_node.name);
     return 0;
 }
 
@@ -634,15 +634,15 @@ static int command_nodeinfo(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t node_sector = file_get_node(argv[0]);
-    if (!node_sector) {
+    file_pointer_t target = file_get_node(argv[0]);
+    if (FILE_NULL(target)) {
         term_write("Not found\n");
         return 1;
     }
 
     file_node_t node;
     file_data_t block;
-    file_node(node_sector, &node);
+    file_node(&target, &node);
     file_data(node.first_block, &block);
 
     char buff[128];
@@ -677,7 +677,9 @@ static int command_nodeinfo(int argc, char *argv[]) {
         day, month, dt.year);
     term_write(buff);
     
-    strfmt(buff, "SECTOR = %d\n", node_sector);
+    strfmt(buff, "SECTOR = %d\n", target.lba);
+    term_write(buff);
+    strfmt(buff, "OFFSET = %d\n", target.offset);
     term_write(buff);
     if (node.flags & FILE_FOLDER)
         strcpy(buff, "TYPE = FOLDER\n");
@@ -698,21 +700,21 @@ static int command_printfile(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t file_sector = file_get_node(argv[0]);
-    if (!file_sector) {
+    file_pointer_t target = file_get_node(argv[0]);
+    if (FILE_NULL(target)) {
         term_write("File not found!\n");
         return 1;
     }
 
     file_node_t file;
-    file_node(file_sector, &file);
+    file_node(&target, &file);
 
     if (!(file.flags & FILE_DATA)) {
         term_write("Not a file!\n");
         return 1;
     }
 
-    char *file_content = file_read(file_sector);
+    char *file_content = file_read(&target);
     term_write(file_content);
 
     heap_free(file_content);
@@ -727,14 +729,14 @@ static int command_run(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t file_sector = file_get_node(argv[0]);
-    if (!file_sector) {
+    file_pointer_t target = file_get_node(argv[0]);
+    if (FILE_NULL(target)) {
         term_write("File not found!\n");
         return 1;
     }
 
     file_node_t file;
-    file_node(file_sector, &file);
+    file_node(&target, &file);
 
     if (!(file.flags & FILE_DATA)) {
         term_write("Not a file!\n");
@@ -830,21 +832,21 @@ static int command_viewimage(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t file_sector = file_get_node(argv[0]);
-    if (!file_sector) {
+    file_pointer_t target = file_get_node(argv[0]);
+    if (FILE_NULL(target)) {
         term_write("Not found!");
         return 1;
     }
 
     file_node_t file;
-    file_node(file_sector, &file);
+    file_node(&target, &file);
 
     if (!(file.flags & FILE_DATA)) {
         term_write("Not a file!");
         return 1;
     }
 
-    char *content = file_read(file_sector);
+    char *content = file_read(&target);
     image_t *image = image_png(content, file.size);
 
     screen_draw_rgba(image->data, image->size, 0, term_y + (FONT_HEIGHT * screen_scale), image->width, image->height, 0);
@@ -863,21 +865,21 @@ static int command_playaudio(int argc, char *argv[]) {
         return 1;
     }
 
-    uint32_t file_sector = file_get_node(argv[0]);
-    if (!file_sector) {
+    file_pointer_t target = file_get_node(argv[0]);
+    if (FILE_NULL(target)) {
         term_write("Not found!");
         return 1;
     }
 
     file_node_t file;
-    file_node(file_sector, &file);
+    file_node(&target, &file);
 
     if (!(file.flags & FILE_DATA)) {
         term_write("Not a file!");
         return 1;
     }
 
-    uint8_t *mp3_data = (uint8_t*)file_read(file_sector);
+    uint8_t *mp3_data = (uint8_t*)file_read(&target);
     uint32_t mp3_size = file.size;
 
     mp3dec_t decoder;
@@ -1049,7 +1051,7 @@ int command_handle(char *command, int printprompt) {
     int exit = 0;
     int ran_command = 0;
 
-    uint32_t old_location = file_current;
+    file_pointer_t old_location = file_current;
 
     string_t *cmd = string_init();
     string_t *args[COMMAND_MAX_ARG] = { NULL };
@@ -1119,7 +1121,7 @@ int command_handle(char *command, int printprompt) {
 
     if (keyboard_mode == KEYBOARD_MODE_TERM) {
         if (!term_input_buffer && printprompt) {
-            if (old_location != file_current)
+            if (!FILE_EQ(old_location, file_current))
                 term_update_path();
 
             term_draw_prompt();

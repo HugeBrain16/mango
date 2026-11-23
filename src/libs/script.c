@@ -34,7 +34,7 @@ static list_t *script_modules = NULL;
 static list_t *script_module_paths = NULL;
 static list_t *script_paths = NULL;
 static char *script_tokenize_path = NULL;
-static uint32_t script_tokenize_file = 0;
+static file_pointer_t script_tokenize_file = {0};
 static string_t *script_printcap = NULL;
 static uint8_t script_printcap_print = 1;
 static heap_state_t script_vm;
@@ -484,11 +484,12 @@ static char *node_repr(script_node_t *node) {
 
                 if (fio_file) {
                     file_node_t file;
-                    file_node(fio_file->file, &file);
+                    file_node(&fio_file->file, &file);
 
-                    strfmt(buffer, "[(0x%x) FILE=%d NAME=%s MODE=%d SEEK=%d ]",
+                    strfmt(buffer, "[(0x%x) FILE=%d:%d NAME=%s MODE=%d SEEK=%d ]",
                         node,
-                        fio_file->file,
+                        fio_file->file.lba,
+                        fio_file->file.offset,
                         file.name,
                         fio_file->mode,
                         fio_file->seek);
@@ -601,9 +602,9 @@ static void free_eval(script_eval_t eval) {
 }
 
 static script_token_t *create_token(uint8_t type, size_t lineno, fio_t *file) {
-    if (!script_tokenize_path || script_tokenize_file != file->file) {
+    if (!script_tokenize_path || !FILE_EQ(script_tokenize_file, file->file)) {
         script_tokenize_path = script_alloc(FILE_MAX_PATH + FILE_MAX_NAME);
-        file_get_abspath(file->file, script_tokenize_path, FILE_MAX_PATH + FILE_MAX_NAME);
+        file_get_abspath(&file->file, script_tokenize_path, FILE_MAX_PATH + FILE_MAX_NAME);
         script_tokenize_file = file->file;
         list_push(script_paths, script_tokenize_path);
     }
@@ -3168,9 +3169,9 @@ static script_node_t *call_file_read(script_stmt_t *block, script_node_t *node) 
     if (file->literal.file) {
         size_t len;
         if (!length) {
-            uint32_t target = file->literal.file->file;
+            file_pointer_t target = file->literal.file->file;
             file_node_t target_node;
-            file_node(target, &target_node);
+            file_node(&target, &target_node);
             len = target_node.size - file->literal.file->seek;
         } else len = length->literal.int_value;
 
@@ -3252,15 +3253,15 @@ static script_node_t *call_file_list(script_stmt_t *block, script_node_t *node) 
     script_node_t *list = call_list_init(block, node);
 
     file_node_t target_node;
-    uint32_t target = path ? file_get_node(path->literal.str_value) : file_current;
-    file_node(target, &target_node);
+    file_pointer_t target = path ? file_get_node(path->literal.str_value) : file_current;
+    file_node(&target, &target_node);
 
-    if (target_node.child_head) {
-        uint32_t current = target_node.child_head;
+    if (!FILE_NULL(target_node.child_head)) {
+        file_pointer_t current = target_node.child_head;
         file_node_t current_node;
 
-        while (current) {
-            file_node(current, &current_node);
+        while (!FILE_NULL(current)) {
+            file_node(&current, &current_node);
             list_push(list->literal.list, (void*)node_string(current_node.name));
 
             current = current_node.child_next;
@@ -3335,7 +3336,7 @@ static script_node_t *call_sizeof(script_stmt_t *block, script_node_t *node) {
         case SCRIPT_FILE:
             {
                 file_node_t file;
-                file_node(arg->literal.file->file, &file);
+                file_node(&arg->literal.file->file, &file);
 
                 value->literal.int_value = (int) FIO_FS_BLOCKSIZE * file.size;
                 break;
@@ -5466,7 +5467,7 @@ static int get_tokens(const char *path, script_token_t **tokens) {
         return 1;
 
     file_node_t node;
-    file_node(file->file, &node);
+    file_node(&file->file, &node);
 
     if (node.size == 0)
         return 2;
@@ -5586,7 +5587,7 @@ void script_run(const char *path, int argc, char *argv[]) {
     script_screen_buffer_size = 0;
 
     script_tokenize_path = NULL;
-    script_tokenize_file = 0;
+    script_tokenize_file = (file_pointer_t){0};
 
     script_paths = NULL;
     script_modules = NULL;

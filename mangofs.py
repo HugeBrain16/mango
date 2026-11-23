@@ -8,6 +8,9 @@ from pathlib import Path
 FILE = (1 << 0)
 FOLDER = (1 << 1)
 
+NODE_SIZE = 72
+NODE_MAX = 512 // NODE_SIZE
+
 class Buffer(io.BytesIO):
 	def __init__(self, size):
 		super().__init__(b"\x00" * size)
@@ -55,9 +58,20 @@ class Date:
 	def __repr__(self):
 		return self.formatted()
 
+class Pointer:
+	def __init__(self, lba = 0, offset = 0):
+		self.lba = lba
+		self.offset = offset
+
+	def __bool__(self):
+		return self.lba != 0
+
+	def __repr__(self):
+		return f"{self.lba}:{self.offset}"
+
 class Node:
 	def __init__(self):
-		self.sector = 0
+		self.pointer = Pointer()
 		self.time_created = None
 		self.time_changed = None
 		self.parent = None
@@ -112,7 +126,7 @@ class Disk:
 		self.file_write(file, open(localfile, "rb").read())
 
 	def file_write(self, file, data):
-		if isinstance(file, int):
+		if isinstance(file, Pointer):
 			file = self.read_node(file)
 		elif isinstance(file, str):
 			file = self.get_node(file)
@@ -156,31 +170,31 @@ class Disk:
 		return True
 
 	def node_create(self, parent, name, type):
-		if isinstance(parent, int):
+		if isinstance(parent, Pointer):
 			parent = self.read_node(parent)
 		elif isinstance(parent, str):
 			parent = self.get_node(parent)
 
-		node_sector = self.sector_alloc()
+		node_pointer = self.node_alloc()
 		if type == FILE:
 			data_sector = self.sector_alloc()
 
-		if node_sector == 0 or (type == FILE and data_sector == 0):
-			if node_sector:
-				self.sector_free(node_sector)
+		if not node_pointer or (type == FILE and data_sector == 0):
+			if node_pointer:
+				self.node_free(node_pointer)
 			if type == FILE and data_sector:
 				self.sector_free(data_sector)
 
 			return False
 
 		node = Node()
-		node.sector = node_sector
+		node.pointer = node_pointer
 		node.time_created = date_packed()
 		node.time_changed = date_packed()
-		node.parent = parent.sector
+		node.parent = parent.pointer
 		node.flags = type
-		node.child_head = 0
-		node.child_next = 0
+		node.child_head = Pointer()
+		node.child_next = Pointer()
 		node.first_block = data_sector if type == FILE else 0
 		node.size = 0
 		node.name = name
@@ -189,10 +203,10 @@ class Disk:
 			current = self.read_node(parent.child_head)
 			while current.child_next:
 				current = self.read_node(current.child_next)
-			current.child_next = node_sector
+			current.child_next = node_pointer
 			self.write_node(current)
 		else:
-			parent.child_head = node_sector
+			parent.child_head = node_pointer
 			self.write_node(parent)
 		self.write_node(node)
 
@@ -216,7 +230,7 @@ class Disk:
 	def read_sb(self):
 		sector = self.disk.tell()
 
-		self.sector(2048)
+		self.sector(0)
 		self.sb_magic = self.disk.read(4).decode("utf-8")
 
 		if self.sb_magic != "MNGO":
@@ -230,44 +244,50 @@ class Disk:
 		self.sb_used = struct.unpack("<I", self.disk.read(4))[0]
 		self.sb_free = struct.unpack("<I", self.disk.read(4))[0]
 		self.sb_free_list = struct.unpack("<I", self.disk.read(4))[0]
-		self.root = self.read_node(2049)
+		self.sb_free_pointer = self.read_pointer()
+		self.sb_free_nodes = self.read_pointer()
+		self.root = self.read_node(Pointer(1, 0))
 
 		self.disk.seek(sector)
 
 	def write_sb(self):
 		sector = self.disk.tell()
 
-		self.sector(2048)
+		self.sector(0)
 		self.disk.write("MNGO".encode("utf-8"))
 		self.disk.write(struct.pack("<I", self.sb_version))
 		self.disk.write(struct.pack("<I", self.sb_sectors))
 		self.disk.write(struct.pack("<I", self.sb_used))
 		self.disk.write(struct.pack("<I", self.sb_free))
 		self.disk.write(struct.pack("<I", self.sb_free_list))
+		self.write_pointer(self.sb_free_pointer)
+		self.write_pointer(self.sb_free_nodes)
 
 		self.disk.seek(sector)
 
 	def format(self):
 		sector = self.disk.tell()
 
-		self.sector(2048)
+		self.sector(0)
 		self.disk.write("MNGO".encode("utf-8")) # magic
-		self.disk.write(struct.pack("<I", 1)) # version
+		self.disk.write(struct.pack("<I", 2)) # version
 		self.disk.write(struct.pack("<I", self.get_usable_sector_count())) # sectors
 		self.disk.write(struct.pack("<I", 2)) # used
-		self.disk.write(struct.pack("<I", 2050)) # free
+		self.disk.write(struct.pack("<I", 2)) # free
 		self.disk.write(struct.pack("<I", 0)) # free_list
+		self.write_pointer(Pointer(1, 1)) # free_pointer
+		self.write_pointer(Pointer()) # free_nodes
 
 		self.disk.seek(sector)
 
 		root = Node()
-		root.sector = 2049
+		root.pointer = Pointer(1, 0)
 		root.time_created = date_packed()
 		root.time_changed = date_packed()
-		root.parent = 0
+		root.parent = Pointer()
 		root.flags = FOLDER
-		root.child_head = 0
-		root.child_next = 0
+		root.child_head = Pointer()
+		root.child_next = Pointer()
 		root.size = 0
 		root.first_block = 0
 		root.name = "root"
@@ -283,22 +303,35 @@ class Disk:
 			print("USED:", self.sb_used)
 			print("FREE:", self.sb_free)
 			print("FREE_LIST:", self.sb_free_list)
+			print("FREE_POINTER:", self.sb_free_pointer)
+			print("FREE_NODES:", self.sb_free_nodes)
 		else:
 			print("[ Unformatted ]")
 
 	def sector(self, n):
 		self.disk.seek(512 * n)
 
-	def read_node(self, n):
-		self.sector(n)
+	def read_pointer(self):
+		pointer = Pointer()
+		pointer.offset = struct.unpack("<B", self.disk.read(1))[0]
+		pointer.lba = struct.unpack("<I", self.disk.read(4))[0]
+
+		return pointer
+
+	def write_pointer(self, pointer):
+		self.disk.write(struct.pack("<B", pointer.offset))
+		self.disk.write(struct.pack("<I", pointer.lba))
+
+	def read_node(self, pointer):
+		self.disk.seek(512 * pointer.lba + NODE_SIZE * pointer.offset)
 
 		node = Node()
-		node.sector = n
+		node.pointer = pointer
 		node.time_created = Date(struct.unpack("<Q", self.disk.read(8))[0])
 		node.time_changed = Date(struct.unpack("<Q", self.disk.read(8))[0])
-		node.parent = struct.unpack("<I", self.disk.read(4))[0]
-		node.child_head = struct.unpack("<I", self.disk.read(4))[0]
-		node.child_next = struct.unpack("<I", self.disk.read(4))[0]
+		node.parent = self.read_pointer()
+		node.child_head = self.read_pointer()
+		node.child_next = self.read_pointer()
 		node.size = struct.unpack("<I", self.disk.read(4))[0]
 		node.first_block = struct.unpack("<I", self.disk.read(4))[0]
 		node.name = self.disk.read(32).decode("utf-8").rstrip("\x00")
@@ -309,12 +342,12 @@ class Disk:
 	def write_node(self, node):
 		sector = self.disk.tell()
 
-		self.sector(node.sector)
+		self.disk.seek(512 * node.pointer.lba + NODE_SIZE * node.pointer.offset)
 		self.disk.write(struct.pack("<Q", date_packed(node.time_created)))
 		self.disk.write(struct.pack("<Q", date_packed(node.time_changed)))
-		self.disk.write(struct.pack("<I", node.parent))
-		self.disk.write(struct.pack("<I", node.child_head))
-		self.disk.write(struct.pack("<I", node.child_next))
+		self.write_pointer(node.parent)
+		self.write_pointer(node.child_head)
+		self.write_pointer(node.child_next)
 		self.disk.write(struct.pack("<I", node.size))
 		self.disk.write(struct.pack("<I", node.first_block))
 
@@ -394,7 +427,7 @@ class Disk:
 		if path[0] != "/":
 			raise NameError("Path must start with '/'")
 
-		current = self.read_node(self.root.sector)
+		current = self.read_node(self.root.pointer)
 
 		if path == "/":
 			return current
@@ -460,6 +493,52 @@ class Disk:
 		self.disk.seek(curr)
 
 		return sector
+
+	def node_free(self, pointer):
+		self.read_sb()
+
+		node = Node()
+		node.pointer = pointer
+		node.time_created = date_packed()
+		node.time_changed = date_packed()
+		node.parent = Pointer()
+		node.flags = 0
+		node.child_head = Pointer()
+		node.child_next = self.sb_free_nodes
+		node.size = 0
+		node.first_block = 0
+		node.name = ""
+		self.write_node(node)
+
+		self.sb_free_nodes = pointer
+		self.write_sb()
+
+	def node_alloc(self):
+		self.read_sb()
+
+		if self.sb_free_nodes:
+			pointer = self.sb_free_nodes
+			self.sb_free_nodes = self.read_node(pointer).child_next
+			self.write_sb()
+
+			return pointer
+
+		if self.sb_free_pointer and self.sb_free_pointer.offset < NODE_MAX:
+			pointer = self.sb_free_pointer
+			self.sb_free_pointer = Pointer(pointer.lba, pointer.offset + 1)
+			self.write_sb()
+
+			return pointer
+
+		sector = self.sector_alloc()
+		if sector == 0:
+			return Pointer()
+
+		self.read_sb()
+		self.sb_free_pointer = Pointer(sector, 1)
+		self.write_sb()
+
+		return Pointer(sector, 0)
 
 if __name__ == "__main__":
 	args = sys.argv[1:]

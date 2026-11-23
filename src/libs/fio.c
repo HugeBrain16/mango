@@ -38,12 +38,12 @@ fio_t *fio_open(const char *path, uint8_t mode) {
     if (!path)
         return NULL;
 
-    uint32_t node = file_get_node(path);
-    if (!node)
+    file_pointer_t node = file_get_node(path);
+    if (FILE_NULL(node))
         return NULL;
 
     file_node_t *file = heap_alloc(sizeof(file_node_t));
-    file_node(node, file);
+    file_node(&node, file);
 
     if (file->flags & FILE_FOLDER) {
         heap_free(file);
@@ -99,7 +99,7 @@ static int fio_putc2(fio_t *fio, char c, int update) {
 
         uint32_t char_at = fio->seek % FIO_FS_BLOCKSIZE;
         if (char_at == FIO_FS_BLOCKSIZE - 1) {
-            uint32_t new_block = file_sector_alloc();
+            uint32_t new_block = file_sector_alloc_data();
             fio->block->next = new_block;
 
             file_data_t data = {0};
@@ -113,7 +113,7 @@ static int fio_putc2(fio_t *fio, char c, int update) {
         if (fio->seek > fio->node->size)
             fio->node->size = fio->seek;
         if (update)
-            file_node_write(fio->file, fio->node);
+            file_node_write(&fio->file, fio->node);
 
         file_data_write(block_sector, fio->block);
         return 1;
@@ -129,11 +129,11 @@ int fio_write(fio_t *fio, const char *str, size_t length) {
     if (fio->mode == FIO_WRITE || fio->mode == FIO_APPEND) {
         for (size_t i = 0; i < length; i++) {
             if (!fio_putc2(fio, str[i], 0)) {
-                file_node_write(fio->file, fio->node);
+                file_node_write(&fio->file, fio->node);
                 return 0;
             }
         }
-        file_node_write(fio->file, fio->node);
+        file_node_write(&fio->file, fio->node);
     }
 
     return 1;
