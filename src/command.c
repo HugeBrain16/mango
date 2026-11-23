@@ -1004,6 +1004,32 @@ static int command_exit(int argc, char *argv[]) {
     return 0;
 }
 
+static int command_fsinfo(int argc, char *argv[]) {
+    unused(argc); unused(argv);
+
+    if (nodisk()) return 1;
+
+    file_superblock_t sb;
+    file_read_sb(&sb);
+
+    char msg[32];
+    strfmt(msg, "MAGIC = %c%c%c%c\n",
+        sb.magic & 0xFF,
+        (sb.magic >> 8) & 0xFF,
+        (sb.magic >> 16) & 0xFF,
+        (sb.magic >> 24) & 0xFF
+    ); term_write(msg);
+    strfmt(msg, "VERSION = %d\n", sb.version); term_write(msg);
+    strfmt(msg, "SECTORS = %d\n", sb.sectors); term_write(msg);
+    strfmt(msg, "USED = %d sector%s\n", sb.used, sb.used > 1 ? "s" : ""); term_write(msg);
+    strfmt(msg, "FREE = LBA %d\n", sb.free); term_write(msg);
+    strfmt(msg, "FREE_LIST = LBA %d\n", sb.free_list); term_write(msg);
+    strfmt(msg, "FREE_POINTER = %d:%d\n", sb.free_pointer.lba, sb.free_pointer.offset); term_write(msg);
+    strfmt(msg, "FREE_NODES = %d:%d\n", sb.free_nodes.lba, sb.free_nodes.offset); term_write(msg);
+
+    return 0;
+}
+
 typedef int (*command_t)(int, char**);
 typedef struct {
     const char *name;
@@ -1032,6 +1058,7 @@ static commands_t commands[] = {
     { "movefolder" ,command_movefolder },
     { "formatdisk" ,command_formatdisk },
     { "nodeinfo", command_nodeinfo },
+    { "fsinfo", command_fsinfo },
     { "printfile", command_printfile },
     { "run", command_run },
     { "time", command_time },
